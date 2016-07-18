@@ -5,7 +5,7 @@ Install directions
 This section covers the basics of how to download and install Tomosaic.
 
 .. contents:: Contents:
-   :local:
+:local:
 
 Installing from Conda/Binstar
 =============================

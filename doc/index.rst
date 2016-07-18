@@ -9,15 +9,15 @@ This guide is maintained on
 `GitHub <https://github.com/tomosaic/tomosaic/tree/master/doc>`_.
 
 .. toctree::
-   :maxdepth: 1
-   
-   source/about
-   source/install
-   source/devguide
-   source/api
-   source/demo
-   source/faq
-   source/credits
+:maxdepth: 1
+
+       source/about
+       source/install
+       source/devguide
+       source/api
+       source/demo
+       source/faq
+       source/credits
 
 
 Indices and tables

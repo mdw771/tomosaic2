@@ -5,7 +5,7 @@ Frequently asked questions
 Here's a list of questions.
 
 .. contents:: Questions
-   :local:
+:local:
    
 
 How can I report bugs?

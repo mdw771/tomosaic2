@@ -6,7 +6,7 @@ This section explains the basics for developers who wish to contribute
 to the Tomosaic project.
 
 .. contents:: Contents:
-   :local:
+:local:
 
 
 Cloning the repository
@@ -34,7 +34,7 @@ computer and feel comfortable with making modifications in the code.
 Coding conventions
 ==================
 
-We try to keep a consistent and readable code. So, please keep  
+We try to keep a consistent and readable code. So, please keep
 in mind the following style and syntax guidance before you start
 coding. 
 
@@ -101,9 +101,9 @@ between your forked branch and the original TomoPy repository.
 When you're ready to submit your pull request, click 
 **Create pull request**:
 
-Clicking on **Create pull request** sends you to a discussion page,  
-where you can enter a title and optional description. It’s important to  
-provide as much useful information and a rationale for why you’re making  
+Clicking on **Create pull request** sends you to a discussion page,
+where you can enter a title and optional description. It’s important to
+provide as much useful information and a rationale for why you’re making
 this Pull Request in the first place.
 
 When you’re ready typing out your heartfelt argument, click on **Send 

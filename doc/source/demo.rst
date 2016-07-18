@@ -7,7 +7,7 @@ This section contains code example for various Tomosaic tasks.
 
 
 .. automodule:: doc.demo
-   :members:
-   :undoc-members:
-   :show-inheritance: 
+:members:
+       :undoc-members:
+               :show-inheritance:
 

@@ -10,6 +10,6 @@ This section contains the API reference and usage information for Tomosaic.
 
 
 .. automodule:: tomosaic
-   :members:
+:members:
    :undoc-members:
-   :show-inheritance: 
+               :show-inheritance:

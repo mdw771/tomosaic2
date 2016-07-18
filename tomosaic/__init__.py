@@ -51,6 +51,8 @@ from __future__ import (absolute_import, division, print_function,
 
 import logging
 
+from tomopy.
+
 from tomosaic.merge import *
 from tomosaic.morph import *
 from tomosaic.register import *
@@ -60,6 +62,6 @@ logging.basicConfig()
 try:
     import pkg_resources
 
-    __version__ = pkg_resources.working_set.require("tomosaic")[0].version
+__version__ = pkg_resources.working_set.require("tomosaic")[0].version
 except:
-    pass
+pass

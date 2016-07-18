@@ -75,20 +75,15 @@ def img_merge_alpha(img1, img2, shift, alpha=0.5):
 
     Parameters
     ----------
-    arr : ndarray
-        Input array.
-
-    dmin, dmax : float, optional
-        Mininum and maximum values to rescale data.
-
-    Returns
-    -------
-    ndarray
         Output array.
         :param img1:
         :param img2:
         :param shift:
         :param alpha:
+
+    Returns
+    -------
+    ndarray
     """
     new_shape = map(max, map(operator.add, img2.shape, shift), img1.shape)
     newimg1 = np.zeros(new_shape)
@@ -100,4 +95,34 @@ def img_merge_alpha(img1, img2, shift, alpha=0.5):
     newimg2[0:img1.shape[0], 0:img1.shape[1]] = img1
 
     final_img = alpha * newimg1 + (1 - alpha) * newimg2
+    return final_img
+
+
+def img_merge_max(img1, img2, shift):
+    """
+    Change dynamic range of values in an array.
+
+    Parameters
+    ----------
+        :param img1:
+        :param img2:
+        :param shift:
+
+    Returns
+    -------
+    ndarray
+        Output array.
+    """
+    new_shape = map(max, map(operator.add, img2.shape, shift), img1.shape)
+    newimg1 = np.zeros(new_shape)
+    newimg1[0:img1.shape[0], 0:img1.shape[1]] = img1
+    newimg1[shift[0]:, shift[1]:] = img2
+
+    newimg2 = np.zeros(new_shape)
+    newimg2[shift[0]:, shift[1]:] = img2
+    newimg2[0:img1.shape[0], 0:img1.shape[1]] = img1
+
+    buff = np.dstack((newimg1, newimg2))
+    final_img = buff.max(2)
+
     return final_img
