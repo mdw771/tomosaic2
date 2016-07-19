@@ -69,8 +69,93 @@ __all__ = ['img_merge_alpha',
            'block_merge']
 
 
-def blend(img1, img2, shift, method):
-    return 0
+def blend(
+        img1, img2, shift, method, **kwargs):
+    """
+    Blend images.
+    Parameters
+    ----------
+    img1, img2 : ndarray
+        3D tomographic data.
+    shift : array
+        Projection angles in radian.
+
+    method : {str, function}
+        One of the following string values.
+        'alpha'
+        'max'
+        'min'
+        'poison'
+
+    filter_par: list, optional
+        Filter parameters as a list.
+    Returns
+    -------
+    ndarray
+        Reconstructed 3D object.
+    """
+
+allowed_kwargs = {
+    'alpha': ['alpha'],
+    'max': [''],
+    'min': [''],
+    'poisson': [''],
+   }
+
+generic_kwargs = ['']
+
+if isinstance(method, six.string_types):
+
+    # Check whether we have an allowed method
+    if method not in allowed_kwargs:
+        raise ValueError(
+            'Keyword "method" must be one of %s, or a Python method.' %
+            (list(allowed_kwargs.keys()),))
+
+    # Make sure have allowed kwargs appropriate for algorithm.
+    for key, value in list(kwargs.items()):
+        if key not in allowed_kwargs[method]:
+            raise ValueError(
+                '%s keyword not in allowed keywords %s' %
+                (key, allowed_kwargs[algorithm]))
+        else:
+            # Make sure they are numpy arrays.
+            if not isinstance(kwargs[key], (np.ndarray, np.generic)) and not isinstance(kwargs[key], six.string_types):
+                kwargs[key] = np.array(value)
+
+            # Make sure reg_par and filter_par is float32.
+            if key == 'alpha':
+                if not isinstance(kwargs[key], np.float32):
+                    kwargs[key] = np.array(value, dtype='float32')
+
+    # Set kwarg defaults.
+    for kw in allowed_kwargs[method]:
+        kwargs.setdefault(kw, kwargs_defaults[kw])
+
+elif hasattr(algorithm, '__call__'):
+    # Set kwarg defaults.
+    for kw in generic_kwargs:
+        kwargs.setdefault(kw, kwargs_defaults[kw])
+else:
+    raise ValueError(
+        'Keyword "method" must be one of %s, or a Python method.' %
+        (list(allowed_kwargs.keys()),))
+
+
+return _dist_recon(
+    tomo, center_arr, recon, _get_func(method), args, kwargs, ncore, nchunk)
+
+def _get_func(method):
+    if method == 'alpha':
+        func = img_blend_alpha()
+    elif method == 'max':
+        func = img_blend_max()
+    elif method == 'min':
+        func = img_blend_min()
+    elif method == 'poisson':
+        func = img_blend_poisson()
+    return func
+
 
 def img_merge_alpha(img1, img2, shift, alpha=0.5):
     """
@@ -131,8 +216,39 @@ def img_merge_max(img1, img2, shift):
     return final_img
 
 
-# Advanced blending function based on Perez et al., Poisson Image Editing.
-# NOTE: DO NEWIMG(NP.ISNAN(NEWIMG)) = NEWIMG(NP.INVERT(NP.ISNAN(NEWIMG))).MIN AFTER STITCHING ALL IMAGES
+
+def img_merge_min(img1, img2, shift):
+    """
+    Change dynamic range of values in an array.
+
+    Parameters
+    ----------
+        :param img1:
+        :param img2:
+        :param shift:
+
+    Returns
+    -------
+    ndarray
+        Output array.
+    """
+    new_shape = map(max, map(operator.add, img2.shape, shift), img1.shape)
+    newimg1 = np.zeros(new_shape)
+    newimg1[0:img1.shape[0], 0:img1.shape[1]] = img1
+    newimg1[shift[0]:, shift[1]:] = img2
+
+    newimg2 = np.zeros(new_shape)
+    newimg2[shift[0]:, shift[1]:] = img2
+    newimg2[0:img1.shape[0], 0:img1.shape[1]] = img1
+
+    buff = np.dstack((newimg1, newimg2))
+    final_img = buff.min(2)
+
+    return final_img
+
+
+
+
 def img_merge_poisson(img1, img2, shift):
     new_shape = map(max, map(operator.add, img2.shape, shift), img1.shape)
     # img2 covers img1.

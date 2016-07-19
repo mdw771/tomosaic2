@@ -145,7 +145,7 @@ def cross_correlation_pcm(img1, img2, rangeX=None, rangeY=None, blur=3):
     if rangeY is None:
         rangeY = [0, new_size]
     ##
-    norm_max = np.max([img1.argmax(), img2.argmax()])
+    norm_max = np.max([img1.max(), img2.max()])
     src_image = np.array(img1, dtype=np.complex128, copy=False) / norm_max
     target_image = np.array(img2, dtype=np.complex128, copy=False) / norm_max
     f0 = fft2(src_image)

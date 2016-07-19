@@ -62,3 +62,122 @@ __credits__ = "Doga Gursoy"
 __copyright__ = "Copyright (c) 2015, UChicago Argonne, LLC."
 __docformat__ = 'restructuredtext en'
 __all__ = ['']
+
+
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jul  1 10:57:31 2016
+
+@author: ravescovi
+"""
+
+
+import glob, time, itertools
+import numpy as np
+import tomopy
+import dxchange
+
+
+
+sample_name = 'S3_FullBrain_Mosaic_'
+save_folder = 'test_recon_bulk3'
+x_shift = 1823
+ds_level = 2
+center_pos = 11924/np.power(2,ds_level).astype('float32')
+#apparently for the center it was 2982 and for the borders 2981 (that shows stitching problems)
+
+grid_line_ini = 5
+grid_line_end = 5 #max = 11
+sino_ini=400
+sino_end = 2000
+sino_step = 100
+
+
+for grid_line in range(grid_line_ini,grid_line_end+1):
+    grid_wd = sample_name + '*_y' + str(grid_line).zfill(2) +'*.h5'
+    file_list = sorted(glob.glob(grid_wd))
+
+    for sino_n in range (sino_ini,sino_end,sino_step):
+        print '############################################'
+        print 'RECONSTRUCTION GRID '+str(grid_line)+' SINO '+str(sino_n)
+
+        # data reading
+        t = time.time()
+        sinos = [[]] * len(file_list)
+        prj, flt_tmp, drk = tomopy.read_aps_32id(file_list[5], sino=(sino_n,sino_n+1))
+        for kfile in range(len(file_list)-1,-1,-1):
+            print file_list[kfile]
+            prj, flt, drk = tomopy.read_aps_32id(file_list[kfile], sino=(sino_n,sino_n+1))
+            if kfile>5:
+                prj = tomopy.normalize(prj, flt_tmp, drk)
+            else:
+                prj = tomopy.normalize(prj, flt, drk)
+            sinos[kfile] = np.squeeze(prj)
+        print 'file read:           ' + str(time.time() - t)
+
+        # data stitching
+        t = time.time()
+        buff= sinos[11]
+        for kfile, k in itertools.izip(range(len(file_list)-1,0,-1),range(len(file_list)-1)):
+            buff= blend(buff,sinos[kfile-1],[0,(k+1)*x_shift])
+        sino = buff.reshape([buff.shape[0],1,buff.shape[1]])
+        sino = sino[:,:,:22496].astype('float32')
+        print 'stitch:           ' + str(time.time() - t)
+        print 'final size:       ' + str(sino.shape)
+
+        # data downsampling
+        t = time.time()
+        sino = tomopy.downsample(sino, level=ds_level)
+        print 'downsample:           ' + str(time.time() - t)
+        print 'new shape :           ' + str(sino.shape)
+
+
+        # remove stripes
+        t = time.time()
+        sino = tomopy.remove_stripe_fw(sino,2)
+        print 'strip removal:           ' + str(time.time() - t)
+        # Minus Log
+        sino[np.abs(sino)< 1e-3] = 1
+        sino[sino > 1] = 1
+        sino = -np.log(sino)
+        sino[np.where( np.isnan(sino) == True )] = 0
+
+
+        #save the sinogram
+        tomopy.io.writer.write_tiff(np.squeeze(sino), fname=save_folder+'/sinos/sino_'+str(grid_line)+'_'+str(sino_n))
+
+
+	##RECON
+        t = time.time()
+        ang = tomopy.angles(sino.shape[0])
+
+
+        #GRIDREC
+        rec = tomopy.recon(sino, ang, center=center_pos, algorithm='gridrec', filter_name='parzen')
+
+        tomopy.io.writer.write_tiff(rec, fname=save_folder+'/recon/gridrec_'+str(grid_line)+'_'+str(sino_n))
+
+	#SIRT-FBP
+	#import astra, sirtfbp
+	#astra.plugin.register(sirtfbp.plugin)
+	#extra_options = {'filter_dir':'./filters'}
+	#num_iter = 100
+	#print 'iterations:           ' + str(num_iter)
+	#rec = tomopy.recon(sino, ang, center=center_pos, algorithm=tomopy.astra,
+	#	           options={'proj_type':'cuda','method':'SIRT-FBP','extra_options':extra_options,'num_iter':num_iter})
+	#tomopy.io.writer.write_tiff_stack(rec, fname=save_folder+'/sirtfbp'+str(num_iter)+'_'+str(grid_line)+'_'+str(sino_n))
+
+
+	#TV
+	#import astra, tvtomo
+	#num_iter=100
+	#print 'iterations:           ' + str(num_iter)
+	#astra.plugin.register(tvtomo.plugin)
+	#print astra.plugin.get_help('TV-FISTA')
+	#rec = tomopy.recon(sino, ang, center=center_pos, algorithm=tomopy.astra,
+	#	           options={'method':'TV-FISTA', 'proj_type':'cuda', 'num_iter':num_iter,
+	#	                    'extra_options':{'tv_reg':0.000005,'bmin':0.0,'print_progress':True}})
+	#tomopy.io.writer.write_tiff_stack(rec, fname=save_folder+'/fista'+str(num_iter)+'_'+str(grid_line)+'_'+str(sino_n))
+
+
+	print 'recon:           ' + str(time.time() - t)
