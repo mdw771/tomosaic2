@@ -99,12 +99,12 @@ def blend(img1, img2, shift, method, **kwargs):
 
     allowed_kwargs = {
     'alpha': ['alpha'],
-    'max': [''],
-    'min': [''],
-    'poisson': [''],
+    'max': [],
+    'min': [],
+    'poisson': [],
     }
 
-    generic_kwargs = ['']
+    generic_kwargs = []
     # Generate kwargs for the algorithm.    kwargs_defaults = _get_algorithm_kwargs()
 
     if isinstance(method, six.string_types):
@@ -144,22 +144,22 @@ def blend(img1, img2, shift, method, **kwargs):
        raise ValueError(
             'Keyword "method" must be one of %s, or a Python method.' %
            (list(allowed_kwargs.keys()),))
-        
 
-    return _get_func(img1, img2, shift, kwargs)
+    func = _get_func(method)
+    return func(img1, img2, shift, kwargs)
 
 def _get_func(method):
     if method == 'alpha':
-        func = img_blend_alpha()
+        func = img_merge_alpha
     elif method == 'max':
-        func = img_blend_max()
+        func = img_merge_max
     elif method == 'min':
-        func = img_blend_min()
+        func = img_merge_min
     elif method == 'poisson':
-        func = img_blend_poisson()
+        func = img_merge_poisson
     return func
 
-def _get_algorithm_kwargs():    return {            'alpha': 0.5}
+def _get_algorithm_kwargs():    return {'alpha': 0.5}
 
 def img_merge_alpha(img1, img2, shift, alpha=0.5):
     """
@@ -177,20 +177,21 @@ def img_merge_alpha(img1, img2, shift, alpha=0.5):
     -------
     ndarray
     """
+    print('Alpha Blend = ' + str(alpha))
     new_shape = map(max, map(operator.add, img2.shape, shift), img1.shape)
     newimg1 = np.zeros(new_shape)
     newimg1[0:img1.shape[0], 0:img1.shape[1]] = img1
-    newimg1[shift[0]:, shift[1]:] = img2
+    newimg1[shift[0]:shift[0]+img2.shape[0], shift[1]:shift[1]+img2.shape[1]] = img2
 
     newimg2 = np.zeros(new_shape)
-    newimg2[shift[0]:, shift[1]:] = img2
+    newimg2[shift[0]:shift[0]+img2.shape[0], shift[1]:shift[1]+img2.shape[1]] = img2
     newimg2[0:img1.shape[0], 0:img1.shape[1]] = img1
 
     final_img = alpha * newimg1 + (1 - alpha) * newimg2
     return final_img
 
 
-def img_merge_max(img1, img2, shift):
+def img_merge_max(img1, img2, shift, _):
     """
     Change dynamic range of values in an array.
 
@@ -205,13 +206,14 @@ def img_merge_max(img1, img2, shift):
     ndarray
         Output array.
     """
+    print('Max Blend')
     new_shape = map(max, map(operator.add, img2.shape, shift), img1.shape)
     newimg1 = np.zeros(new_shape)
     newimg1[0:img1.shape[0], 0:img1.shape[1]] = img1
-    newimg1[shift[0]:, shift[1]:] = img2
+    newimg1[shift[0]:shift[0]+img2.shape[0], shift[1]:shift[1]+img2.shape[1]] = img2
 
     newimg2 = np.zeros(new_shape)
-    newimg2[shift[0]:, shift[1]:] = img2
+    newimg2[shift[0]:shift[0]+img2.shape[0], shift[1]:shift[1]+img2.shape[1]] = img2
     newimg2[0:img1.shape[0], 0:img1.shape[1]] = img1
 
     buff = np.dstack((newimg1, newimg2))
@@ -221,7 +223,7 @@ def img_merge_max(img1, img2, shift):
 
 
 
-def img_merge_min(img1, img2, shift):
+def img_merge_min(img1, img2, shift, _):
     """
     Change dynamic range of values in an array.
 
@@ -253,7 +255,7 @@ def img_merge_min(img1, img2, shift):
 
 
 
-def img_merge_poisson(img1, img2, shift):
+def img_merge_poisson(img1, img2, shift, _):
     new_shape = map(max, map(operator.add, img2.shape, shift), img1.shape)
     # img2 covers img1.
     newimg = np.empty(new_shape, dtype='float32')
