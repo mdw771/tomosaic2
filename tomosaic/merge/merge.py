@@ -57,6 +57,7 @@ import logging
 import operator
 
 import numpy as np
+import six
 
 logger = logging.getLogger(__name__)
 
@@ -64,13 +65,14 @@ __author__ = "Rafael Vescovi"
 __credits__ = "Doga Gursoy"
 __copyright__ = "Copyright (c) 2015, UChicago Argonne, LLC."
 __docformat__ = 'restructuredtext en'
-__all__ = ['img_merge_alpha',
-           'img_merge_tv',
-           'block_merge']
+__all__ = ['blend',
+           'img_merge_alpha',
+           'img_merge_max',
+           'img_merge_min',
+           'img_merge_poisson']
 
 
-def blend(
-        img1, img2, shift, method, **kwargs):
+def blend(img1, img2, shift, method, **kwargs):
     """
     Blend images.
     Parameters
@@ -95,55 +97,56 @@ def blend(
         Reconstructed 3D object.
     """
 
-allowed_kwargs = {
+    allowed_kwargs = {
     'alpha': ['alpha'],
     'max': [''],
     'min': [''],
     'poisson': [''],
-   }
+    }
 
-generic_kwargs = ['']
+    generic_kwargs = ['']
+    # Generate kwargs for the algorithm.    kwargs_defaults = _get_algorithm_kwargs()
 
-if isinstance(method, six.string_types):
+    if isinstance(method, six.string_types):
 
-    # Check whether we have an allowed method
-    if method not in allowed_kwargs:
-        raise ValueError(
-            'Keyword "method" must be one of %s, or a Python method.' %
-            (list(allowed_kwargs.keys()),))
-
-    # Make sure have allowed kwargs appropriate for algorithm.
-    for key, value in list(kwargs.items()):
-        if key not in allowed_kwargs[method]:
+        # Check whether we have an allowed method
+        if method not in allowed_kwargs:
             raise ValueError(
-                '%s keyword not in allowed keywords %s' %
-                (key, allowed_kwargs[algorithm]))
-        else:
-            # Make sure they are numpy arrays.
-            if not isinstance(kwargs[key], (np.ndarray, np.generic)) and not isinstance(kwargs[key], six.string_types):
-                kwargs[key] = np.array(value)
+                'Keyword "method" must be one of %s, or a Python method.' %
+                (list(allowed_kwargs.keys()),))
 
-            # Make sure reg_par and filter_par is float32.
-            if key == 'alpha':
-                if not isinstance(kwargs[key], np.float32):
-                    kwargs[key] = np.array(value, dtype='float32')
-
+        # Make sure have allowed kwargs appropriate for algorithm.
+        for key, value in list(kwargs.items()):
+            if key not in allowed_kwargs[method]:
+                raise ValueError(
+                    '%s keyword not in allowed keywords %s' %
+                    (key, allowed_kwargs[algorithm]))
+            else:
+                # Make sure they are numpy arrays.
+                if not isinstance(kwargs[key], (np.ndarray, np.generic)) and not isinstance(kwargs[key], six.string_types):
+                    kwargs[key] = np.array(value)
+    
+                # Make sure reg_par and filter_par is float32.
+                if key == 'alpha':
+                    if not isinstance(kwargs[key], np.float32):
+                        kwargs[key] = np.array(value, dtype='float32')
+    
+        # Set kwarg defaults.
+        for kw in allowed_kwargs[method]:
+            print(kw)
+            kwargs.setdefault(kw, kwargs_defaults[kw])
+    
+    elif hasattr(algorithm, '__call__'):
     # Set kwarg defaults.
-    for kw in allowed_kwargs[method]:
-        kwargs.setdefault(kw, kwargs_defaults[kw])
+        for kw in generic_kwargs:
+            kwargs.setdefault(kw, kwargs_defaults[kw])
+    else:
+       raise ValueError(
+            'Keyword "method" must be one of %s, or a Python method.' %
+           (list(allowed_kwargs.keys()),))
+        
 
-elif hasattr(algorithm, '__call__'):
-    # Set kwarg defaults.
-    for kw in generic_kwargs:
-        kwargs.setdefault(kw, kwargs_defaults[kw])
-else:
-    raise ValueError(
-        'Keyword "method" must be one of %s, or a Python method.' %
-        (list(allowed_kwargs.keys()),))
-
-
-return _dist_recon(
-    tomo, center_arr, recon, _get_func(method), args, kwargs, ncore, nchunk)
+    return _get_func(img1, img2, shift, kwargs)
 
 def _get_func(method):
     if method == 'alpha':
@@ -156,6 +159,7 @@ def _get_func(method):
         func = img_blend_poisson()
     return func
 
+def _get_algorithm_kwargs():    return {            'alpha': 0.5}
 
 def img_merge_alpha(img1, img2, shift, alpha=0.5):
     """

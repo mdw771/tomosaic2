@@ -52,15 +52,20 @@ from __future__ import (absolute_import, division, print_function,
 import logging
 
 from tomosaic.merge import *
+from tomosaic.merge.merge import *
 from tomosaic.morph import *
 from tomosaic.register import *
+from tomosaic.register.register import *
+from tomosaic.register.register_translation import *
+#from tomosaic.register.recon import *
 from tomosaic.util import *
+from tomosaic.util.io import *
+from tomosaic.util.grid import *
 
 logging.basicConfig()
 
 try:
     import pkg_resources
-
-__version__ = pkg_resources.working_set.require("tomosaic")[0].version
+    __version__ = pkg_resources.working_set.require("tomosaic")[0].version
 except:
-pass
+    pass

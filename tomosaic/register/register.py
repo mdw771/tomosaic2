@@ -66,10 +66,10 @@ __author__ = "Rafael Vescovi"
 __credits__ = "Doga Gursoy"
 __copyright__ = "Copyright (c) 2015, UChicago Argonne, LLC."
 __docformat__ = 'restructuredtext en'
-__all__ = ['calculate_matrix',
-           'optimize_matrix',
-           'cross_correlation_bf,'
+__all__ = ['cross_correlation_bf',
            'cross_correlation_pcm']
+
+
 
 
 def cross_correlation_bf(img1, img2, rangeX=None, rangeY=None):

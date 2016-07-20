@@ -47,7 +47,7 @@
 # #########################################################################
 
 """
-Module for image merging
+Module for grid creation
 """
 
 from __future__ import (absolute_import, division, print_function,
@@ -61,20 +61,19 @@ __author__ = "Rafael Vescovi"
 __credits__ = "Doga Gursoy"
 __copyright__ = "Copyright (c) 2015, UChicago Argonne, LLC."
 __docformat__ = 'restructuredtext en'
-__all__ = ['']
+__all__ = ['start_file_grid',
+           'start_shift_grid',
+           'refine_shift_grid']
 
 
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Jul  1 10:57:31 2016
-
-@author: ravescovi
-"""
 
 import numpy as np
+import h5py
 import tomopy
 import dxchange
-
+from tomosaic.morph.image import *
+from tomosaic.register.register import *
+from tomosaic.util.io import *
 
 def start_file_grid(file_list, ver_dir=0, hor_dir=0):
     ind_list = get_index(file_list)
@@ -128,7 +127,7 @@ g_shapes = lambda fname: h5py.File(fname, "r")['exchange/data'].shape
 
 def refine_shift_grid(grid, shift_grid, step=100):
     if (grid.shape[0] != shift_grid.shape[0] or
-                grid.shape[1] != shift_grid.shape[1]):
+        grid.shape[1] != shift_grid.shape[1]):
         return
 
     frame = 0
@@ -137,13 +136,13 @@ def refine_shift_grid(grid, shift_grid, step=100):
     n_pairs = pairs.shape[0]
 
     for line in np.arange(n_pairs):
-        print 'line ' + str(line), pairs[line, 0], pairs[line, 1], pairs[line, 2]
+        print('line ' + str(line), pairs[line, 0], pairs[line, 1], pairs[line, 2])
         main_pos = pairs[line, 0]
-        main_shape = get_shape(grid[main_pos])
+        main_shape = g_shapes(grid[main_pos])
         right_pos = pairs[line, 1]
-        right_shape = get_shape(grid[right_pos])
+        right_shape = g_shapes(grid[right_pos])
         bottom_pos = pairs[line, 2]
-        bottom_shape = get_shape(grid[bottom_pos])
+        bottom_shape = g_shapes(grid[bottom_pos])
         diag_pos = pairs[line, 3]
         prj, flt, drk = dxchange.read_aps_32id(grid[main_pos], proj=(frame, frame + 1))
         if (main_pos[1] < 6):
@@ -156,37 +155,38 @@ def refine_shift_grid(grid, shift_grid, step=100):
         main_prj = vig_image(prj)
 
         if (right_pos != None):
-    prj, flt, drk = dxchange.read_aps_32id(grid[right_pos], proj=(frame, frame + 1))
+            prj, flt, drk = dxchange.read_aps_32id(grid[right_pos], proj=(frame, frame + 1))
             if (right_pos[0] < 6):
                 _, flt, _ = dxchange.read_aps_32id(grid[right_pos[0], 6], proj=(frame, frame + 1))
-    prj = tomopy.normalize(prj, flt[20:, :, :], drk)
-    prj[np.abs(prj) < 2e-3] = 2e-3
-            prj[prj > 1] = 1
-            prj = -np.log(prj)
-    prj[np.where(np.isnan(prj) == True)] = 0
-    right_prj = vig_image(prj)
-    shift_ini = shift_grid[right_pos] - shift_grid[main_pos]
-    rangeX = shift_ini[1] + [-10, 10]
-    rangeY = shift_ini[0] + [0, 5]
-    right_vec = create_stitch_shift(main_prj, right_prj, rangeX, rangeY)
-    pairs_shift[line, 1] = right_vec
+        prj = tomopy.normalize(prj, flt[20:, :, :], drk)
+        prj[np.abs(prj) < 2e-3] = 2e-3
+        prj[prj > 1] = 1
+        prj = -np.log(prj)
+        prj[np.where(np.isnan(prj) == True)] = 0
+        right_prj = vig_image(prj)
+        shift_ini = shift_grid[right_pos] - shift_grid[main_pos]
+        rangeX = shift_ini[1] + [-10, 10]
+        rangeY = shift_ini[0] + [0, 5]
+        right_vec = create_stitch_shift(main_prj, right_prj, rangeX, rangeY)
+        pairs_shift[line, 1] = right_vec
 
 
-if (bottom_pos != None):
-    prj, flt, drk = dxchange.read_aps_32id(grid[bottom_pos], proj=(frame, frame + 1))
+        if (bottom_pos != None):
+            prj, flt, drk = dxchange.read_aps_32id(grid[bottom_pos], proj=(frame, frame + 1))
             if (bottom_pos[0] < 6):
                 _, flt, _ = dxchange.read_aps_32id(grid[bottom_pos[0], 6], proj=(frame, frame + 1))
-    prj = tomopy.normalize(prj, flt[20:, :, :], drk)
-    prj[np.abs(prj) < 2e-3] = 2e-3
+            prj = tomopy.normalize(prj, flt[20:, :, :], drk)
+            prj[np.abs(prj) < 2e-3] = 2e-3
             prj[prj > 1] = 1
             prj = -np.log(prj)
-    prj[np.where(np.isnan(prj) == True)] = 0
-    bottom_prj = vig_image(prj)
-    shift_ini = shift_grid[bottom_pos] - shift_grid[main_pos]
-    rangeX = shift_ini[1] + [0, 10]
-    rangeY = shift_ini[0] + [-5, 5]
-    right_vec = create_stitch_shift(main_prj, bottom_prj, rangeX, rangeY)
-    pairs_shift[line, 2] = right_vec
+            prj[np.where(np.isnan(prj) == True)] = 0
+            bottom_prj = vig_image(prj)
+            shift_ini = shift_grid[bottom_pos] - shift_grid[main_pos]
+            rangeX = shift_ini[1] + [0, 10]
+            rangeY = shift_ini[0] + [-5, 5]
+            right_vec = create_stitch_shift(main_prj, bottom_prj, rangeX, rangeY)
+            pairs_shift[line, 2] = right_vec
+   
     return pairs_shift
 
 def create_stitch_shift(block1, block2, rangeX=None, rangeY=None):
@@ -194,6 +194,6 @@ def create_stitch_shift(block1, block2, rangeX=None, rangeY=None):
     for frame in range(block1.shape[0]):
         shift_vec[frame, :] = cross_correlation_pcm(block1[frame, :, :], block2[frame, :, :], rangeX=rangeX,
                                                     rangeY=rangeY)
-    print shift_vec
+    print (shift_vec)
     shift = np.mean(shift_vec, 0)
-    print shift
+    print (shift)

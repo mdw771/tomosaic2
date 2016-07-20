@@ -47,7 +47,7 @@
 # #########################################################################
 
 """
-Module for image merging
+Module for input of tomosaic
 """
 
 from __future__ import (absolute_import, division, print_function,
@@ -61,22 +61,20 @@ __author__ = "Rafael Vescovi"
 __credits__ = "Doga Gursoy"
 __copyright__ = "Copyright (c) 2015, UChicago Argonne, LLC."
 __docformat__ = 'restructuredtext en'
-__all__ = ['']
-
-
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Jul  1 10:57:31 2016
-
-@author: ravescovi
-"""
+__all__ = ['get_files',
+	   'get_index',
+	   'save_partial_frames',
+	   'save_partial_flats',
+           'save_partial_darks',
+	   'build_panorama']
 
 
 import os, glob, re
-import dxchange
+import h5py
 import numpy as np
 import tomopy
-from tomosaic.merge import blend
+import dxchange
+from tomosaic.merge.merge import *
 
 def get_files(folder, prefix, type='.h5'):
     os.chdir(folder)
@@ -89,7 +87,7 @@ def get_index(file_list):
     ind_buff = [m.group(1, 2) for l in file_list for m in [regex.search(l)] if m]
     return np.asarray(ind_buff).astype('int')
 
-def save_partial_frame(file_grid, save_folder, prefix, frame=0):
+def save_partial_frames(file_grid, save_folder, prefix, frame=0):
     for (y, x), value in np.ndenumerate(file_grid):
         if (value != None):
             prj, flt, drk = dxchange.read_aps_32id(value, proj=(frame, frame + 1))
@@ -97,10 +95,26 @@ def save_partial_frame(file_grid, save_folder, prefix, frame=0):
                 _, flt, _ = dxchange.read_aps_32id(file_grid[y, 6], proj=(frame, frame + 1))
             prj = tomopy.normalize(prj, flt, drk)
             fname = prefix + 'Y' + str(y).zfill(2) + '_X' + str(x).zfill(2)
-            dxchange.write_tiff(np.squeeze(prj), fname=os.path.join(save_folder, fname))
+            dxchange.write_tiff(np.squeeze(prj), fname=os.path.join(save_folder, 'partial_frames', fname))
+
+def save_partial_flats(file_grid, save_folder, prefix, frame=0):
+    for (y, x), value in np.ndenumerate(file_grid):
+        if (value != None):
+            prj, flt, drk = dxchange.read_aps_32id(value, proj=(frame, frame + 1))
+            fname = prefix + 'Y' + str(y).zfill(2) + '_X' + str(x).zfill(2)
+            dxchange.write_tiff_stack(flt, fname=os.path.join(save_folder, 'partial_flats', fname))
+
+def save_partial_darks(file_grid, save_folder, prefix, frame=0):
+    for (y, x), value in np.ndenumerate(file_grid):
+        if (value != None):
+            prj, flt, drk = dxchange.read_aps_32id(value, proj=(frame, frame + 1))
+            fname = prefix + 'Y' + str(y).zfill(2) + '_X' + str(x).zfill(2)
+            dxchange.write_tiff_stack(drk, fname=os.path.join(save_folder, 'partial_darks', fname))
+
+g_shapes = lambda fname: h5py.File(fname, "r")['exchange/data'].shape
 
 
-def build_panorama(file_grid, shift_grid, frame=0, cam_size=[2048, 2448],method='max):
+def build_panorama(file_grid, shift_grid, frame=0, cam_size=[2048, 2448],method='max'):
     img_size = shift_grid[-1, -1] + cam_size
     buff = np.zeros(img_size, dtype='float16')
     for (y, x), value in np.ndenumerate(file_grid):

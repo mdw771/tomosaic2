@@ -98,22 +98,22 @@ for grid_line in range(grid_line_ini,grid_line_end+1):
     file_list = sorted(glob.glob(grid_wd))
 
     for sino_n in range (sino_ini,sino_end,sino_step):
-        print '############################################'
-        print 'RECONSTRUCTION GRID '+str(grid_line)+' SINO '+str(sino_n)
+        print('############################################')
+        print('RECONSTRUCTION GRID '+str(grid_line)+' SINO '+str(sino_n))
 
         # data reading
         t = time.time()
         sinos = [[]] * len(file_list)
         prj, flt_tmp, drk = tomopy.read_aps_32id(file_list[5], sino=(sino_n,sino_n+1))
         for kfile in range(len(file_list)-1,-1,-1):
-            print file_list[kfile]
+            print(file_list[kfile])
             prj, flt, drk = tomopy.read_aps_32id(file_list[kfile], sino=(sino_n,sino_n+1))
             if kfile>5:
                 prj = tomopy.normalize(prj, flt_tmp, drk)
             else:
                 prj = tomopy.normalize(prj, flt, drk)
             sinos[kfile] = np.squeeze(prj)
-        print 'file read:           ' + str(time.time() - t)
+        print('file read:           ' + str(time.time() - t))
 
         # data stitching
         t = time.time()
@@ -122,20 +122,20 @@ for grid_line in range(grid_line_ini,grid_line_end+1):
             buff= blend(buff,sinos[kfile-1],[0,(k+1)*x_shift])
         sino = buff.reshape([buff.shape[0],1,buff.shape[1]])
         sino = sino[:,:,:22496].astype('float32')
-        print 'stitch:           ' + str(time.time() - t)
-        print 'final size:       ' + str(sino.shape)
+        print('stitch:           ' + str(time.time() - t))
+        print('final size:       ' + str(sino.shape))
 
         # data downsampling
         t = time.time()
         sino = tomopy.downsample(sino, level=ds_level)
-        print 'downsample:           ' + str(time.time() - t)
-        print 'new shape :           ' + str(sino.shape)
+        print('downsample:           ' + str(time.time() - t))
+        print('new shape :           ' + str(sino.shape))
 
 
         # remove stripes
         t = time.time()
         sino = tomopy.remove_stripe_fw(sino,2)
-        print 'strip removal:           ' + str(time.time() - t)
+        print('strip removal:           ' + str(time.time() - t))
         # Minus Log
         sino[np.abs(sino)< 1e-3] = 1
         sino[sino > 1] = 1
@@ -180,4 +180,4 @@ for grid_line in range(grid_line_ini,grid_line_end+1):
 	#tomopy.io.writer.write_tiff_stack(rec, fname=save_folder+'/fista'+str(num_iter)+'_'+str(grid_line)+'_'+str(sino_n))
 
 
-	print 'recon:           ' + str(time.time() - t)
+	print('recon:           ' + str(time.time() - t))
