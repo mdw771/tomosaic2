@@ -102,8 +102,9 @@ def start_shift_grid(file_grid, x_shift, y_shift):
     return shift_grid
 
 
-def shift2center_grid():
-    return 0
+def shift2center_grid(shift_grid,center):
+    center_grid = shift_grid[:,:,1] - center
+    return center_grid
 
 
 

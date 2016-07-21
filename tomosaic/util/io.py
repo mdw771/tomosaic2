@@ -89,30 +89,31 @@ def get_index(file_list):
 
 def save_partial_frames(file_grid, save_folder, prefix, frame=0):
     for (y, x), value in np.ndenumerate(file_grid):
+	print(value)
         if (value != None):
             prj, flt, drk = dxchange.read_aps_32id(value, proj=(frame, frame + 1))
-            if (x < 6):
-                _, flt, _ = dxchange.read_aps_32id(file_grid[y, 6], proj=(frame, frame + 1))
             prj = tomopy.normalize(prj, flt, drk)
+	    prj = -np.log(prj).astype('float32')
             fname = prefix + 'Y' + str(y).zfill(2) + '_X' + str(x).zfill(2)
             dxchange.write_tiff(np.squeeze(prj), fname=os.path.join(save_folder, 'partial_frames', fname))
 
-def save_partial_flats(file_grid, save_folder, prefix, frame=0):
+def save_partial_flats(file_grid, save_folder, prefix):
     for (y, x), value in np.ndenumerate(file_grid):
         if (value != None):
-            prj, flt, drk = dxchange.read_aps_32id(value, proj=(frame, frame + 1))
+            _, flt, _ = dxchange.read_aps_32id(value, proj=(0,1))
             fname = prefix + 'Y' + str(y).zfill(2) + '_X' + str(x).zfill(2)
-            dxchange.write_tiff_stack(flt, fname=os.path.join(save_folder, 'partial_flats', fname))
+	    flt = flt.mean(axis=0).astype('float16')
+            dxchange.write_tiff(np.squeeze(flt), fname=os.path.join(save_folder, 'partial_flats', fname))
 
-def save_partial_darks(file_grid, save_folder, prefix, frame=0):
+def save_partial_darks(file_grid, save_folder, prefix):
     for (y, x), value in np.ndenumerate(file_grid):
         if (value != None):
-            prj, flt, drk = dxchange.read_aps_32id(value, proj=(frame, frame + 1))
+            _, _, drk = dxchange.read_aps_32id(value, proj=(0,1))
             fname = prefix + 'Y' + str(y).zfill(2) + '_X' + str(x).zfill(2)
-            dxchange.write_tiff_stack(drk, fname=os.path.join(save_folder, 'partial_darks', fname))
+	    drk = drk.mean(axis=0).astype('float16')
+            dxchange.write_tiff(np.squeeze(drk), fname=os.path.join(save_folder, 'partial_darks', fname))
 
 g_shapes = lambda fname: h5py.File(fname, "r")['exchange/data'].shape
-
 
 def build_panorama(file_grid, shift_grid, frame=0, cam_size=[2048, 2448],method='max'):
     img_size = shift_grid[-1, -1] + cam_size
@@ -120,9 +121,7 @@ def build_panorama(file_grid, shift_grid, frame=0, cam_size=[2048, 2448],method=
     for (y, x), value in np.ndenumerate(file_grid):
         if (value != None and frame < g_shapes(value)[0]):
             prj, flt, drk = dxchange.read_aps_32id(value, proj=(frame, frame + 1))
-            if (x < 6):
-                _, flt, _ = dxchange.read_aps_32id(file_grid[y, 6], proj=(frame, frame + 1))
-            prj = tomopy.normalize(prj, flt[20:, :, :], drk)
+            prj = tomopy.normalize(prj, flt[:, :, :], drk)
             prj[np.abs(prj) < 2e-3] = 2e-3
             prj[prj > 1] = 1
             prj = -np.log(prj).astype('float16')
