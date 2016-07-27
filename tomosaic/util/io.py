@@ -128,3 +128,15 @@ def build_panorama(file_grid, shift_grid, frame=0, cam_size=[2048, 2448],method=
             prj[np.where(np.isnan(prj) == True)] = 0
             buff = blend(buff, np.squeeze(prj), shift_grid[y, x, :],method=method)
     return buff
+
+
+def grid2file(grid, file_name):
+   
+    with file(file_name, 'w') as outfile:        outfile.write('# Grid shape: {0}\n'.format(data.shape))
+        outfile.write('#Vertical Values')             for data_slice in data:
+                np.savetxt(outfile, data_slice, fmt='%-7.2f')        outfile.write('# New slice\n')
+   return
+   
+def file2grid(file):
+   return grid
+

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+T#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 # #########################################################################
@@ -79,7 +79,7 @@ import dxchange
 
 
 
-def recon_block(grid, shift_grid, grid_lines, slices)
+def recon_block(grid, shift_grid, grid_lines, slices, sino_step)
     grid_line_ini = grid_lines[0]
     grid_line_end = grid_lines[1]
     sino_ini= slices[0]
@@ -93,24 +93,26 @@ def recon_block(grid, shift_grid, grid_lines, slices)
             print('RECONSTRUCTION GRID '+str(grid_line)+' SINO '+str(sino_n))
             recon_slice(grid, shift_grid, grid_line, sino_n, save_folder)    
 
+def load_sino(grid, shift_grid, grid_line, slice_n, save_folder):
+    sino, flt, drk = tomopy.read_aps_32id(file_list[kfile], sino=(sino_n,sino_n+1))
+    sino = tomopy.normalize(sino, flt, drk)
+    return = np.squeeze(sino)
 
-def recon_slice(grid, shift_grid, grid_line, slice_n, save_folder):
+
+
+def register_recon(grid, center_grid, ray_size, grid_line, slice_n, save_folder):
+
+
     t = time.time()
     sinos = [[]] * len(file_list)
-    prj, flt_tmp, drk = tomopy.read_aps_32id(file_list[5], sino=(sino_n,sino_n+1))
-    for kfile in range(len(file_list)-1,-1,-1):
-        print(file_list[kfile])
-        prj, flt, drk = tomopy.read_aps_32id(file_list[kfile], sino=(sino_n,sino_n+1))
-        if kfile>5:
-            prj = tomopy.normalize(prj, flt_tmp, drk)
-        else:
-            prj = tomopy.normalize(prj, flt, drk)
-        sinos[kfile] = np.squeeze(prj)
+    for x_pos in np.arange(grid.shape[1])):
+	t 
+
     print('file read:           ' + str(time.time() - t))
 
     # data stitching
     t = time.time()
-    buff= sinos[11]
+
     for kfile, k in itertools.izip(range(len(file_list)-1,0,-1),range(len(file_list)-1)):
         buff= blend(buff,sinos[kfile-1],[0,(k+1)*x_shift])
     sino = buff.reshape([buff.shape[0],1,buff.shape[1]])
