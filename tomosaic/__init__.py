@@ -57,9 +57,9 @@ from tomosaic.morph import *
 from tomosaic.register import *
 from tomosaic.register.register import *
 from tomosaic.register.register_translation import *
-#from tomosaic.register.recon import *
+from tomosaic.register.recon import *
 from tomosaic.util import *
-from tomosaic.util.io import *
+from tomosaic.util.util import *
 from tomosaic.util.grid import *
 
 logging.basicConfig()
