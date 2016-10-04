@@ -61,7 +61,6 @@ from tomosaic.register.recon import *
 from tomosaic.util import *
 from tomosaic.util.util import *
 from tomosaic.util.grid import *
-from tomosaic.util.phase import *
 
 logging.basicConfig()
 
