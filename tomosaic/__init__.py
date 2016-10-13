@@ -53,16 +53,17 @@ import logging
 
 from tomosaic.merge import *
 from tomosaic.merge.merge import *
-from tomosaic.morph import *
 from tomosaic.register import *
 from tomosaic.register.register import *
 from tomosaic.register.register_translation import *
-from tomosaic.register.recon import *
+from tomosaic.recon import *
+from tomosaic.recon.recon import *
 from tomosaic.util import *
 from tomosaic.util.util import *
 from tomosaic.util.grid import *
 from tomosaic.util.phase import *
-
+from tomosaic.util.morph import *
+from tomosaic.util.image import *
 logging.basicConfig()
 
 try:
