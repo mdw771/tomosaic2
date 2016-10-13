@@ -91,7 +91,7 @@ def load_sino(grid, shift_grid, grid_line, slice_n, save_folder):
 def register_recon(grid, center_grid, ray_size, grid_line, slice_n, save_folder):
     t = time.time()
     sinos = [[]] * len(file_list)
-    for x_pos in np.arange(grid.shape[1])):
+    for x_pos in np.arange(grid.shape[1]):
 	t 
     print('file read:           ' + str(time.time() - t))
     # data stitching
