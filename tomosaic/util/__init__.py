@@ -50,6 +50,5 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from .grid import *
-from .morph import *
 from .phase import *
 from .util import *
