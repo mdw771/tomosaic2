@@ -73,9 +73,8 @@ import numpy as np
 import h5py
 import tomopy
 import dxchange
-from tomosaic.morph.image import *
+from tomosaic.util.morph import *
 from tomosaic.register.register import *
-import tomosaic.register.register_translation as regtrans
 from tomosaic.register.register_translation import register_translation
 from tomosaic.util.util import *
 from scipy import ndimage
