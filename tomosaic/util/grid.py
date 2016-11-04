@@ -138,7 +138,7 @@ def find_pairs(file_grid):
 
 g_shapes = lambda fname: h5py.File(fname, "r")['exchange/data'].shape
 
-def refine_shift_grid(grid, shift_grid, step=200, upsample=100):
+def refine_shift_grid(grid, shift_grid, step=200, upsample=100, y_mask=[-5,5], x_mask=[-5,5]):
     if (grid.shape[0] != shift_grid.shape[0] or
         grid.shape[1] != shift_grid.shape[1]):
         return
@@ -183,8 +183,8 @@ def refine_shift_grid(grid, shift_grid, step=200, upsample=100):
             prj[np.where(np.isnan(prj) == True)] = 0
             right_prj = vig_image(prj)
             shift_ini = shift_grid[right_pos] - shift_grid[main_pos]
-            rangeX = shift_ini[1] + [-50, 50]
-            rangeY = shift_ini[0] + [-50, 50]
+            rangeX = shift_ini[1] + x_mask
+            rangeY = shift_ini[0] + y_mask
             right_vec = create_stitch_shift(main_prj, right_prj, rangeX, rangeY, down=0, upsample=upsample)
             pairs_shift[line, 2:4] = right_vec
 
@@ -198,8 +198,8 @@ def refine_shift_grid(grid, shift_grid, step=200, upsample=100):
             prj[np.where(np.isnan(prj) == True)] = 0
             bottom_prj = vig_image(prj)
             shift_ini = shift_grid[bottom_pos] - shift_grid[main_pos]
-            rangeX = shift_ini[1] + [-50, 50]
-            rangeY = shift_ini[0] + [-50, 50]
+            rangeX = shift_ini[1] + x_mask
+            rangeY = shift_ini[0] + y_mask
             right_vec = create_stitch_shift(main_prj, bottom_prj, rangeX, rangeY, down=1, upsample=upsample)
             pairs_shift[line, 4:6] = right_vec
 
