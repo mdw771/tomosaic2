@@ -166,13 +166,12 @@ def refine_shift_grid(grid, shift_grid, step=200, upsample=100, y_mask=[-5,5], x
         if stage == 1 and rank != 0:
             pass
         else:
-            fstart = rank*file_per_rank
-            fend = (rank+1)*file_per_rank
+            fstart = rank * file_per_rank
+            fend = (rank+1) * file_per_rank
             if stage == 1:
                 fstart = size * file_per_rank
                 fend = n_pairs
             for line in range(fstart, fend):
-
                 if (grid[pairs[line, 0]] == None):
                     print ("###Block Inexistent")
                     continue
