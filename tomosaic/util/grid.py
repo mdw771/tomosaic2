@@ -239,7 +239,7 @@ def refine_shift_grid(grid, shift_grid, step=200, upsample=100, y_mask=[-5,5], x
     else:
         for src in range(1, size):
             temp = comm.recv(source=src)
-            pairs_shift[:, 2:, :] = pairs_shift[:, 2:, :] + temp[:, 2:, :]
+            pairs_shift[:, 2:] = pairs_shift[:, 2:] + temp[:, 2:]
 
     return pairs_shift
 
