@@ -157,10 +157,12 @@ def refine_shift_grid(grid, shift_grid, step=200, upsample=100, y_mask=[-5,5], x
     file_per_rank = int(n_pairs / size)
     remainder = n_pairs % size
     if remainder:
-        print('You will have {:d} files that cannot be processed in parallel. Consider optimizing number of ranks. '
-              'Press anykey to continue.'
-              .format(remainder))
-        anykey = raw_input()
+        if rank == 0:
+            print('You will have {:d} files that cannot be processed in parallel. Consider optimizing number of ranks. '
+                  'Press anykey to continue.'
+                  .format(remainder))
+            anykey = raw_input()
+    comm.Barrier()
 
     for stage in [0, 1]:
         if stage == 1 and rank != 0:
