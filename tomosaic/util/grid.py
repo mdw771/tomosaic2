@@ -214,7 +214,6 @@ def refine_shift_grid(grid, shift_grid, step=200, upsample=100, y_mask=[-5,5], x
                     right_vec = create_stitch_shift(main_prj, right_prj, rangeX, rangeY, down=0, upsample=upsample)
                     pairs_shift[line, 2:4] = right_vec
 
-
                 if (bottom_pos != None):
                     prj, flt, drk = dxchange.read_aps_32id(grid[bottom_pos], proj=(0,size_max,step))
                     prj = tomopy.normalize(prj, flt[10:15, :, :], drk)
@@ -230,7 +229,15 @@ def refine_shift_grid(grid, shift_grid, step=200, upsample=100, y_mask=[-5,5], x
                     pairs_shift[line, 4:6] = right_vec
 
         print(pairs_shift)
-    #    new_grid = absolute_shift_grid(pairs_shift, grid)
+
+        comm.Barrier()
+
+        if rank != 0:
+            comm.send(pairs_shift, dest=0)
+        else:
+            for src in range(1, size):
+                temp = comm.recv(source=src)
+                pairs_shift[:, 2:, :] = pairs_shift[:, 2:, :] + temp[:, 2:, :]
 
     return pairs_shift
 
