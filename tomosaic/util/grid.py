@@ -77,7 +77,9 @@ from tomosaic.register.register_translation import register_translation
 from tomosaic.util.util import *
 from scipy import ndimage
 from mpi4py import MPI
+import warnings
 
+warnings.filterwarnings('ignore')
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
@@ -228,16 +230,16 @@ def refine_shift_grid(grid, shift_grid, step=200, upsample=100, y_mask=[-5,5], x
                     right_vec = create_stitch_shift(main_prj, bottom_prj, rangeX, rangeY, down=1, upsample=upsample)
                     pairs_shift[line, 4:6] = right_vec
 
-        print(pairs_shift)
+    print(pairs_shift)
 
-        comm.Barrier()
+    comm.Barrier()
 
-        if rank != 0:
-            comm.send(pairs_shift, dest=0)
-        else:
-            for src in range(1, size):
-                temp = comm.recv(source=src)
-                pairs_shift[:, 2:, :] = pairs_shift[:, 2:, :] + temp[:, 2:, :]
+    if rank != 0:
+        comm.send(pairs_shift, dest=0)
+    else:
+        for src in range(1, size):
+            temp = comm.recv(source=src)
+            pairs_shift[:, 2:, :] = pairs_shift[:, 2:, :] + temp[:, 2:, :]
 
     return pairs_shift
 
