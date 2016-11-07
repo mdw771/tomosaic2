@@ -65,9 +65,7 @@ __all__ = ['start_file_grid',
            'start_shift_grid',
            'shift2center_grid',
            'refine_shift_grid',
-	   'absolute_shift_grid']
-
-
+           'absolute_shift_grid']
 
 import numpy as np
 import h5py
@@ -78,6 +76,16 @@ from tomosaic.register.register import *
 from tomosaic.register.register_translation import register_translation
 from tomosaic.util.util import *
 from scipy import ndimage
+from mpi4py import MPI
+import warnings
+
+warnings.filterwarnings('ignore')
+
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+size = comm.Get_size()
+name = MPI.Get_processor_name()
+
 
 def start_file_grid(file_list, ver_dir=0, hor_dir=0, pattern=0):
     ind_list = get_index(file_list, pattern)
@@ -138,74 +146,104 @@ def find_pairs(file_grid):
 
 g_shapes = lambda fname: h5py.File(fname, "r")['exchange/data'].shape
 
-def refine_shift_grid(grid, shift_grid, step=200, upsample=100):
-    if (grid.shape[0] != shift_grid.shape[0] or
-        grid.shape[1] != shift_grid.shape[1]):
+def refine_shift_grid(grid, shift_grid, savefolder='.', step=200, upsample=100, y_mask=[-5,5], x_mask=[-5,5]):
+
+    if (grid.shape[0] != shift_grid.shape[0] or grid.shape[1] != shift_grid.shape[1]):
         return
     pairs = find_pairs(grid)
     n_pairs = pairs.shape[0]
 
     pairs_shift = np.zeros([n_pairs, 6])
 
-    for line in np.arange(n_pairs):
-        if (grid[pairs[line, 0]] == None):
-            print ("###Block Inexistent")
-            continue
-        print('###Line ' + str(line))
-        main_pos = pairs[line, 0]
-        main_shape = g_shapes(grid[main_pos])
-        right_pos = pairs[line, 1]
-        if (right_pos != None): 
-            right_shape = g_shapes(grid[right_pos])
+    file_per_rank = int(n_pairs / size)
+    remainder = n_pairs % size
+    if remainder:
+        if rank == 0:
+            print('You will have {:d} files that cannot be processed in parallel. Consider optimizing number of ranks. '
+                  'Press anykey to continue.'
+                  .format(remainder))
+            anykey = raw_input()
+    comm.Barrier()
+
+    for stage in [0, 1]:
+        if stage == 1 and rank != 0:
+            pass
         else:
-            right_shape = [0,0,0]
-        bottom_pos = pairs[line, 2]
-        if (bottom_pos != None):
-            bottom_shape = g_shapes(grid[bottom_pos])
-        else:
-            bottom_shape = [0,0,0]
-        size_max = max(main_shape[0],right_shape[0],bottom_shape[0])     
-        prj, flt, drk = dxchange.read_aps_32id(grid[main_pos], proj=(0,size_max,step))
-        prj = tomopy.normalize(prj, flt[10:15, :, :], drk)
-        prj[np.abs(prj) < 2e-3] = 2e-3
-        prj[prj > 1] = 1
-        prj = -np.log(prj)
-        prj[np.where(np.isnan(prj) == True)] = 0
-        main_prj = vig_image(prj)
-        pairs_shift[line, 0:2] = main_pos
-            
-        if (right_pos != None):
-            prj, flt, drk = dxchange.read_aps_32id(grid[right_pos], proj=(0, size_max, step))
-            prj = tomopy.normalize(prj, flt[10:15, :, :], drk)
-            prj[np.abs(prj) < 2e-3] = 2e-3
-            prj[prj > 1] = 1
-            prj = -np.log(prj)
-            prj[np.where(np.isnan(prj) == True)] = 0
-            right_prj = vig_image(prj)
-            shift_ini = shift_grid[right_pos] - shift_grid[main_pos]
-            rangeX = shift_ini[1] + [-50, 50]
-            rangeY = shift_ini[0] + [-50, 50]
-            right_vec = create_stitch_shift(main_prj, right_prj, rangeX, rangeY, down=0, upsample=upsample)
-            pairs_shift[line, 2:4] = right_vec
+            fstart = rank * file_per_rank
+            fend = (rank+1) * file_per_rank
+            if stage == 1:
+                fstart = size * file_per_rank
+                fend = n_pairs
+            for line in range(fstart, fend):
+                if (grid[pairs[line, 0]] == None):
+                    print ("###Block Inexistent")
+                    continue
+                print('###Line ' + str(line))
+                main_pos = pairs[line, 0]
+                main_shape = g_shapes(grid[main_pos])
+                right_pos = pairs[line, 1]
+                if (right_pos != None):
+                    right_shape = g_shapes(grid[right_pos])
+                else:
+                    right_shape = [0,0,0]
+                bottom_pos = pairs[line, 2]
+                if (bottom_pos != None):
+                    bottom_shape = g_shapes(grid[bottom_pos])
+                else:
+                    bottom_shape = [0,0,0]
+                size_max = max(main_shape[0],right_shape[0],bottom_shape[0])
+                prj, flt, drk = dxchange.read_aps_32id(grid[main_pos], proj=(0,size_max,step))
+                prj = tomopy.normalize(prj, flt[10:15, :, :], drk)
+                prj[np.abs(prj) < 2e-3] = 2e-3
+                prj[prj > 1] = 1
+                prj = -np.log(prj)
+                prj[np.where(np.isnan(prj) == True)] = 0
+                main_prj = vig_image(prj)
+                pairs_shift[line, 0:2] = main_pos
 
+                if (right_pos != None):
+                    prj, flt, drk = dxchange.read_aps_32id(grid[right_pos], proj=(0, size_max, step))
+                    prj = tomopy.normalize(prj, flt[10:15, :, :], drk)
+                    prj[np.abs(prj) < 2e-3] = 2e-3
+                    prj[prj > 1] = 1
+                    prj = -np.log(prj)
+                    prj[np.where(np.isnan(prj) == True)] = 0
+                    right_prj = vig_image(prj)
+                    shift_ini = shift_grid[right_pos] - shift_grid[main_pos]
+                    rangeX = shift_ini[1] + x_mask
+                    rangeY = shift_ini[0] + y_mask
+                    right_vec = create_stitch_shift(main_prj, right_prj, rangeX, rangeY, down=0, upsample=upsample)
+                    pairs_shift[line, 2:4] = right_vec
 
-        if (bottom_pos != None):
-            prj, flt, drk = dxchange.read_aps_32id(grid[bottom_pos], proj=(0,size_max,step))
-            prj = tomopy.normalize(prj, flt[10:15, :, :], drk)
-            prj[np.abs(prj) < 2e-3] = 2e-3
-            prj[prj > 1] = 1
-            prj = -np.log(prj)
-            prj[np.where(np.isnan(prj) == True)] = 0
-            bottom_prj = vig_image(prj)
-            shift_ini = shift_grid[bottom_pos] - shift_grid[main_pos]
-            rangeX = shift_ini[1] + [-50, 50]
-            rangeY = shift_ini[0] + [-50, 50]
-            right_vec = create_stitch_shift(main_prj, bottom_prj, rangeX, rangeY, down=1, upsample=upsample)
-            pairs_shift[line, 4:6] = right_vec
+                if (bottom_pos != None):
+                    prj, flt, drk = dxchange.read_aps_32id(grid[bottom_pos], proj=(0,size_max,step))
+                    prj = tomopy.normalize(prj, flt[10:15, :, :], drk)
+                    prj[np.abs(prj) < 2e-3] = 2e-3
+                    prj[prj > 1] = 1
+                    prj = -np.log(prj)
+                    prj[np.where(np.isnan(prj) == True)] = 0
+                    bottom_prj = vig_image(prj)
+                    shift_ini = shift_grid[bottom_pos] - shift_grid[main_pos]
+                    rangeX = shift_ini[1] + x_mask
+                    rangeY = shift_ini[0] + y_mask
+                    right_vec = create_stitch_shift(main_prj, bottom_prj, rangeX, rangeY, down=1, upsample=upsample)
+                    pairs_shift[line, 4:6] = right_vec
 
+    print('Rank: '+str(rank)+pairs_shift)
+
+    comm.Barrier()
+    # combine all shifts
+    if rank != 0:
+        comm.send(pairs_shift, dest=0)
+    else:
+        for src in range(1, size):
+            temp = comm.recv(source=src)
+            pairs_shift = pairs_shift + temp
+    try:
+        np.savetxt(savefolder+'/shifts.txt', pairs_shift)
+    except:
+        print('Warning: failed to save files. Please save pair shifts as shifts.txt manually:')
         print(pairs_shift)
-    #    new_grid = absolute_shift_grid(pairs_shift, grid)
-
     return pairs_shift
 
 
