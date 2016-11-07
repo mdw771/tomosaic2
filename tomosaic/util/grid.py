@@ -146,10 +146,9 @@ def find_pairs(file_grid):
 
 g_shapes = lambda fname: h5py.File(fname, "r")['exchange/data'].shape
 
-def refine_shift_grid(grid, shift_grid, step=200, upsample=100, y_mask=[-5,5], x_mask=[-5,5]):
+def refine_shift_grid(grid, shift_grid, savefolder='.', step=200, upsample=100, y_mask=[-5,5], x_mask=[-5,5]):
 
-    if (grid.shape[0] != shift_grid.shape[0] or
-        grid.shape[1] != shift_grid.shape[1]):
+    if (grid.shape[0] != shift_grid.shape[0] or grid.shape[1] != shift_grid.shape[1]):
         return
     pairs = find_pairs(grid)
     n_pairs = pairs.shape[0]
@@ -230,17 +229,21 @@ def refine_shift_grid(grid, shift_grid, step=200, upsample=100, y_mask=[-5,5], x
                     right_vec = create_stitch_shift(main_prj, bottom_prj, rangeX, rangeY, down=1, upsample=upsample)
                     pairs_shift[line, 4:6] = right_vec
 
-    print(pairs_shift)
+    print('Rank: '+str(rank)+pairs_shift)
 
     comm.Barrier()
-
+    # combine all shifts
     if rank != 0:
         comm.send(pairs_shift, dest=0)
     else:
         for src in range(1, size):
             temp = comm.recv(source=src)
-            pairs_shift[:, 2:] = pairs_shift[:, 2:] + temp[:, 2:]
-
+            pairs_shift = pairs_shift + temp
+    try:
+        np.savetxt(savefolder+'/shifts.txt', pairs_shift)
+    except:
+        print('Warning: failed to save files. Please save pair shifts as shifts.txt manually:')
+        print(pairs_shift)
     return pairs_shift
 
 
