@@ -373,30 +373,114 @@ def image_downsample(img, ds):
 
 def check_fname_ext(fname, ext):
     ext_len = len(ext)
-    if fname[-ext_len-1:] != '.h5':
-        fname += '.h5'
+    if fname[-ext_len-1:] != ext:
+        fname += ext
     return fname
 
 
-def h5_cast(fname, display_min, display_max, dtype='uint16'):
+def hdf5_cast(fname, display_min=None, display_max=None, dtype='uint16'):
     f = h5py.File(fname)
     dset = f['exchange/data']
-    for i in range(dset.shape[0]):
-        temp = dset[i, :, :]
-        temp = img_cast(temp, display_min, display_max, dtype=dtype)
-        dset[i, :, :] = temp
-        print('\r    At frame {:d}'.format(i), end='')
-    print('')
-    dset = f['exchange/data_white']
-    for i in range(dset.shape[0]):
-        temp = dset[i, :, :]
-        temp = img_cast(temp, display_min, display_max, dtype=dtype)
-        dset[i, :, :] = temp
-    dset = f['exchange/data_dark']
-    for i in range(dset.shape[0]):
-        temp = dset[i, :, :]
-        temp = img_cast(temp, display_min, display_max, dtype=dtype)
-        dset[i, :, :] = temp
+    n_slices = dset.shape[0]
+    if display_min is None:
+        if rank == 0:
+            display_min = dset.min()
+            for i in range(1, size):
+                comm.send(display_min, dest=i)
+        else:
+            display_min = comm.recv(source=0)
+    comm.Barrier()
+    if display_max is None:
+        if rank == 0:
+            display_max = dset.max()
+            for i in range(1, size):
+                comm.send(display_max, dest=i)
+        else:
+            display_max = comm.recv(source=0)
+    comm.Barrier()
+    slice_per_rank = int(n_slices/size)
+    remainder = n_slices % size
+    if remainder:
+        print('You will have {:d} slices that cannot be processed in parallel. Consider optimizing number of ranks.'
+              .format(remainder))
+        time.sleep(3)
+    for stage in [0, 1]:
+        if stage == 1 and rank != 0:
+            pass
+        else:
+            fstart = rank * slice_per_rank
+            fend = (rank+1) * slice_per_rank
+            if stage == 1:
+                fstart = size * slice_per_rank
+                fend = n_slices
+                dset = f['exchange/data']
+            for i in range(fstart, fend):
+                temp = dset[i, :, :]
+                temp = img_cast(temp, display_min, display_max, dtype=dtype)
+                dset[i, :, :] = temp
+                print('    Rank: {:d}, slice: {:d}'.format(rank, i))
+            dset = dset.astype(dtype)
+            try:
+                dset = f['exchange/data_white']
+                for i in range(fstart, fend):
+                    temp = dset[i, :, :]
+                    temp = img_cast(temp, display_min, display_max, dtype=dtype)
+                    dset[i, :, :] = temp
+                dset = dset.astype(dtype)
+            except:
+                pass
+            try:
+                dset = f['exchange/data_dark']
+                for i in range(fstart, fend):
+                    temp = dset[i, :, :]
+                    temp = img_cast(temp, display_min, display_max, dtype=dtype)
+                    dset[i, :, :] = temp
+                dset = dset.astype(dtype)
+            except:
+                pass
+    return
+
+
+def tiff2hdf5(src_folder, dest_folder, dest_fname, pattern='recon_*.tiff', display_min=None, display_max=None,
+              dtype='int8'):
+
+    dest_fname = check_fname_ext(dest_fname, 'h5')
+    filelist = glob.glob(os.path.join(src_folder, pattern))
+    filelist = sorted(filelist)
+    n_files = len(filelist)
+    temp = imread(filelist[0])
+    full_shape = np.array([n_files, temp.shape[0], temp.shape[1]])
+    if rank == 0:
+        if not os.path.exists(dest_folder):
+            os.mkdir(dest_folder)
+        f = h5py.File(os.path.join(dest_folder, dest_fname))
+    comm.Barrier()
+    if rank != 0:
+        f = h5py.File(os.path.join(dest_folder, dest_fname))
+    grp = f.create_group('exchange')
+    grp.create_dataset('data', full_shape, dtype='float32')
+    files_per_rank = int(n_files/size)
+    remainder = n_files % size
+    if remainder:
+        print('You will have {:d} slices that cannot be processed in parallel. Consider optimizing number of ranks.'
+              .format(remainder))
+        time.sleep(3)
+    for stage in [0, 1]:
+        if stage == 1 and rank != 0:
+            pass
+        else:
+            fstart = rank * files_per_rank
+            fend = (rank+1) * files_per_rank
+            if stage == 1:
+                fstart = size * files_per_rank
+                fend = n_files
+            dset = f['exchange/data']
+            for i in range(fstart, fend):
+                img = imread(filelist[i])
+                dset[i, :, :] = img
+                print('    Rank: {:d}, file: {:d}'.format(rank, i))
+    comm.Barrier()
+    hdf5_cast(os.path.join(dest_folder, dest_fname), display_min=display_min, display_max=display_max, dtype=dtype)
     return
 
 
