@@ -671,3 +671,11 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
         print('Please remove trash manually.')
 
     os.chdir(origin_dir)
+
+
+def entropy(img, range=[-0.02, 0.02]):
+
+    hist, e = np.histogram(img, bins=1024, range=range)
+    hist = hist.astype('float32') / img.size + 1e-12
+    val = -np.dot(hist, np.log2(hist))
+    return val
