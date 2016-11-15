@@ -373,8 +373,8 @@ def image_downsample(img, ds):
 
 def check_fname_ext(fname, ext):
     ext_len = len(ext)
-    if fname[-ext_len-1:] != ext:
-        fname += ext
+    if fname[-ext_len-1:] != '.' + ext:
+        fname += ('.' + ext)
     return fname
 
 
@@ -671,3 +671,57 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
         print('Please remove trash manually.')
 
     os.chdir(origin_dir)
+
+
+def entropy(img, range=[-0.02, 0.02]):
+
+    hist, e = np.histogram(img, bins=1024, range=range)
+    hist = hist.astype('float32') / img.size + 1e-12
+    val = -np.dot(hist, np.log2(hist))
+    return val
+
+
+def partial_center_alignment(file_grid, shift_grid, center_vec, src_folder, range_0=-5, range_1=5):
+    """
+    Further refine shift to optimize reconstruction in case of tilted rotation center, using entropy minimization as
+    metric.
+    """
+    n_tiles = file_grid.size
+    if size > n_tiles:
+        raise ValueError('Number of ranks larger than number of tiles.')
+    root_folder = os.getcwd()
+    os.chdir(src_folder)
+    if rank == 0:
+        f = h5py.File(file_grid[0, 0])
+        dset = f['exchange/data']
+        slice = int(dset.shape[1]/2)
+        for i in range(1, size):
+            comm.send(slice, dest=i)
+    else:
+        slice = comm.recv(source=0)
+    comm.Barrier()
+    tile_per_rank = int(n_tiles/size)
+    remainder = n_tiles % size
+    if remainder:
+        print('You will have {:d} rows that cannot be processed in parallel. Consider optimizing number of ranks.'
+              .format(remainder))
+        time.sleep(3)
+    tile_ls = np.zeros([file_grid.size, 2], dtype='int')
+    a = np.unravel_index(range(n_tiles), file_grid.shape)
+    tile_ls[:, 0] = a[0]
+    tile_ls[:, 1] = a[1]
+    for stage in [0, 1]:
+        if stage == 1 and rank != 0:
+            pass
+        else:
+            fstart = rank * tile_per_rank
+            fend = (rank+1) * tile_per_rank
+            if stage == 1:
+                fstart = size * tile_per_rank
+                fend = n_tiles
+            for i in range(fstart, fend):
+                y, x = tile_ls[i]
+                fname = file_grid[y, x]
+                sino, flt, drk = dxchange.read_aps_32id(fname, sino=(slice, slice+1))
+                sino = tomopy.normalize(sino, flt, drk)
+
