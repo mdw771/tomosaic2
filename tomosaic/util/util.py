@@ -92,8 +92,10 @@ name = MPI.Get_processor_name()
 
 
 def get_files(folder, prefix, type='.h5'):
+    root = os.getcwd()
     os.chdir(folder)
     file_list = glob.glob(prefix + '*' + type)
+    os.chdir(root)
     return file_list
 
 
