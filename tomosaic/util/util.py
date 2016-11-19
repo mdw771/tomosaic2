@@ -222,7 +222,7 @@ def reorganize_dir(file_list, raw_ds=[1,2,4], dtype='float16', **kwargs):
     try:
         f = h5py.File(file_list[0])
     except:
-        f = h5py.File('data_raw_1x/'+file_list[0])
+        f = h5py.File(os.path.join('data_raw_1x', file_list[0]))
     full_shape = f['exchange/data'].shape
     frame_per_rank = int(full_shape[0] / size)
     remainder = full_shape[0] % size
