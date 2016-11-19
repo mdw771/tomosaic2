@@ -318,7 +318,7 @@ def reorganize_dir(file_list, raw_ds=[1,2,4], dtype='float16', **kwargs):
                         temp = raw[frame, :, :]
                         temp = image_downsample(temp, ds)
                         dat[frame, :, :] = temp
-                    comm.Barrier()
+                comm.Barrier()
         # delete file after all done
         try:
             os.remove(fname)
