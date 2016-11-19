@@ -294,21 +294,21 @@ def reorganize_dir(file_list, raw_ds=[1,2,4], dtype='float16', **kwargs):
                             print('\r    Rank: {:d}, DS: {:d}, at frame {:d}'.format(rank, ds, frame))
                         print(' ')
                 # downsample flat/dark field data
+                raw = o['exchange/data_white']
+                aux_shape = raw.shape
                 dat = dat_grp.create_dataset('data_white', (aux_shape[0], np.floor(aux_shape[1]/ds),
                                                                   np.floor(aux_shape[2]/ds)), dtype=dtype)
                 print('    Downsampling whites and darks')
                 if rank == 0:
-                    raw = o['exchange/data_white']
-                    aux_shape = raw.shape
                     for frame in range(aux_shape[0]):
                         temp = raw[frame, :, :]
                         temp = image_downsample(temp, ds)
                         dat[frame, :, :] = temp
+                raw = o['exchange/data_dark']
+                aux_shape = raw.shape
                 dat = dat_grp.create_dataset('data_dark', (aux_shape[0], np.floor(aux_shape[1]/ds),
                                                            np.floor(aux_shape[2]/ds)), dtype=dtype)
                 if rank == 0:
-                    raw = o['exchange/data_dark']
-                    aux_shape = raw.shape
                     for frame in range(aux_shape[0]):
                         temp = raw[frame, :, :]
                         temp = image_downsample(temp, ds)
