@@ -251,15 +251,14 @@ def reorganize_dir(file_list, raw_ds=[1,2,4], dtype='float16', **kwargs):
                 comm.Barrier()
             # otherwise perform downsampling
             else:
-
                 if rank == 0:
                     if not os.path.exists(folder_name):
                         os.mkdir(folder_name)
                 comm.Barrier()
                 try:
-                    o = h5py.File('data_raw_1x/' + fname)
+                    o = h5py.File('data_raw_1x/' + fname, 'r')
                 except:
-                    o = h5py.File(fname)
+                    o = h5py.File(fname, 'r')
                 raw = o['exchange/data']
                 if rank == 0:
                     if os.path.exists(folder_name+'/'+fname):
@@ -287,7 +286,7 @@ def reorganize_dir(file_list, raw_ds=[1,2,4], dtype='float16', **kwargs):
                         fend = (rank+1) * frame_per_rank
                         if stage == 1:
                             fstart = size * frame_per_rank
-                            fend = full_shape[0]
+                            fend = n_frames
                         for frame in range(fstart, fend):
                             temp = raw[frame, :, :]
                             temp = image_downsample(temp, ds)
@@ -296,6 +295,7 @@ def reorganize_dir(file_list, raw_ds=[1,2,4], dtype='float16', **kwargs):
                         print(' ')
                 # downsample flat/dark field data
                 if rank == 0:
+                    print('    Downsampling whites and darks')
                     raw = o['exchange/data_white']
                     aux_shape = raw.shape
                     try:
@@ -318,6 +318,7 @@ def reorganize_dir(file_list, raw_ds=[1,2,4], dtype='float16', **kwargs):
                         temp = raw[frame, :, :]
                         temp = image_downsample(temp, ds)
                         dat[frame, :, :] = temp
+                    comm.Barrier()
         # delete file after all done
         try:
             os.remove(fname)
