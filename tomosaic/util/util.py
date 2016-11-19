@@ -221,9 +221,10 @@ def reorganize_dir(file_list, raw_ds=[1,2,4], dtype='float16', **kwargs):
     # downsample
     try:
         f = h5py.File(file_list[0])
+        full_shape = f['exchange/data'].shape
     except:
         f = h5py.File(os.path.join('data_raw_1x', file_list[0]))
-    full_shape = f['exchange/data'].shape
+        full_shape = f['exchange/data'].shape
     frame_per_rank = int(full_shape[0] / size)
     remainder = full_shape[0] % size
     if remainder:
