@@ -301,21 +301,19 @@ def reorganize_dir(file_list, raw_ds=[1,2,4], dtype='float16', **kwargs):
                                                                   np.floor(aux_shape[2]/ds)), dtype=dtype)
                 comm.Barrier()
                 print('    Downsampling whites and darks')
-                if rank == 0:
-                    for frame in range(aux_shape[0]):
-                        temp = raw[frame, :, :]
-                        temp = image_downsample(temp, ds)
-                        dat[frame, :, :] = temp
+                for frame in range(aux_shape[0]):
+                    temp = raw[frame, :, :]
+                    temp = image_downsample(temp, ds)
+                    dat[frame, :, :] = temp
                 raw = o['exchange/data_dark']
                 aux_shape = raw.shape
                 dat = dat_grp.create_dataset('data_dark', (aux_shape[0], np.floor(aux_shape[1]/ds),
                                                            np.floor(aux_shape[2]/ds)), dtype=dtype)
                 comm.Barrier()
-                if rank == 0:
-                    for frame in range(aux_shape[0]):
-                        temp = raw[frame, :, :]
-                        temp = image_downsample(temp, ds)
-                        dat[frame, :, :] = temp
+                for frame in range(aux_shape[0]):
+                    temp = raw[frame, :, :]
+                    temp = image_downsample(temp, ds)
+                    dat[frame, :, :] = temp
                 comm.Barrier()
                 f.close()
                 comm.Barrier()
