@@ -124,7 +124,7 @@ def save_partial_raw(file_grid, save_folder, prefix):
     for (y, x), value in np.ndenumerate(file_grid):
         if (value != None):
             prj, flt, drk = dxchange.read_aps_32id(value, proj=(0, 1))
-            fname = prefix + 'Y' + str(y).zfill(2) + '_X' + str(x).zfill(2)
+            fname = value
             flt = flt.mean(axis=0).astype('float32')
             dxchange.write_tiff(np.squeeze(flt), fname=os.path.join(save_folder, 'partial_flats', fname))
             drk = drk.mean(axis=0).astype('float16')
