@@ -72,7 +72,7 @@ import h5py
 import numpy as np
 import tomopy
 import dxchange
-from tomosaic.util.phase import retrieve_phase
+from tomosaic.util import retrieve_phase, allocate_mpi_subsets
 from tomosaic.merge.merge import blend
 from tomosaic.register.morph import arrange_image
 import shutil
