@@ -46,10 +46,41 @@
 # POSSIBILITY OF SUCH DAMAGE.                                             #
 # #########################################################################
 
+"""
+Module for input of tomosaic
+"""
+
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from .grid import *
-from .phase import *
-from .util import *
-from .misc import *
+import logging
+import numpy as np
+
+
+logger = logging.getLogger(__name__)
+
+__author__ = ["Rafael Vescovi", "Ming Du"]
+__credits__ = "Doga Gursoy"
+__copyright__ = "Copyright (c) 2015, UChicago Argonne, LLC."
+__docformat__ = 'restructuredtext en'
+__all__ = ['allocate_mpi_subsets']
+
+
+def allocate_mpi_subsets(n_task, size, task_list=None):
+
+    if task_list is None:
+        task_list = range(n_task)
+    sets = []
+    per_rank_floor = int(np.floor(n_task/size))
+    remainder = n_task % size
+    start = 0
+    for i in range(size):
+        length = per_rank_floor
+        if remainder > 0:
+            length += 1
+            remainder -= 1
+        sets.append(task_list[start:start+length])
+        start = start+length
+    return sets
+
+

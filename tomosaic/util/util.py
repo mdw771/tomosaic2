@@ -73,6 +73,7 @@ import numpy as np
 import tomopy
 import dxchange
 from tomosaic.util.phase import retrieve_phase
+from tomosaic.util.misc import allocate_mpi_subsets
 from tomosaic.merge.merge import blend
 from tomosaic.register.morph import arrange_image
 import shutil
@@ -124,7 +125,7 @@ def save_partial_raw(file_grid, save_folder, prefix):
     for (y, x), value in np.ndenumerate(file_grid):
         if (value != None):
             prj, flt, drk = dxchange.read_aps_32id(value, proj=(0, 1))
-            fname = prefix + 'Y' + str(y).zfill(2) + '_X' + str(x).zfill(2)
+            fname = value
             flt = flt.mean(axis=0).astype('float32')
             dxchange.write_tiff(np.squeeze(flt), fname=os.path.join(save_folder, 'partial_flats', fname))
             drk = drk.mean(axis=0).astype('float16')
@@ -195,7 +196,7 @@ def normalize(img):
     return img
 
 
-def reorganize_dir(file_list, raw_ds=[1,2,4], dtype='float16', **kwargs):
+def reorganize_dir(file_list, raw_ds=(2,4), dtype='float16', **kwargs):
     """
     Reorganize hdf5 files and reorganize directory as:
     ----------------
@@ -221,17 +222,12 @@ def reorganize_dir(file_list, raw_ds=[1,2,4], dtype='float16', **kwargs):
     # downsample
     try:
         f = h5py.File(file_list[0])
+        full_shape = f['exchange/data'].shape
     except:
-        f = h5py.File('data_raw_1x/'+file_list[0])
-    full_shape = f['exchange/data'].shape
-    frame_per_rank = int(full_shape[0] / size)
-    remainder = full_shape[0] % size
-    if remainder:
-        if rank == 0:
-            print('You will have {:d} frames that cannot be processed in parallel. Consider optimizing number of ranks. '
-                  'Press anykey to continue.'.format(remainder))
-            anykey = raw_input()
+        f = h5py.File(os.path.join('data_raw_1x', file_list[0]))
+        full_shape = f['exchange/data'].shape
     comm.Barrier()
+
     for fname in file_list:
         print('Now processing '+str(fname))
         # make downsampled subdirectories
@@ -250,15 +246,14 @@ def reorganize_dir(file_list, raw_ds=[1,2,4], dtype='float16', **kwargs):
                 comm.Barrier()
             # otherwise perform downsampling
             else:
-
                 if rank == 0:
                     if not os.path.exists(folder_name):
                         os.mkdir(folder_name)
                 comm.Barrier()
                 try:
-                    o = h5py.File('data_raw_1x/' + fname)
+                    o = h5py.File('data_raw_1x/' + fname, 'r')
                 except:
-                    o = h5py.File(fname)
+                    o = h5py.File(fname, 'r')
                 raw = o['exchange/data']
                 if rank == 0:
                     if os.path.exists(folder_name+'/'+fname):
@@ -278,45 +273,37 @@ def reorganize_dir(file_list, raw_ds=[1,2,4], dtype='float16', **kwargs):
                                                           np.floor(full_shape[2]/ds)), dtype=dtype)
                 # write downsampled data frame-by-frame
                 n_frames = full_shape[0]
-                for stage in [0, 1]:
-                    if stage == 1 and rank != 0:
-                        pass
-                    else:
-                        fstart = rank * frame_per_rank
-                        fend = (rank+1) * frame_per_rank
-                        if stage == 1:
-                            fstart = size * frame_per_rank
-                            fend = full_shape[0]
-                        for frame in range(fstart, fend):
-                            temp = raw[frame, :, :]
-                            temp = image_downsample(temp, ds)
-                            dat[frame, :, :] = temp
-                            print('\r    Rank: {:d}, DS: {:d}, at frame {:d}'.format(rank, ds, frame))
-                        print(' ')
+                alloc_sets = allocate_mpi_subsets(n_frames, size)
+                for frame in alloc_sets[rank]:
+                    temp = raw[frame, :, :]
+                    temp = image_downsample(temp, ds)
+                    dat[frame, :, :] = temp
+                    print('\r    Rank: {:d}, DS: {:d}, at frame {:d}'.format(rank, ds, frame))
+                print(' ')
                 # downsample flat/dark field data
-                if rank == 0:
-                    raw = o['exchange/data_white']
-                    aux_shape = raw.shape
-                    try:
-                        dat = dat_grp.create_dataset('data_white', (aux_shape[0], np.floor(aux_shape[1]/ds),
+                comm.Barrier()
+                raw = o['exchange/data_white']
+                aux_shape = raw.shape
+                dat = dat_grp.create_dataset('data_white', (aux_shape[0], np.floor(aux_shape[1]/ds),
                                                                   np.floor(aux_shape[2]/ds)), dtype=dtype)
-                    except:
-                        dat = f['exchange/data_white']
-                    for frame in range(aux_shape[0]):
-                        temp = raw[frame, :, :]
-                        temp = image_downsample(temp, ds)
-                        dat[frame, :, :] = temp
-                    raw = o['exchange/data_dark']
-                    aux_shape = raw.shape
-                    try:
-                        dat = dat_grp.create_dataset('data_dark', (aux_shape[0], np.floor(aux_shape[1]/ds),
-                                                                   np.floor(aux_shape[2]/ds)), dtype=dtype)
-                    except:
-                        dat = f['exchange/data_dark']
-                    for frame in range(aux_shape[0]):
-                        temp = raw[frame, :, :]
-                        temp = image_downsample(temp, ds)
-                        dat[frame, :, :] = temp
+                comm.Barrier()
+                print('    Downsampling whites and darks')
+                for frame in range(aux_shape[0]):
+                    temp = raw[frame, :, :]
+                    temp = image_downsample(temp, ds)
+                    dat[frame, :, :] = temp
+                raw = o['exchange/data_dark']
+                aux_shape = raw.shape
+                dat = dat_grp.create_dataset('data_dark', (aux_shape[0], np.floor(aux_shape[1]/ds),
+                                                           np.floor(aux_shape[2]/ds)), dtype=dtype)
+                comm.Barrier()
+                for frame in range(aux_shape[0]):
+                    temp = raw[frame, :, :]
+                    temp = image_downsample(temp, ds)
+                    dat[frame, :, :] = temp
+                comm.Barrier()
+                f.close()
+                comm.Barrier()
         # delete file after all done
         try:
             os.remove(fname)
@@ -401,46 +388,33 @@ def hdf5_cast(fname, display_min=None, display_max=None, dtype='uint16'):
         else:
             display_max = comm.recv(source=0)
     comm.Barrier()
-    slice_per_rank = int(n_slices/size)
-    remainder = n_slices % size
-    if remainder:
-        print('You will have {:d} slices that cannot be processed in parallel. Consider optimizing number of ranks.'
-              .format(remainder))
-        time.sleep(3)
-    for stage in [0, 1]:
-        if stage == 1 and rank != 0:
-            pass
-        else:
-            fstart = rank * slice_per_rank
-            fend = (rank+1) * slice_per_rank
-            if stage == 1:
-                fstart = size * slice_per_rank
-                fend = n_slices
-                dset = f['exchange/data']
-            for i in range(fstart, fend):
-                temp = dset[i, :, :]
-                temp = img_cast(temp, display_min, display_max, dtype=dtype)
-                dset[i, :, :] = temp
-                print('    Rank: {:d}, slice: {:d}'.format(rank, i))
-            dset = dset.astype(dtype)
-            try:
-                dset = f['exchange/data_white']
-                for i in range(fstart, fend):
-                    temp = dset[i, :, :]
-                    temp = img_cast(temp, display_min, display_max, dtype=dtype)
-                    dset[i, :, :] = temp
-                dset = dset.astype(dtype)
-            except:
-                pass
-            try:
-                dset = f['exchange/data_dark']
-                for i in range(fstart, fend):
-                    temp = dset[i, :, :]
-                    temp = img_cast(temp, display_min, display_max, dtype=dtype)
-                    dset[i, :, :] = temp
-                dset = dset.astype(dtype)
-            except:
-                pass
+    alloc_set = allocate_mpi_subsets(n_slices, size)
+    for i in alloc_set[rank]:
+        temp = dset[i, :, :]
+        temp = img_cast(temp, display_min, display_max, dtype=dtype)
+        dset[i, :, :] = temp
+        print('    Rank: {:d}, slice: {:d}'.format(rank, i))
+    dset = dset.astype(dtype)
+    try:
+        dset = f['exchange/data_white']
+        alloc_set = allocate_mpi_subsets(dset.shape[0], size)
+        for i in alloc_set[rank]:
+            temp = dset[i, :, :]
+            temp = img_cast(temp, display_min, display_max, dtype=dtype)
+            dset[i, :, :] = temp
+        dset = dset.astype(dtype)
+    except:
+        pass
+    try:
+        dset = f['exchange/data_dark']
+        alloc_set = allocate_mpi_subsets(dset.shape[0], size)
+        for i in alloc_set[rank]:
+            temp = dset[i, :, :]
+            temp = img_cast(temp, display_min, display_max, dtype=dtype)
+            dset[i, :, :] = temp
+        dset = dset.astype(dtype)
+    except:
+        pass
     return
 
 
@@ -462,26 +436,12 @@ def tiff2hdf5(src_folder, dest_folder, dest_fname, pattern='recon_*.tiff', displ
         f = h5py.File(os.path.join(dest_folder, dest_fname))
     grp = f.create_group('exchange')
     grp.create_dataset('data', full_shape, dtype='float32')
-    files_per_rank = int(n_files/size)
-    remainder = n_files % size
-    if remainder:
-        print('You will have {:d} slices that cannot be processed in parallel. Consider optimizing number of ranks.'
-              .format(remainder))
-        time.sleep(3)
-    for stage in [0, 1]:
-        if stage == 1 and rank != 0:
-            pass
-        else:
-            fstart = rank * files_per_rank
-            fend = (rank+1) * files_per_rank
-            if stage == 1:
-                fstart = size * files_per_rank
-                fend = n_files
-            dset = f['exchange/data']
-            for i in range(fstart, fend):
-                img = imread(filelist[i])
-                dset[i, :, :] = img
-                print('    Rank: {:d}, file: {:d}'.format(rank, i))
+    alloc_set = allocate_mpi_subsets(n_files, size)
+    dset = f['exchange/data']
+    for i in alloc_set[rank]:
+        img = imread(filelist[i])
+        dset[i, :, :] = img
+        print('    Rank: {:d}, file: {:d}'.format(rank, i))
     comm.Barrier()
     hdf5_cast(os.path.join(dest_folder, dest_fname), display_min=display_min, display_max=display_max, dtype=dtype)
     return
@@ -507,13 +467,6 @@ def hdf5_retrieve_phase(src_folder, src_fname, dest_folder, dest_fname, method='
     o = h5py.File('{:s}/{:s}'.format(src_folder, src_fname))
     dset_src = o['exchange/data']
     n_frames = dset_src.shape[0]
-    frames_per_rank = int(n_frames/size)
-
-    remainder = n_frames % size
-    if remainder:
-        print('You will have {:d} frames that cannot be processed in parallel. Consider optimizing number of ranks.'
-              .format(remainder))
-        time.sleep(3)
 
     if rank == 0:
         if not os.path.exists(dest_folder):
@@ -549,7 +502,9 @@ def hdf5_retrieve_phase(src_folder, src_fname, dest_folder, dest_fname, method='
     flt = o['exchange/data_white'].value
     drk = o['exchange/data_dark'].value
     print('Method: {:s}'.format(method), kwargs)
-    for frame in range(rank*frames_per_rank, (rank+1)*frames_per_rank):
+
+    alloc_set = allocate_mpi_subsets(n_frames, size)
+    for frame in alloc_set[rank]:
         t0 = time.time()
         print('    Rank: {:d}; current frame: {:d}.'.format(rank, frame))
         if sino_range is None:
@@ -569,25 +524,7 @@ def hdf5_retrieve_phase(src_folder, src_fname, dest_folder, dest_fname, method='
         temp = retrieve_phase(temp, method=method, **kwargs)
         dset_dest[frame, :, :] = temp.astype(dtype)
         print('    Done in {:.2f}s. '.format(time.time()-t0))
-    if remainder:
-        for frame in range(size*frames_per_rank, n_frames):
-            t0 = time.time()
-            print('\r    Rank: {:d}; current frame: {:d}.'.format(rank, frame), end='')
-            if sino_range is None:
-                temp = dset_src[frame, :, :]
-            else:
-                temp = dset_src[frame, sino_start:sino_end, :]
-            if corr_flat:
-                temp = temp.reshape([1, temp.shape[0], temp.shape[1]])
-                temp = tomopy.normalize(temp, flt, drk)
-                temp[np.abs(temp) < 2e-3] = 2e-3
-                temp[temp > 1] = 1
-                temp = -np.log(temp)
-                temp[np.where(np.isnan(temp) == True)] = 0
-                temp = np.squeeze(temp)
-            temp = retrieve_phase(temp, method=method, **kwargs)
-            dset_dest[frame, :, :] = temp.astype(dtype)
-            print('    Done in {:.2f}s. '.format(time.time()-t0))
+
     f.close()
     comm.Barrier()
     return
@@ -632,15 +569,10 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
     dset_flat[:, :, :] = np.ones(dset_flat.shape, dtype=dtype)
     dset_dark[:, :, :] = np.zeros(dset_dark.shape, dtype=dtype)
 
-    remainder = n_frames % size
-    if remainder:
-        print('You will have {:d} frames that cannot be processed in parallel. Consider optimizing number of ranks.'
-              .format(remainder))
-        time.sleep(3)
-
     print('Started to build full hdf5.')
     t0 = time.time()
-    for frame in range(rank*frames_per_rank, (rank+1)*frames_per_rank):
+    alloc_set = allocate_mpi_subsets(n_frames, size)
+    for frame in alloc_set[rank]:
         print('    Rank: {:d}; current frame: {:d}..'.format(rank, frame))
         t00 = time.time()
         pano = np.zeros((full_height, full_width), dtype=dtype)
@@ -652,21 +584,6 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
         pano[:temp.shape[0], :temp.shape[1]] = temp.astype(dtype)
         dset_data[frame, :, :] = pano
         print('    Frame {:d} done in {:.3f} s.'.format(frame, time.time() - t00))
-    if remainder:
-        if rank == 0:
-            t0 = time.time()
-            for frame in range(size*frames_per_rank, n_frames):
-                print('    Rank: {:d}; current frame: {:d}..'.format(rank, frame))
-                t00 = time.time()
-                pano = np.zeros((full_height, full_width), dtype=dtype)
-                save_stdout = sys.stdout
-                sys.stdout = open('trash', 'w')
-                temp = build_panorama(file_grid, shift_grid, frame=frame, method=blend_method)
-                temp[np.isnan(temp)] = 0
-                sys.stdout = save_stdout
-                pano[:temp.shape[0], :temp.shape[1]] = temp.astype(dtype)
-                dset_data[frame, :, :] = pano
-                print('    Frame {:d} done in {:.3f} s.'.format(frame, time.time() - t00))
     print('Data built and written in {:.3f} s.'.format(time.time() - t0))
     try:
         os.remove('trash')
@@ -710,49 +627,35 @@ def partial_center_alignment(file_grid, shift_grid, center_vec, src_folder, rang
         n_angles = comm.recv(source=0)
     comm.Barrier()
     width = shift_grid[:, -1, 1].max() + xcam
-    tile_per_rank = int(n_tiles/size)
-    remainder = n_tiles % size
-    if remainder:
-        print('You will have {:d} rows that cannot be processed in parallel. Consider optimizing number of ranks.'
-              .format(remainder))
-        time.sleep(3)
     tile_ls = np.zeros([file_grid.size, 2], dtype='int')
     a = np.unravel_index(range(n_tiles), file_grid.shape)
     tile_ls[:, 0] = a[0]
     tile_ls[:, 1] = a[1]
     theta = tomopy.angles(n_angles)
     shift_corr = np.zeros(shift_grid.shape)
-    for stage in [0, 1]:
-        if stage == 1 and rank != 0:
-            pass
-        else:
-            fstart = rank * tile_per_rank
-            fend = (rank+1) * tile_per_rank
-            if stage == 1:
-                fstart = size * tile_per_rank
-                fend = n_tiles
-            for i in range(fstart, fend):
-                y, x = tile_ls[i]
-                center = center_vec[y]
-                fname = file_grid[y, x]
-                sino, flt, drk = dxchange.read_aps_32id(fname, sino=(slice, slice+1))
-                sino = np.squeeze(tomopy.normalize(sino, flt, drk))
-                sino[np.abs(sino) < 2e-3] = 2e-3
-                sino[sino > 1] = 1
-                sino = -np.log(sino)
-                sino[np.where(np.isnan(sino) == True)] = 0
-                s_opt = np.inf
-                for delta in range(range_0, range_1+1):
-                    sino_pad = np.zeros([n_angles, width])
-                    sino_pad = arrange_image(sino_pad, sino, (0, shift_grid[y, x, 1]+delta))
-                    sino_pad = sino_pad.reshape(sino_pad.shape[0], 1, sino_pad.shape[1])
-                    rec = tomopy.recon(sino_pad, theta, center=center)
-                    rec = np.squeeze(rec)
-                    s = entropy(rec)
-                    if s < s_opt:
-                        s_opt = s
-                        delta_opt = delta
-                shift_corr[y, x, 1] += delta_opt
+    alloc_set = allocate_mpi_subsets(n_tiles, size)
+    for i in alloc_set[rank]:
+        y, x = tile_ls[i]
+        center = center_vec[y]
+        fname = file_grid[y, x]
+        sino, flt, drk = dxchange.read_aps_32id(fname, sino=(slice, slice+1))
+        sino = np.squeeze(tomopy.normalize(sino, flt, drk))
+        sino[np.abs(sino) < 2e-3] = 2e-3
+        sino[sino > 1] = 1
+        sino = -np.log(sino)
+        sino[np.where(np.isnan(sino) == True)] = 0
+        s_opt = np.inf
+        for delta in range(range_0, range_1+1):
+            sino_pad = np.zeros([n_angles, width])
+            sino_pad = arrange_image(sino_pad, sino, (0, shift_grid[y, x, 1]+delta))
+            sino_pad = sino_pad.reshape(sino_pad.shape[0], 1, sino_pad.shape[1])
+            rec = tomopy.recon(sino_pad, theta, center=center)
+            rec = np.squeeze(rec)
+            s = entropy(rec)
+            if s < s_opt:
+                s_opt = s
+                delta_opt = delta
+        shift_corr[y, x, 1] += delta_opt
     comm.Barrier()
     if rank != 0:
         comm.send(shift_corr, dest=0)
