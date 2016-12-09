@@ -54,6 +54,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import logging
+import h5py
 import numpy as np
 
 
@@ -82,5 +83,30 @@ def allocate_mpi_subsets(n_task, size, task_list=None):
         sets.append(task_list[start:start+length])
         start = start+length
     return sets
+
+
+def which_tile(shift_grid, file_grid, x_coord, y_coord):
+
+    f = h5py.File(file_grid[0, 0])
+    y_cam, x_cam = f['exchange/data'].shape[1:3]
+    y_prev = 'none'
+    x_prev = 'none'
+    y = np.searchsorted(shift_grid[:, 0], y_coord) - 1
+    if y != 0:
+        if y < shift_grid[y-1, 0] + y_cam:
+            y_prev = y - 1
+        else:
+            y_prev = y
+    x = np.searchsorted(shift_grid[0, :], x_coord) - 1
+    if x != 0:
+        if x < shift_grid[0, x-1] + x_cam:
+            x_prev = x - 1
+        else:
+            x_prev = x
+    s = file_grid[y, x]
+    if x_prev != x or y_prev != y:
+        s = s + ' overlapped with ' + file_grid[y_prev, x_prev]
+    return s
+
 
 
