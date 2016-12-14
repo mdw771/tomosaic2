@@ -58,7 +58,7 @@ import six
 import operator, time
 import numpy as np
 import scipy
-from scipy.stats import norm
+from numpy.linalg import norm
 from scipy.ndimage.filters import gaussian_filter
 from scipy.signal import convolve2d
 from scipy.sparse import csc_matrix
@@ -67,6 +67,7 @@ from itertools import izip
 import gc
 import tomosaic.register.morph as morph
 import dxchange
+import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +80,8 @@ __all__ = ['blend',
            'img_merge_max',
            'img_merge_min',
            'img_merge_poisson',
-           'img_merge_pyramid',]
+           'img_merge_pyramid',
+           'img_merge_pwd']
 
 
 def blend(img1, img2, shift, method, **kwargs):
@@ -431,18 +433,21 @@ def img_merge_pyramid(img1, img2, shift, margin=100, blur=0.4, depth=4):
     corner = _get_corner(rough_shift, img2.shape)
     # for new image with overlap at left and top 
     if abs(rough_shift[1]) > margin and abs(rough_shift[0]) > margin:
-        temp0 = img2.shape[0] if corner[1, 0] <= img1.shape[0] - 1 else img1.shape[0] - corner[0, 0]
+        abs_width = np.count_nonzero(np.isfinite(img1[-margin, :]))
+        abs_height = np.count_nonzero(np.isfinite(img1[:, abs_width-margin]))
+        temp0 = img2.shape[0] if corner[1, 0] <= abs_height - 1 else abs_height - corner[0, 0]
         temp1 = img2.shape[1] if corner[1, 1] <= img1.shape[1] - 1 else img1.shape[1] - corner[0, 1]
-        mask2 = np.zeros([temp0, temp1])
-        mask2[:, :] = np.nan
+        mask = np.zeros([temp0, temp1], dtype='bool')
         temp = img1[corner[0, 0]:corner[0, 0] + temp0, corner[0, 1]:corner[0, 1] + temp1]
         temp = np.isfinite(temp)
         wid_ver = np.count_nonzero(temp[:, -1])
         wid_hor = np.count_nonzero(temp[-1, :])
-        mask2[:wid_ver, :] = 1
-        mask2[:, :wid_hor] = 1
-        buffer1 = img1[corner[0, 0]:corner[0, 0] + mask2.shape[0], corner[0, 1]:corner[0, 1] + mask2.shape[1]]
-        buffer2 = img2[:mask2.shape[0], :mask2.shape[1]]
+        mask[:wid_ver, :] = True
+        mask[:, :wid_hor] = True
+        buffer1 = img1[corner[0, 0]:corner[0, 0] + mask.shape[0], corner[0, 1]:corner[0, 1] + mask.shape[1]]
+        buffer2 = img2[:mask.shape[0], :mask.shape[1]]
+        buffer1[1-mask] = np.nan
+        buffer2[1-mask] = np.nan
     # for new image with overlap at top only
     elif abs(rough_shift[1]) < margin and abs(rough_shift[0]) > margin:
         abs_height = np.count_nonzero(np.isfinite(img1[:, margin]))
@@ -559,3 +564,291 @@ def _collapse(lapl_pyr, blur):
         lapl_pyr.append(tmp)
         output = tmp
     return output
+
+
+def img_merge_pwd(img1, img2, shift, margin=100, chunk_size=10000):
+
+    t00 = time.time()
+    t0 = time.time()
+    newimg = morph.arrange_image(img1, img2, shift, order=2)
+    print('Starting PWD blend...')
+    if abs(shift[0]) < margin and abs(shift[1]) < margin:
+        return newimg
+    rough_shift = morph.get_roughshift(shift)
+    print('    Blend: Image aligned and built in', str(time.time() - t0))
+
+    # determine scenario
+    if abs(rough_shift[1]) > margin and abs(rough_shift[0]) > margin:
+        rel_pos = 'lt'
+    elif abs(rough_shift[1]) < margin and abs(rough_shift[0]) > margin:
+        rel_pos = 't'
+    else:
+        rel_pos = 'l'
+
+    # get overlapping area
+    t0 = time.time()
+    corner = _get_corner(rough_shift, img2.shape)
+    # for new image with overlap at left and top
+    if rel_pos == 'lt':
+        abs_width = np.count_nonzero(np.isfinite(img1[-margin, :]))
+        abs_height = np.count_nonzero(np.isfinite(img1[:, abs_width-margin]))
+        temp0 = img2.shape[0] if corner[1, 0] <= abs_height - 1 else abs_height - corner[0, 0]
+        temp1 = img2.shape[1] if corner[1, 1] <= img1.shape[1] - 1 else img1.shape[1] - corner[0, 1]
+        mask = np.zeros([temp0, temp1], dtype='bool')
+        temp = img1[corner[0, 0]:corner[0, 0] + temp0, corner[0, 1]:corner[0, 1] + temp1]
+        temp = np.isfinite(temp)
+        wid_ver = np.count_nonzero(temp[:, -1])
+        wid_hor = np.count_nonzero(temp[-1, :])
+        mask[:wid_ver, :] = True
+        mask[:, :wid_hor] = True
+        buffer1 = img1[corner[0, 0]:corner[0, 0] + mask.shape[0], corner[0, 1]:corner[0, 1] + mask.shape[1]]
+        buffer2 = img2[:mask.shape[0], :mask.shape[1]]
+        buffer1[1-mask] = np.nan
+        buffer2[1-mask] = np.nan
+    # for new image with overlap at top only
+    elif rel_pos == 't':
+        abs_height = np.count_nonzero(np.isfinite(img1[:, margin]))
+        wid_ver = abs_height - corner[0, 0]
+        wid_hor = img2.shape[1] if img1.shape[1] > img2.shape[1] else img2.shape[1] - corner[0, 1]
+        buffer1 = img1[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + wid_hor]
+        buffer2 = img2[:wid_ver, :wid_hor]
+        buffer1[buffer1==np.nan] = 0
+        buffer2[buffer2==np.nan] = 0
+    # for new image with overlap at left only
+    else:
+        abs_width = np.count_nonzero(np.isfinite(img1[margin, :]))
+        wid_ver = img2.shape[0] - corner[0, 0]
+        wid_hor = abs_width - corner[0, 1]
+        buffer1 = img1[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + wid_hor]
+        buffer2 = img2[:wid_ver, :wid_hor]
+        buffer1[buffer1==np.nan] = 0
+        buffer2[buffer2==np.nan] = 0
+
+    # find seam
+
+
+    if rel_pos == 'lt':
+
+        temp_l1 = buffer1[:, :wid_hor]
+        temp_l2 = buffer2[:, :wid_hor]
+        temp_r1 = buffer1[:wid_ver, :]
+        temp_r2 = buffer2[:wid_ver, :]
+        if corner[1, 0] <= abs_height - 1:
+            dir_l = 'br2tl'
+            dv_l = _get_cef_br2tl(temp_l1, temp_l2)
+            begin_l = np.array([buffer1.shape[0]-1, wid_hor-1])
+        else:
+            dir_l = 'bl2tr'
+            dv_l = _get_cef_bl2tr(temp_l1, temp_l2)
+            begin_l = np.array([buffer1.shape[0]-1, 0])
+        if corner[1, 1] <= img1.shape[1] - 1:
+            dir_r = 'br2tl'
+            dv_r = _get_cef_br2tl(temp_r1, temp_r2)
+            begin_r = np.array([wid_ver-1, buffer1.shape[1]-1])
+        else:
+            dir_r = 'bl2tr'
+            dv_r = _get_cef_bl2tr(temp_r1, temp_r2)
+            begin_r = np.array([0, buffer1.shape[1]-1])
+        dv_l_full = np.zeros(buffer1.shape)
+        dv_r_full = np.zeros(buffer1.shape)
+        dv_l_full[...] = np.inf
+        dv_r_full[...] = np.inf
+        dv_l_full[:, :wid_hor] = dv_l
+        dv_r_full[:wid_ver, :] = dv_r
+        dv = dv_r_full + dv_l_full
+        inflect = np.array([wid_ver-1, wid_hor-1])
+        xx, yy = np.meshgrid(range(dv.shape[1]), range(dv.shape[0]))
+        diag_judge = np.abs(inflect[0]*xx-inflect[1]*yy)/np.sqrt(inflect[0]**2+inflect[1]**2) < np.sqrt(2)/2
+        diag_line = dv * diag_judge
+        s = np.unravel_index(np.argmin(diag_line), dv.shape)
+        seam = np.zeros(buffer1.shape, dtype='bool')
+        seam[s[0], s[1]] = True
+        seam = _trace_seam(dv_l_full, seam, s, begin_l, mode=dir_l)
+        seam = _trace_seam(dv_r_full, seam, s, begin_r, mode=dir_r)
+        mask1 = np.copy(seam)
+        for i in mask1.shape[0]:
+            ind = np.nonzero(mask1[i, :])[0][0]
+            mask1[i, :ind] = True
+        mask2 = 1 - mask1
+        if np.count_nonzero(mask2.shape==img2.shape) < 2:
+            temp = np.ones(img2.shape, dtype='bool')
+            temp[:mask2.shape[0], :mask2.shape[1]] = mask2
+            mask2 = temp
+        full_mask2 = np.zeros(newimg.shape, dtype='bool')
+        full_mask2[corner[0, 0]:corner[0, 0]+img2.shape[0], corner[0, 1]:corner[0, 1]+img2.shape[1]] = mask2
+        newimg[full_mask2] = img2[mask2]
+
+
+    elif rel_pos == 't':
+        dv = _get_cef_bl2tr(buffer1, buffer2)
+        begin = np.array([dv.shape[0]-1, 0])
+        s = np.array([0, dv.shape[1]-1])
+        seam = np.zeros(buffer1.shape, dtype='bool')
+        seam[s[0], s[1]] = True
+        seam = _trace_seam(dv, seam, s, begin, mode='bl2tr')
+        mask1 = np.copy(seam)
+        for i in range(mask1.shape[0]):
+            ind = np.nonzero(mask1[i, :])[0][0]
+            mask1[i, :ind] = True
+        mask2 = 1 - mask1
+        temp = np.ones(img2.shape, dtype='bool')
+        temp[:mask2.shape[0], :mask2.shape[1]] = mask2
+        mask2 = temp
+        full_mask2 = np.zeros(newimg.shape, dtype='bool')
+        full_mask2[corner[0, 0]:corner[0, 0]+img2.shape[0], corner[0, 1]:corner[0, 1]+img2.shape[1]] = mask2
+        newimg[full_mask2] = img2[mask2]
+
+    else:
+        dv = _get_cef_bl2tr(buffer1, buffer2)
+        begin = np.array([dv.shape[0]-1, 0])
+        s = np.array([0, dv.shape[1]-1])
+        seam = np.zeros(buffer1.shape, dtype='bool')
+        seam[s[0], s[1]] = True
+        seam = _trace_seam(dv, seam, s, begin, mode='bl2tr')
+        mask1 = np.copy(seam)
+        for i in range(mask1.shape[0]):
+            ind = np.nonzero(mask1[i, :])[0][0]
+            mask1[i, :ind] = True
+        mask2 = 1 - mask1
+        temp = np.ones(img2.shape, dtype='bool')
+        temp[:mask2.shape[0], :mask2.shape[1]] = mask2
+        mask2 = temp
+        full_mask2 = np.zeros(newimg.shape, dtype='bool')
+        full_mask2[corner[0, 0]:corner[0, 0]+img2.shape[0], corner[0, 1]:corner[0, 1]+img2.shape[1]] = mask2
+        newimg[full_mask2] = img2[mask2]
+
+    # plt.imshow(newimg, interpolation='nearest')
+    # plt.show()
+
+    seam_y, seam_x = np.nonzero(seam)
+    seam_coords = np.dstack([seam_y, seam_x])[0] + corner[0, :]
+    p_seam = buffer1[seam] - buffer2[seam]
+    p_seam = p_seam[p_seam!=0]
+    img2_y, img2_x = np.nonzero(full_mask2)
+    img2_coords = np.dstack([img2_y, img2_x])[0]
+    img2_coords_chunk = []
+    st = 0
+    while st < img2_coords.shape[0]:
+        end = st + chunk_size if st + chunk_size <= img2_coords.shape[0] else img2_coords.shape[0]
+        img2_coords_chunk.append(img2_coords[st:end, :])
+        st = end
+    i_new = np.array([])
+    count = 0
+
+    ################## THIS LOOP NEEDS OPTIMIZATION ##################
+    for img2_coords_sub in img2_coords_chunk:
+        t0 = time.time()
+        w_denom = np.sum(1/_norm(np.swapaxes(seam_coords[:, np.newaxis]-img2_coords_sub, 0, 1)), axis=1)
+        w = 1 / _norm(np.swapaxes(seam_coords[:, np.newaxis]-img2_coords_sub, 0, 1))
+        w /= w_denom.reshape([w_denom.shape[0], 1])
+        p_sub = np.sum(w*p_seam, axis=1)
+        i_new = np.append(i_new, p_sub)
+    newimg[full_mask2] = newimg[full_mask2] + i_new
+    # for q in img2_coords:
+    #     w_denom = np.sum(1/norm(seam_coords-q, axis=1))
+    #     w = 1 / norm(seam_coords-q, axis=1) / w_denom
+    #     p_q = np.sum(w*p_seam)
+    #     newimg[q[0], q[1]] += p_q
+    print('    Blend: Done with this tile in', str(time.time() - t00), 'sec.')
+    gc.collect()
+    return newimg
+
+
+def _get_cef_bl2tr(buffer1, buffer2):
+
+    dv = (buffer1-buffer2) ** 2
+    cor_down = dv.shape[0] - 1
+    cor_right = dv.shape[1] - 1
+    for x in range(1, cor_right+1):
+        dv[cor_down, x] += dv[cor_down, x-1]
+    for y in range(cor_down-1, -1, -1):
+        for x in range(cor_right+1):
+            if x == 0:
+                dv[y, x] += dv[y+1, x] + dv[y+1, x+1]
+            elif x == cor_right:
+                dv[y, x] += dv[y, x-1] + dv[y+1, x-1] + dv[y+1, x]
+            else:
+                dv[y, x] += dv[y, x-1] + dv[y+1, x-1] + dv[y+1, x] + dv[y+1, x+1]
+    return dv
+
+
+def _get_cef_br2tl(buffer1, buffer2):
+
+    dv = (buffer1-buffer2) ** 2
+    cor_down = dv.shape[0] - 1
+    cor_right = dv.shape[1] - 1
+    for x in range(cor_right-1, -1, -1):
+        dv[cor_down, x] += dv[cor_down, x+1]
+    for y in range(cor_down-1, -1, -1):
+        for x in range(cor_right, -1, -1):
+            if x == cor_right:
+                dv[y, x] += dv[y+1, x-1] + dv[y+1, x]
+            elif x == 0:
+                dv[y, x] += dv[y, x+1] + dv[y+1, x+1] + dv[y+1, x]
+            else:
+                dv[y, x] += dv[y, x+1] + dv[y+1, x-1] + dv[y+1, x] + dv[y+1, x+1]
+    return dv
+
+
+def _trace_seam(dv, seam, s, begin, mode='br2tl'):
+
+    y, x = s
+    if mode == 'br2tl':
+        while np.count_nonzero((y, x)==begin) < 2:
+            move_ls = [(y, x+1), (y+1, x-1), (y+1, x), (y+1, x+1)]
+            if x == 0:
+                del move_ls[1]
+            if y == dv.shape[0] - 1:
+                del move_ls[2]
+                del move_ls[3]
+                try:
+                    del move_ls[1]
+                except:
+                    pass
+            if x == dv.shape[1] - 1:
+                del move_ls[0]
+                try:
+                    del move_ls[3]
+                except:
+                    pass
+            amin_ls = []
+            for iy, ix in move_ls:
+                amin_ls.append(dv[iy, ix])
+            amin = np.argmin(amin_ls)
+            y, x = move_ls[amin]
+            seam[y, x] = True
+    else:
+        while np.count_nonzero((y, x)==begin) < 2:
+            # print(y, x)
+            move_dict = {0:(y, x-1),
+                         1:(y+1, x-1),
+                         2:(y+1, x),
+                         3:(y+1, x+1)}
+            if x == dv.shape[1] - 1:
+                del move_dict[3]
+            if y == dv.shape[0] - 1:
+                del move_dict[1]
+                del move_dict[2]
+                try:
+                    del move_dict[3]
+                except:
+                    pass
+            if x == 0:
+                del move_dict[0]
+                try:
+                    del move_dict[1]
+                except:
+                    pass
+            amin_ls = []
+            for iy, ix in move_dict.values():
+                amin_ls.append(dv[iy, ix])
+            amin = np.argmin(amin_ls)
+            temp = move_dict.values()
+            y, x = temp[amin]
+            seam[y, x] = True
+    return seam
+
+def _norm(arr):
+
+    res = np.sqrt(arr[:, :, 0]**2 + arr[:, :, 1]**2)
+    return res
