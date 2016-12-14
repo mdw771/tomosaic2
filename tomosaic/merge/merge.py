@@ -133,6 +133,7 @@ def blend(img1, img2, shift, method, **kwargs):
 
         # Make sure have allowed kwargs appropriate for algorithm.
         for key, value in list(kwargs.items()):
+
             if key not in allowed_kwargs[method]:
                 raise ValueError(
                     '%s keyword not in allowed keywords %s' %
@@ -150,8 +151,6 @@ def blend(img1, img2, shift, method, **kwargs):
                 #     if not isinstance(kwargs[key], np.float32):
                 #         kwargs[key] = np.array(value, dtype='float32')
         # Set kwarg defaults.
-        for kw in allowed_kwargs[method]:
-            kwargs.setdefault(kw, kwargs_defaults[kw])
 
     elif hasattr(method, '__call__'):
     # Set kwarg defaults.
