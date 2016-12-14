@@ -116,6 +116,7 @@ def blend(img1, img2, shift, method, **kwargs):
     'min': [],
     'poisson': [],
     'pyramid': ['blur', 'margin', 'depth'],
+    'pwd': ['margin', 'chunk_size']
     }
 
     generic_kwargs = []
@@ -175,6 +176,8 @@ def _get_func(method):
         func = img_merge_poisson
     elif method == 'pyramid':
         func = img_merge_pyramid
+    elif method == 'pwd':
+        func = img_merge_pwd
     return func
 
 def _get_algorithm_kwargs():
@@ -716,10 +719,6 @@ def img_merge_pwd(img1, img2, shift, margin=100, chunk_size=10000):
         full_mask2 = np.zeros(newimg.shape, dtype='bool')
         full_mask2[corner[0, 0]:corner[0, 0]+img2.shape[0], corner[0, 1]:corner[0, 1]+img2.shape[1]] = mask2
         newimg[full_mask2] = img2[mask2]
-
-    # plt.imshow(newimg, interpolation='nearest')
-    # plt.show()
-
     seam_y, seam_x = np.nonzero(seam)
     seam_coords = np.dstack([seam_y, seam_x])[0] + corner[0, :]
     p_seam = buffer1[seam] - buffer2[seam]
