@@ -137,20 +137,34 @@ def save_partial_raw(file_grid, save_folder, prefix):
 g_shapes = lambda fname: h5py.File(fname, "r")['exchange/data'].shape
 
 
-def build_panorama(file_grid, shift_grid, frame=0, method='max', **kwargs):
+def build_panorama(file_grid, shift_grid, frame=0, method='max', method2=None, kwargs={}, kwargs2={}):
     cam_size = g_shapes(file_grid[0, 0])
     cam_size = cam_size[1:3]
     img_size = shift_grid[-1, -1] + cam_size
     buff = np.zeros([1, 1])
-    for (y, x), value in np.ndenumerate(file_grid):
-        if (value != None and frame < g_shapes(value)[0]):
-            prj, flt, drk = dxchange.read_aps_32id(value, proj=(frame, frame + 1))
-            prj = tomopy.normalize(prj, flt, drk)
-            prj[np.abs(prj) < 2e-3] = 2e-3
-            prj[prj > 1] = 1
-            prj = -np.log(prj)
-            prj[np.where(np.isnan(prj) == True)] = 0
-            buff = blend(buff, np.squeeze(prj), shift_grid[y, x, :], method=method, **kwargs)
+    if method2 is None:
+        for (y, x), value in np.ndenumerate(file_grid):
+            if (value != None and frame < g_shapes(value)[0]):
+                prj, flt, drk = dxchange.read_aps_32id(value, proj=(frame, frame + 1))
+                prj = preprecess(prj, flt, drk)
+                buff = blend(buff, np.squeeze(prj), shift_grid[y, x, :], method=method, **kwargs)
+    else:
+        for y in range(file_grid.shape[0]):
+            temp_grid = file_grid[y:y+1, :]
+            temp_shift = shift_grid[y:y+1, :, :]
+            offset = np.min(temp_shift[:, :, 0])
+            temp_shift[:, :, 0] = temp_shift[:, :, 0] - offset
+            row_buff = np.zeros([1, 1])
+            prj, flt, drk = dxchange.read_aps_32id(temp_grid[0, 0], proj=(frame, frame + 1))
+            prj = preprecess(prj, flt, drk)
+            row_buff = arrange_image(row_buff, np.squeeze(prj), temp_shift[0, 0, :], order=1)
+            for x in range(1, temp_grid.shape[1]):
+                value = temp_grid[0, x]
+                if (value != None and frame < g_shapes(value)[0]):
+                    prj, flt, drk = dxchange.read_aps_32id(value, proj=(frame, frame + 1))
+                    prj = preprecess(prj, flt, drk)
+                    row_buff = blend(row_buff, np.squeeze(prj), temp_shift[0, x, :], method=method, **kwargs)
+            buff = blend(buff, row_buff, [offset, 0], method=method2, **kwargs2)
     return buff
 
 
@@ -530,9 +544,17 @@ def hdf5_retrieve_phase(src_folder, src_fname, dest_folder, dest_fname, method='
     return
 
 
-def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, blend_method='pyramid', dtype='float16', **kwargs):
+def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, blend_method='pyramid', blend_method2=None,
+                 dtype='float16', **kwargs):
     """
     Fuse hdf5 of all tiles in to one single file. MPI is supported.
+
+    Parameters
+    ----------
+    blend_method: blending algorithm. If blend_method2 is None, the specified algorithm will be applied to both x and y
+                  directions by default.
+    blend_method2: secondary blending algorithm. If this option is not None, it will be applied for blending in y-
+                   direction, while blend_method will be applied for x.
     """
 
     dest_fname = check_fname_ext(dest_fname, 'h5')
@@ -578,7 +600,7 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
         pano = np.zeros((full_height, full_width), dtype=dtype)
         save_stdout = sys.stdout
         sys.stdout = open('trash', 'w')
-        temp = build_panorama(file_grid, shift_grid, frame=frame, method=blend_method, **kwargs)
+        temp = build_panorama(file_grid, shift_grid, frame=frame, method=blend_method, method2=blend_method2, **kwargs)
         temp[np.isnan(temp)] = 0
         sys.stdout = save_stdout
         pano[:temp.shape[0], :temp.shape[1]] = temp.astype(dtype)
@@ -591,14 +613,6 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
         print('Please remove trash manually.')
 
     os.chdir(origin_dir)
-
-
-def entropy(img, range=[-0.02, 0.02]):
-
-    hist, e = np.histogram(img, bins=1024, range=range)
-    hist = hist.astype('float32') / img.size + 1e-12
-    val = -np.dot(hist, np.log2(hist))
-    return val
 
 
 def partial_center_alignment(file_grid, shift_grid, center_vec, src_folder, range_0=-5, range_1=5):
@@ -668,4 +682,13 @@ def partial_center_alignment(file_grid, shift_grid, center_vec, src_folder, rang
     return
 
 
+def preprecess(dat, flt, drk):
+
+    dat = tomopy.normalize(dat, flt, drk)
+    dat[np.abs(dat) < 2e-3] = 2e-3
+    dat[dat > 1] = 1
+    dat = -np.log(dat)
+    dat[np.where(np.isnan(dat) == True)] = 0
+
+    return dat
 

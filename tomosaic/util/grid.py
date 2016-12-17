@@ -230,7 +230,7 @@ def refine_shift_grid(grid, shift_grid, savefolder='.', step=200, upsample=100, 
                     right_vec = create_stitch_shift(main_prj, bottom_prj, rangeX, rangeY, down=1, upsample=upsample)
                     pairs_shift[line, 4:6] = right_vec
 
-    print('Rank: '+str(rank)+pairs_shift)
+    print('Rank: '+str(rank), pairs_shift)
 
     comm.Barrier()
     # combine all shifts
@@ -271,16 +271,24 @@ def reject_outliers(data, m = 2.):
 
 # Generate absolute shift grid from a relative shift grid.
 # Default building method is first right then down.
-def absolute_shift_grid(pairs_shift, file_grid):
+def absolute_shift_grid(pairs_shift, file_grid, mode='vh'):
     shape = file_grid.shape
     abs_shift_grid = np.zeros([shape[0], shape[1], 2], dtype='float32')
+
     for (y, x), _ in np.ndenumerate(file_grid):
         if y == 0 and x == 0:
             pass
         else:
-            for x_ind in range(0, x):
-                abs_shift_grid[y, x, :] += pairs_shift[0, x_ind, 0:2]
-            for y_ind in range(0, y):
-                abs_shift_grid[y, x, :] += pairs_shift[y_ind, x, 2:4]
+            if mode == 'hv':
+                for x_ind in range(0, x):
+                    abs_shift_grid[y, x, :] += pairs_shift[0, x_ind, 0:2]
+                for y_ind in range(0, y):
+                    abs_shift_grid[y, x, :] += pairs_shift[y_ind, x, 2:4]
+            elif mode == 'vh':
+                for y_ind in range(0, y):
+                    abs_shift_grid[y, x, :] += pairs_shift[y_ind, 0, 2:4]
+                for x_ind in range(0, x):
+                    abs_shift_grid[y, x, :] += pairs_shift[y, x_ind, 0:2]
+
     return abs_shift_grid
 
