@@ -157,7 +157,7 @@ def build_panorama(file_grid, shift_grid, frame=0, method='max', method2=None, k
             row_buff = np.zeros([1, 1])
             prj, flt, drk = dxchange.read_aps_32id(temp_grid[0, 0], proj=(frame, frame + 1))
             prj = preprecess(prj, flt, drk)
-            row_buff = arrange_image(row_buff, np.squeeze(prj))
+            row_buff = arrange_image(row_buff, np.squeeze(prj), temp_shift[0, 0, :], order=1)
             for x in range(1, temp_grid.shape[1]):
                 value = temp_grid[0, x]
                 if (value != None and frame < g_shapes(value)[0]):
