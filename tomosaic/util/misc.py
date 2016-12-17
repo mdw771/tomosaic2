@@ -109,4 +109,10 @@ def which_tile(shift_grid, file_grid, x_coord, y_coord):
     return s
 
 
+def entropy(img, range=[-0.02, 0.02]):
+
+    hist, e = np.histogram(img, bins=1024, range=range)
+    hist = hist.astype('float32') / img.size + 1e-12
+    val = -np.dot(hist, np.log2(hist))
+    return val
 
