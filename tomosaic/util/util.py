@@ -153,7 +153,7 @@ def build_panorama(file_grid, shift_grid, frame=0, method='max', method2=None, k
             temp_grid = file_grid[y:y+1, :]
             temp_shift = shift_grid[y:y+1, :, :]
             offset = np.min(temp_shift[:, :, 0])
-            temp_shift = temp_shift - offset
+            temp_shift[:, :, 0] = temp_shift[:, :, 0] - offset
             row_buff = np.zeros([1, 1])
             prj, flt, drk = dxchange.read_aps_32id(temp_grid[0, 0], proj=(frame, frame + 1))
             prj = preprecess(prj, flt, drk)
@@ -163,7 +163,7 @@ def build_panorama(file_grid, shift_grid, frame=0, method='max', method2=None, k
                 if (value != None and frame < g_shapes(value)[0]):
                     prj, flt, drk = dxchange.read_aps_32id(value, proj=(frame, frame + 1))
                     prj = preprecess(prj, flt, drk)
-                    row_buff = blend(row_buff, np.squeeze(prj), temp_shift[y, x, :], method=method, **kwargs)
+                    row_buff = blend(row_buff, np.squeeze(prj), temp_shift[0, x, :], method=method, **kwargs)
             buff = blend(buff, row_buff, [offset, 0], method=method2, **kwargs2)
     return buff
 
