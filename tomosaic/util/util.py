@@ -137,7 +137,7 @@ def save_partial_raw(file_grid, save_folder, prefix):
 g_shapes = lambda fname: h5py.File(fname, "r")['exchange/data'].shape
 
 
-def build_panorama(file_grid, shift_grid, frame=0, method='max', method2=None, kwargs={}, kwargs2={}):
+def build_panorama(file_grid, shift_grid, frame=0, method='max', method2=None, blend_options={}, blend_options2={}):
     cam_size = g_shapes(file_grid[0, 0])
     cam_size = cam_size[1:3]
     img_size = shift_grid[-1, -1] + cam_size
@@ -147,7 +147,7 @@ def build_panorama(file_grid, shift_grid, frame=0, method='max', method2=None, k
             if (value != None and frame < g_shapes(value)[0]):
                 prj, flt, drk = dxchange.read_aps_32id(value, proj=(frame, frame + 1))
                 prj = preprecess(prj, flt, drk)
-                buff = blend(buff, np.squeeze(prj), shift_grid[y, x, :], method=method, **kwargs)
+                buff = blend(buff, np.squeeze(prj), shift_grid[y, x, :], method=method, **blend_options)
     else:
         for y in range(file_grid.shape[0]):
             temp_grid = file_grid[y:y+1, :]
@@ -163,8 +163,8 @@ def build_panorama(file_grid, shift_grid, frame=0, method='max', method2=None, k
                 if (value != None and frame < g_shapes(value)[0]):
                     prj, flt, drk = dxchange.read_aps_32id(value, proj=(frame, frame + 1))
                     prj = preprecess(prj, flt, drk)
-                    row_buff = blend(row_buff, np.squeeze(prj), temp_shift[0, x, :], method=method, **kwargs)
-            buff = blend(buff, row_buff, [offset, 0], method=method2, **kwargs2)
+                    row_buff = blend(row_buff, np.squeeze(prj), temp_shift[0, x, :], method=method, **blend_options)
+            buff = blend(buff, row_buff, [offset, 0], method=method2, **blend_options2)
     return buff
 
 
@@ -545,7 +545,7 @@ def hdf5_retrieve_phase(src_folder, src_fname, dest_folder, dest_fname, method='
 
 
 def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, blend_method='pyramid', blend_method2=None,
-                 dtype='float16', **kwargs):
+                 blend_options={}, blend_options2={}, dtype='float16'):
     """
     Fuse hdf5 of all tiles in to one single file. MPI is supported.
 
@@ -598,11 +598,12 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
         print('    Rank: {:d}; current frame: {:d}..'.format(rank, frame))
         t00 = time.time()
         pano = np.zeros((full_height, full_width), dtype=dtype)
-        save_stdout = sys.stdout
-        sys.stdout = open('trash', 'w')
-        temp = build_panorama(file_grid, shift_grid, frame=frame, method=blend_method, method2=blend_method2, **kwargs)
+        # save_stdout = sys.stdout
+        # sys.stdout = open('trash', 'w')
+        temp = build_panorama(file_grid, shift_grid, frame=frame, method=blend_method, method2=blend_method2,
+                              blend_options=blend_options, blend_options2=blend_options2)
         temp[np.isnan(temp)] = 0
-        sys.stdout = save_stdout
+        # sys.stdout = save_stdout
         pano[:temp.shape[0], :temp.shape[1]] = temp.astype(dtype)
         dset_data[frame, :, :] = pano
         print('    Frame {:d} done in {:.3f} s.'.format(frame, time.time() - t00))
