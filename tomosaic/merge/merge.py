@@ -77,6 +77,7 @@ __copyright__ = "Copyright (c) 2015, UChicago Argonne, LLC."
 __docformat__ = 'restructuredtext en'
 __all__ = ['blend',
            'img_merge_alpha',
+           'img_merge_overlay',
            'img_merge_max',
            'img_merge_min',
            'img_merge_poisson',
@@ -116,7 +117,8 @@ def blend(img1, img2, shift, method, **kwargs):
     'min': [],
     'poisson': [],
     'pyramid': ['blur', 'margin', 'depth'],
-    'pwd': ['margin', 'chunk_size']
+    'pwd': ['margin', 'chunk_size'],
+    'overlay': []
     }
 
     generic_kwargs = []
@@ -167,6 +169,8 @@ def blend(img1, img2, shift, method, **kwargs):
 def _get_func(method):
     if method == 'alpha':
         func = img_merge_alpha
+    elif method == 'overlay':
+        func = img_merge_overlay
     elif method == 'max':
         func = img_merge_max
     elif method == 'min':
@@ -203,6 +207,15 @@ def img_merge_alpha(img1, img2, shift, alpha=0.4):
     newimg2 = morph.arrange_image(img1, img2, shift, order=2)
     final_img = alpha * newimg1 + (1 - alpha) * newimg2
     return final_img
+
+
+def img_merge_overlay(img1, img2, shift):
+    """
+    Simple overlay of two images. Equivalent to alpha blending with alpha = 1.
+    """
+    print('Simple overlay')
+    newimg = morph.arrange_image(img1, img2, shift, order=1)
+    return newimg
 
 
 def img_merge_max(img1, img2, shift):
