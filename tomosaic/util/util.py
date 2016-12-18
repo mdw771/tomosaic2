@@ -598,12 +598,12 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
         print('    Rank: {:d}; current frame: {:d}..'.format(rank, frame))
         t00 = time.time()
         pano = np.zeros((full_height, full_width), dtype=dtype)
-        save_stdout = sys.stdout
-        sys.stdout = open('trash', 'w')
+        # save_stdout = sys.stdout
+        # sys.stdout = open('trash', 'w')
         temp = build_panorama(file_grid, shift_grid, frame=frame, method=blend_method, method2=blend_method2,
                               blend_options=blend_options, blend_options2=blend_options2)
         temp[np.isnan(temp)] = 0
-        sys.stdout = save_stdout
+        # sys.stdout = save_stdout
         pano[:temp.shape[0], :temp.shape[1]] = temp.astype(dtype)
         dset_data[frame, :, :] = pano
         print('    Frame {:d} done in {:.3f} s.'.format(frame, time.time() - t00))
