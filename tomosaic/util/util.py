@@ -77,6 +77,7 @@ from tomosaic.util.misc import allocate_mpi_subsets
 from tomosaic.merge.merge import blend
 from tomosaic.register.morph import arrange_image
 import shutil
+from scipy.ndimage import gaussian_filter
 from scipy.misc import imread, imsave
 import matplotlib.pyplot as plt
 from tomopy import downsample
@@ -137,7 +138,7 @@ def save_partial_raw(file_grid, save_folder, prefix):
 g_shapes = lambda fname: h5py.File(fname, "r")['exchange/data'].shape
 
 
-def build_panorama(file_grid, shift_grid, frame=0, method='max', method2=None, blend_options={}, blend_options2={}):
+def build_panorama(file_grid, shift_grid, frame=0, method='max', method2=None, blend_options={}, blend_options2={}, blur=None):
     cam_size = g_shapes(file_grid[0, 0])
     cam_size = cam_size[1:3]
     img_size = shift_grid[-1, -1] + cam_size
@@ -146,7 +147,7 @@ def build_panorama(file_grid, shift_grid, frame=0, method='max', method2=None, b
         for (y, x), value in np.ndenumerate(file_grid):
             if (value != None and frame < g_shapes(value)[0]):
                 prj, flt, drk = dxchange.read_aps_32id(value, proj=(frame, frame + 1))
-                prj = preprecess(prj, flt, drk)
+                prj = preprecess(prj, flt, drk, blur=blur)
                 buff = blend(buff, np.squeeze(prj), shift_grid[y, x, :], method=method, **blend_options)
     else:
         for y in range(file_grid.shape[0]):
@@ -156,13 +157,13 @@ def build_panorama(file_grid, shift_grid, frame=0, method='max', method2=None, b
             temp_shift[:, :, 0] = temp_shift[:, :, 0] - offset
             row_buff = np.zeros([1, 1])
             prj, flt, drk = dxchange.read_aps_32id(temp_grid[0, 0], proj=(frame, frame + 1))
-            prj = preprecess(prj, flt, drk)
+            prj = preprecess(prj, flt, drk, blur=blur)
             row_buff = arrange_image(row_buff, np.squeeze(prj), temp_shift[0, 0, :], order=1)
             for x in range(1, temp_grid.shape[1]):
                 value = temp_grid[0, x]
                 if (value != None and frame < g_shapes(value)[0]):
                     prj, flt, drk = dxchange.read_aps_32id(value, proj=(frame, frame + 1))
-                    prj = preprecess(prj, flt, drk)
+                    prj = preprecess(prj, flt, drk, blur=blur)
                     row_buff = blend(row_buff, np.squeeze(prj), temp_shift[0, x, :], method=method, **blend_options)
             buff = blend(buff, row_buff, [offset, 0], method=method2, **blend_options2)
     return buff
@@ -545,7 +546,7 @@ def hdf5_retrieve_phase(src_folder, src_fname, dest_folder, dest_fname, method='
 
 
 def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, blend_method='pyramid', blend_method2=None,
-                 blend_options={}, blend_options2={}, dtype='float16'):
+                 blend_options={}, blend_options2={}, blur=None, dtype='float16'):
     """
     Fuse hdf5 of all tiles in to one single file. MPI is supported.
 
@@ -601,7 +602,7 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
         save_stdout = sys.stdout
         sys.stdout = open('trash', 'w')
         temp = build_panorama(file_grid, shift_grid, frame=frame, method=blend_method, method2=blend_method2,
-                              blend_options=blend_options, blend_options2=blend_options2)
+                              blend_options=blend_options, blend_options2=blend_options2, blur=blur)
         temp[np.isnan(temp)] = 0
         sys.stdout = save_stdout
         pano[:temp.shape[0], :temp.shape[1]] = temp.astype(dtype)
@@ -683,13 +684,15 @@ def partial_center_alignment(file_grid, shift_grid, center_vec, src_folder, rang
     return
 
 
-def preprecess(dat, flt, drk):
+def preprecess(dat, flt, drk, blur=None):
 
     dat = tomopy.normalize(dat, flt, drk)
     dat[np.abs(dat) < 2e-3] = 2e-3
     dat[dat > 1] = 1
     dat = -np.log(dat)
     dat[np.where(np.isnan(dat) == True)] = 0
+    if blur is not None:
+        dat = gaussian_filter(dat, 2)
 
     return dat
 
