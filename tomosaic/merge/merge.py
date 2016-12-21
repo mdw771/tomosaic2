@@ -170,7 +170,10 @@ def blend(img1, img2, shift, method, margin=50, correct_lum=True, **kwargs):
 
     if correct_lum:
         print('Correcting luminance...')
-        img2 = correct_luminance(img1, img2, shift, margin=margin)
+        try:
+            img2 = correct_luminance(img1, img2, shift, margin=margin)
+        except:
+            pass
 
     return func(img1, img2, shift, **kwargs)
 

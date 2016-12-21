@@ -382,16 +382,16 @@ def register_recon(grid, grid_lines, shift_grid, sinos, method='max', blend_opti
     file_list = [grid[grid_lines[col], col] for col in range(grid.shape[1])]
     buff = np.zeros([1, 1], dtype='float32')
     for col in range(len(file_list)):
-        try:
-            x_shift = shift_grid[grid_lines[col], col, 1]
-            temp = np.copy(sinos[col]).astype(np.float32)
-            if blend_options is not None:
-                opt = blend_options
-            else:
-                opt = {}
-            buff = blend(buff, temp, [0, x_shift], method=method, **opt)
-        except:
-            continue
+        # try:
+        x_shift = shift_grid[grid_lines[col], col, 1]
+        temp = np.copy(sinos[col]).astype(np.float32)
+        if blend_options is not None:
+            opt = blend_options
+        else:
+            opt = {}
+        buff = blend(buff, temp, [0, x_shift], method=method, **opt)
+        # except:
+        #     continue
     row_sino = buff.reshape([buff.shape[0], 1, buff.shape[1]])
     i = 0
     if assert_width is None:
