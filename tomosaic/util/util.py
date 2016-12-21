@@ -117,7 +117,7 @@ def save_partial_frames(file_grid, save_folder, prefix, frame=0):
         if (value != None):
             prj, flt, drk = dxchange.read_aps_32id(value, proj=(frame, frame + 1))
             prj = tomopy.normalize(prj, flt, drk)
-            prj = -np.log(prj).astype('float32')
+            prj = preprecess(prj)
             fname = prefix + 'Y' + str(y).zfill(2) + '_X' + str(x).zfill(2)
             dxchange.write_tiff(np.squeeze(prj), fname=os.path.join(save_folder, 'partial_frames', fname))
 
@@ -147,7 +147,8 @@ def build_panorama(file_grid, shift_grid, frame=0, method='max', method2=None, b
         for (y, x), value in np.ndenumerate(file_grid):
             if (value != None and frame < g_shapes(value)[0]):
                 prj, flt, drk = dxchange.read_aps_32id(value, proj=(frame, frame + 1))
-                prj = preprecess(prj, flt, drk, blur=blur)
+                prj = tomopy.normalize(prj, flt, drk)
+                prj = preprecess(prj, blur=blur)
                 buff = blend(buff, np.squeeze(prj), shift_grid[y, x, :], method=method, **blend_options)
     else:
         for y in range(file_grid.shape[0]):
@@ -157,13 +158,15 @@ def build_panorama(file_grid, shift_grid, frame=0, method='max', method2=None, b
             temp_shift[:, :, 0] = temp_shift[:, :, 0] - offset
             row_buff = np.zeros([1, 1])
             prj, flt, drk = dxchange.read_aps_32id(temp_grid[0, 0], proj=(frame, frame + 1))
-            prj = preprecess(prj, flt, drk, blur=blur)
+            prj = tomopy.normalize(prj, flt, drk)
+            prj = preprecess(prj, blur=blur)
             row_buff = arrange_image(row_buff, np.squeeze(prj), temp_shift[0, 0, :], order=1)
             for x in range(1, temp_grid.shape[1]):
                 value = temp_grid[0, x]
                 if (value != None and frame < g_shapes(value)[0]):
                     prj, flt, drk = dxchange.read_aps_32id(value, proj=(frame, frame + 1))
-                    prj = preprecess(prj, flt, drk, blur=blur)
+                    prj = tomopy.normalize(prj, flt, drk)
+                    prj = preprecess(prj, blur=blur)
                     row_buff = blend(row_buff, np.squeeze(prj), temp_shift[0, x, :], method=method, **blend_options)
             buff = blend(buff, row_buff, [offset, 0], method=method2, **blend_options2)
     return buff
@@ -372,7 +375,7 @@ def img_cast(image, display_min, display_max, dtype='uint16'):
 
 
 def image_downsample(img, ds):
-    temp = imresize(img, 1. / ds, mode='F').astype('float16')
+    temp = downsample(downsample(img, level=ds-1, axis=1), level=ds-1, axis=2)
     return temp
 
 
@@ -531,10 +534,7 @@ def hdf5_retrieve_phase(src_folder, src_fname, dest_folder, dest_fname, method='
         if corr_flat:
             temp = temp.reshape([1, temp.shape[0], temp.shape[1]])
             temp = tomopy.normalize(temp, flt, drk)
-            temp[np.abs(temp) < 2e-3] = 2e-3
-            temp[temp > 1] = 1
-            temp = -np.log(temp)
-            temp[np.where(np.isnan(temp) == True)] = 0
+            temp = preprecess(temp)
             temp = np.squeeze(temp)
         temp = retrieve_phase(temp, method=method, **kwargs)
         dset_dest[frame, :, :] = temp.astype(dtype)
@@ -656,10 +656,7 @@ def partial_center_alignment(file_grid, shift_grid, center_vec, src_folder, rang
         fname = file_grid[y, x]
         sino, flt, drk = dxchange.read_aps_32id(fname, sino=(slice, slice+1))
         sino = np.squeeze(tomopy.normalize(sino, flt, drk))
-        sino[np.abs(sino) < 2e-3] = 2e-3
-        sino[sino > 1] = 1
-        sino = -np.log(sino)
-        sino[np.where(np.isnan(sino) == True)] = 0
+        sino = preprecess(sino)
         s_opt = np.inf
         for delta in range(range_0, range_1+1):
             sino_pad = np.zeros([n_angles, width])
@@ -684,15 +681,28 @@ def partial_center_alignment(file_grid, shift_grid, center_vec, src_folder, rang
     return
 
 
-def preprecess(dat, flt, drk, blur=None):
+def preprecess(dat, blur=None):
 
-    dat = tomopy.normalize(dat, flt, drk)
     dat[np.abs(dat) < 2e-3] = 2e-3
     dat[dat > 1] = 1
     dat = -np.log(dat)
     dat[np.where(np.isnan(dat) == True)] = 0
     if blur is not None:
-        dat = gaussian_filter(dat, 2)
+        dat = gaussian_filter(dat, blur)
 
     return dat
 
+
+def blur_hdf5(fname, sigma):
+    """
+    Apply Gaussian filter to each projection of a HDF5 for noise reduction.
+    """
+    f = h5py.File(fname)
+    dset = f['exchange/data']
+    nframes = dset.shape[0]
+    alloc_sets = allocate_mpi_subsets(nframes, size)
+    for frame in alloc_sets[rank]:
+        print('Rank: {:d}; Frame: {:d}.'.format(rank, frame))
+        dset[frame, :, :] = gaussian_filter(dset[frame, :, :], sigma)
+    f.close()
+    gc.collect()

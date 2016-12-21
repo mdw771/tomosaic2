@@ -58,6 +58,7 @@ import logging
 import glob, time, itertools, os
 from tomosaic.register.morph import *
 from tomosaic.util.misc import allocate_mpi_subsets
+from scipy.ndimage import gaussian_filter
 import numpy as np
 import tomopy
 import dxchange
@@ -86,7 +87,7 @@ name = MPI.Get_processor_name()
 
 
 def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center_vec=None, center_eq=None, dtype='float32',
-               algorithm='gridrec', tolerance=1, chunk_size=20, save_sino=False, **kwargs):
+               algorithm='gridrec', tolerance=1, chunk_size=20, save_sino=False, sino_blur=None, **kwargs):
     """
     center_eq: a and b parameters in fitted center position equation center = a*slice + b.
     """
@@ -117,6 +118,9 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
             data[np.isnan(data)] = 0
             data = data.astype('float32')
             # data = tomopy.remove_stripe_ti(data)
+            if sino_blur is not None:
+                for i in range(data.shape[1]):
+                    data[:, i, :] = gaussian_filter(data[:, i, :], sino_blur)
             rec = tomopy.recon(data, theta, center=center, algorithm=algorithm, **kwargs)
             # rec = tomopy.remove_ring(rec)
             rec = tomopy.remove_outlier(rec, tolerance)
@@ -161,6 +165,9 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
             data = dset[:, fstart:fend+1:sino_step, :]
             data[np.isnan(data)] = 0
             data = data.astype('float32')
+            if sino_blur is not None:
+                for i in range(data.shape[1]):
+                    data[:, i, :] = gaussian_filter(data[:, i, :], sino_blur)
             # data = tomopy.remove_stripe_ti(data)
             rec = tomopy.recon(data, theta, center=center, algorithm=algorithm, **kwargs)
             # rec = tomopy.remove_ring(rec)
@@ -177,7 +184,7 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
 
 
 def recon_hdf5_mpi(src_fanme, dest_folder, sino_range, sino_step, center_vec, shift_grid, dtype='float32',
-               algorithm='gridrec', tolerance=1, save_sino=False, **kwargs):
+               algorithm='gridrec', tolerance=1, save_sino=False, sino_blur=None, **kwargs):
     """
     Reconstruct a single tile, or fused HDF5 created using util/total_fusion. MPI supported.
     """
@@ -202,7 +209,10 @@ def recon_hdf5_mpi(src_fanme, dest_folder, sino_range, sino_step, center_vec, sh
         grid_line = np.digitize(slice, grid_bins)
         grid_line = grid_line - 1
         center = center_vec[grid_line]
-        data = dset[:, slice, :].reshape([full_shape[0], 1, full_shape[2]])
+        data = dset[:, slice, :]
+        if sino_blur is not None:
+            data = gaussian_filter(data, sino_blur)
+        data = data.reshape([full_shape[0], 1, full_shape[2]])
         data[np.isnan(data)] = 0
         data = data.astype('float32')
         # data = tomopy.remove_stripe_ti(data)
@@ -219,7 +229,7 @@ def recon_hdf5_mpi(src_fanme, dest_folder, sino_range, sino_step, center_vec, sh
 
 def recon_block(grid, shift_grid, src_folder, dest_folder, dest_fname, slice_range, sino_step, center_vec, ds_level=0, blend_method='max',
                 blend_options=None, tolerance=1, sinogram_order=False, algorithm='gridrec', init_recon=None, ncore=None, nchunk=None, dtype='float32',
-                crop=None, save_sino=False, assert_width=None, **kwargs):
+                crop=None, save_sino=False, assert_width=None, sino_blur=None, **kwargs):
     """
     Reconstruct dsicrete HDF5 tiles, blending sinograms only.
     """
@@ -259,7 +269,9 @@ def recon_block(grid, shift_grid, src_folder, dest_folder, dest_fname, slice_ran
             center_pos_cache = center_pos
         center_diff = center_pos - center_pos_cache
         center_pos_0 = center_pos
-        row_sino, center_pos = prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=ds_level, method=blend_method, blend_options=blend_options, rot_center=center_pos, assert_width=assert_width)
+        row_sino, center_pos = prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=ds_level,
+                                             method=blend_method, blend_options=blend_options, rot_center=center_pos,
+                                             assert_width=assert_width, sino_blur=sino_blur)
         rec = recon_slice(row_sino, center_pos, sinogram_order=sinogram_order, algorithm=algorithm,
                           init_recon=init_recon, ncore=ncore, nchunk=nchunk, **kwargs)
         print('Center:            {:d}'.format(center_pos))
@@ -288,7 +300,8 @@ def to_rgb2(im):
     return ret
 
 
-def prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=0, method='max', blend_options=None, pad=None, rot_center=None, assert_width=None):
+def prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=0, method='max', blend_options=None, pad=None,
+                  rot_center=None, assert_width=None, sino_blur=None):
     sinos = [None] * grid.shape[1]
     for col in range(grid.shape[1]):
         try:
@@ -296,7 +309,8 @@ def prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=0, metho
         except:
             pass
     t = time.time()
-    row_sino = register_recon(grid, grid_lines, shift_grid, sinos, method=method, blend_options=blend_options, assert_width=assert_width)
+    row_sino = register_recon(grid, grid_lines, shift_grid, sinos, method=method, blend_options=blend_options,
+                              assert_width=assert_width)
     if not pad is None:
         row_sino, rot_center = pad_sino(row_sino, pad, rot_center)
 
@@ -312,10 +326,9 @@ def prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=0, metho
     # row_sino = tomopy.remove_stripe_fw(row_sino, 2)
     # print('strip removal:           ' + str(time.time() - t))
     # Minus Log
-    row_sino[np.abs(row_sino) < 1e-3] = 1e-3
-    row_sino[row_sino > 1] = 1
-    row_sino = -np.log(row_sino)
-    row_sino[np.where(np.isnan(row_sino) == True)] = 0
+    row_sino = tomosaic.util.preprecess(row_sino)
+    if sino_blur is not None:
+        row_sino[:, 0, :] = gaussian_filter(row_sino[:, 0, :], sino_blur)
     return row_sino, rot_center
 
 
