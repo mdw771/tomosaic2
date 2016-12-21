@@ -117,7 +117,7 @@ def save_partial_frames(file_grid, save_folder, prefix, frame=0):
         if (value != None):
             prj, flt, drk = dxchange.read_aps_32id(value, proj=(frame, frame + 1))
             prj = tomopy.normalize(prj, flt, drk)
-            prj = -np.log(prj).astype('float32')
+            prj = preprecess(prj)
             fname = prefix + 'Y' + str(y).zfill(2) + '_X' + str(x).zfill(2)
             dxchange.write_tiff(np.squeeze(prj), fname=os.path.join(save_folder, 'partial_frames', fname))
 
@@ -534,10 +534,7 @@ def hdf5_retrieve_phase(src_folder, src_fname, dest_folder, dest_fname, method='
         if corr_flat:
             temp = temp.reshape([1, temp.shape[0], temp.shape[1]])
             temp = tomopy.normalize(temp, flt, drk)
-            temp[np.abs(temp) < 2e-3] = 2e-3
-            temp[temp > 1] = 1
-            temp = -np.log(temp)
-            temp[np.where(np.isnan(temp) == True)] = 0
+            temp = preprecess(temp)
             temp = np.squeeze(temp)
         temp = retrieve_phase(temp, method=method, **kwargs)
         dset_dest[frame, :, :] = temp.astype(dtype)
@@ -659,10 +656,7 @@ def partial_center_alignment(file_grid, shift_grid, center_vec, src_folder, rang
         fname = file_grid[y, x]
         sino, flt, drk = dxchange.read_aps_32id(fname, sino=(slice, slice+1))
         sino = np.squeeze(tomopy.normalize(sino, flt, drk))
-        sino[np.abs(sino) < 2e-3] = 2e-3
-        sino[sino > 1] = 1
-        sino = -np.log(sino)
-        sino[np.where(np.isnan(sino) == True)] = 0
+        sino = preprecess(sino)
         s_opt = np.inf
         for delta in range(range_0, range_1+1):
             sino_pad = np.zeros([n_angles, width])
