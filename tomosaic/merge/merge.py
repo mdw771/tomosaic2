@@ -888,4 +888,6 @@ def find_overlap(img1, img2, shift, margin=50):
         buffer1 = img1[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + wid_hor]
         buffer2 = img2[:wid_ver, :wid_hor]
         case = 'l'
-    return case, rough_shift, corner, buffer1, buffer2, wid_hor, wid_ver
+    res1 = np.copy(buffer1)
+    res2 = np.copy(buffer2)
+    return case, rough_shift, corner, res1, res2, wid_hor, wid_ver
