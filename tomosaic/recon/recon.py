@@ -161,7 +161,6 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
             fstart = sino_ls[istart]
             fend = sino_ls[iend-1]
             print('Reading data...')
-            print(fstart, fend, sino_step)
             data = dset[:, fstart:fend+1:sino_step, :]
             data[np.isnan(data)] = 0
             data = data.astype('float32')
