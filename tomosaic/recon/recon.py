@@ -388,7 +388,7 @@ def register_recon(grid, grid_lines, shift_grid, sinos, method='max', blend_opti
             opt = blend_options
         else:
             opt = {}
-        buff = blend(buff, temp, [0, x_shift], method=method, corr_lum=corr_lum, **opt)
+        buff = blend(buff, temp, [0, x_shift], method=method, correct_lum=corr_lum, **opt)
         # except:
         #     continue
     row_sino = buff.reshape([buff.shape[0], 1, buff.shape[1]])
