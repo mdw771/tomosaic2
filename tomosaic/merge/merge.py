@@ -848,11 +848,13 @@ def _norm(arr):
 def correct_luminance(img1, img2, shift, margin=50):
 
     _, _, _, buffer1, buffer2, _, _ = find_overlap(img1, img2, shift, margin=margin)
-    judge = buffer1 > buffer1.mean()
-    sum1 = np.sum(buffer1[(buffer1!=np.nan)*judge])
-    sum2 = np.sum(buffer2[(buffer2!=np.nan)*judge])
-
-    return img2 * (sum1/sum2)
+    judge = buffer1 > buffer1[np.isfinite(buffer1)].mean()
+    sum1 = np.sum(buffer1[np.isfinite(buffer1)*judge])
+    sum2 = np.sum(buffer2[np.isfinite(buffer2)*judge])
+    if np.abs(sum2) < 1e-2 or sum1/sum2 > 10 or sum1/sum2 < 0.01:
+        return img2
+    else:
+        return img2 * (sum1/sum2)
 
 
 def find_overlap(img1, img2, shift, margin=50):
