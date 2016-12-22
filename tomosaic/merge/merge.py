@@ -606,8 +606,8 @@ def img_merge_pwd(img1, img2, shift, margin=100, chunk_size=10000):
         wid_hor = img2.shape[1] if img1.shape[1] > img2.shape[1] else img2.shape[1] - corner[0, 1]
         buffer1 = img1[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + wid_hor]
         buffer2 = img2[:wid_ver, :wid_hor]
-        buffer1[buffer1==np.nan] = 0
-        buffer2[buffer2==np.nan] = 0
+        buffer1[np.isnan(buffer1)] = 0
+        buffer2[np.isnan(buffer2)] = 0
     # for new image with overlap at left only
     else:
         abs_width = np.count_nonzero(np.isfinite(img1[margin, :]))
@@ -615,8 +615,8 @@ def img_merge_pwd(img1, img2, shift, margin=100, chunk_size=10000):
         wid_hor = abs_width - corner[0, 1]
         buffer1 = img1[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + wid_hor]
         buffer2 = img2[:wid_ver, :wid_hor]
-        buffer1[buffer1==np.nan] = 0
-        buffer2[buffer2==np.nan] = 0
+        buffer1[np.isnan(buffer1)] = 0
+        buffer2[np.isnan(buffer2)] = 0
 
     # find seam
 
