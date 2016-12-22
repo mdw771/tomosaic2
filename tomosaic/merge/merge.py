@@ -112,20 +112,20 @@ def blend(img1, img2, shift, method, margin=50, correct_lum=True, **kwargs):
     """
 
     allowed_kwargs = {
-    'alpha': ['margin', 'alpha'],
-    'max': ['margin'],
-    'min': ['margin'],
-    'poisson': ['margin'],
+    'alpha': ['alpha'],
+    'max': [],
+    'min': [],
+    'poisson': [],
     'pyramid': ['blur', 'margin', 'depth'],
     'pwd': ['margin', 'chunk_size'],
-    'overlay': ['margin']
+    'overlay': []
     }
 
     generic_kwargs = []
     # Generate kwargs for the algorithm.
     kwargs_defaults = _get_algorithm_kwargs()
 
-    if 'margin' not in kwargs:
+    if 'margin' not in kwargs and 'margin' in allowed_kwargs[method]:
         kwargs.update({'margin':margin})
 
     if isinstance(method, six.string_types):
