@@ -71,7 +71,7 @@ import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
 
-__author__ = "Rafael Vescovi"
+__author__ = "Rafael Vescovi, Ming Du"
 __credits__ = "Doga Gursoy"
 __copyright__ = "Copyright (c) 2015, UChicago Argonne, LLC."
 __docformat__ = 'restructuredtext en'
@@ -85,7 +85,7 @@ __all__ = ['blend',
            'img_merge_pwd']
 
 
-def blend(img1, img2, shift, method, **kwargs):
+def blend(img1, img2, shift, method, margin=50, correct_lum=True, **kwargs):
     """
     Blend images.
     Parameters
@@ -124,6 +124,9 @@ def blend(img1, img2, shift, method, **kwargs):
     generic_kwargs = []
     # Generate kwargs for the algorithm.
     kwargs_defaults = _get_algorithm_kwargs()
+
+    if 'margin' not in kwargs and 'margin' in allowed_kwargs[method]:
+        kwargs.update({'margin':margin})
 
     if isinstance(method, six.string_types):
 
@@ -164,6 +167,14 @@ def blend(img1, img2, shift, method, **kwargs):
            (list(allowed_kwargs.keys()),))
 
     func = _get_func(method)
+
+    if correct_lum:
+        print('Correcting luminance...')
+        try:
+            img2 = correct_luminance(img1, img2, shift, margin=margin)
+        except:
+            pass
+
     return func(img1, img2, shift, **kwargs)
 
 def _get_func(method):
@@ -184,7 +195,7 @@ def _get_func(method):
     return func
 
 def _get_algorithm_kwargs():
-    return {'alpha': 1, 'blur': 0.4, 'margin': 50, 'depth': 4}
+    return {'alpha': 1, 'blur': 0.4, 'depth': 4}
 
 def img_merge_alpha(img1, img2, shift, alpha=0.4):
     """
@@ -434,51 +445,18 @@ def _circ_neighbor(mat):
 # Codes are adapted from Computer Vision Lab, Image blending using pyramid, https://compvisionlab.wordpress.com/2013/
 # 05/13/image-blending-using-pyramid/.
 def img_merge_pyramid(img1, img2, shift, margin=100, blur=0.4, depth=4):
+
     t00 = time.time()
     t0 = time.time()
     print(    'Starting pyramid blend...')
     newimg = morph.arrange_image(img1, img2, shift)
-    #test_out(newimg.astype(np.float32), '/raid/data/xbrainmap/FullBrain/fly_mosaic_OsPb_Test1/')
     if abs(shift[0]) < margin and abs(shift[1]) < margin:
         return newimg
-    rough_shift = morph.get_roughshift(shift)
     print('    Blend: Image aligned and built in', str(time.time() - t0))
-    ##
+
     t0 = time.time()
-    corner = _get_corner(rough_shift, img2.shape)
-    # for new image with overlap at left and top 
-    if abs(rough_shift[1]) > margin and abs(rough_shift[0]) > margin:
-        abs_width = np.count_nonzero(np.isfinite(img1[-margin, :]))
-        abs_height = np.count_nonzero(np.isfinite(img1[:, abs_width-margin]))
-        temp0 = img2.shape[0] if corner[1, 0] <= abs_height - 1 else abs_height - corner[0, 0]
-        temp1 = img2.shape[1] if corner[1, 1] <= img1.shape[1] - 1 else img1.shape[1] - corner[0, 1]
-        mask = np.zeros([temp0, temp1], dtype='bool')
-        temp = img1[corner[0, 0]:corner[0, 0] + temp0, corner[0, 1]:corner[0, 1] + temp1]
-        temp = np.isfinite(temp)
-        wid_ver = np.count_nonzero(temp[:, -1])
-        wid_hor = np.count_nonzero(temp[-1, :])
-        mask[:wid_ver, :] = True
-        mask[:, :wid_hor] = True
-        buffer1 = img1[corner[0, 0]:corner[0, 0] + mask.shape[0], corner[0, 1]:corner[0, 1] + mask.shape[1]]
-        buffer2 = img2[:mask.shape[0], :mask.shape[1]]
-        buffer1[1-mask] = np.nan
-        buffer2[1-mask] = np.nan
-    # for new image with overlap at top only
-    elif abs(rough_shift[1]) < margin and abs(rough_shift[0]) > margin:
-        abs_height = np.count_nonzero(np.isfinite(img1[:, margin]))
-        wid_ver = abs_height - corner[0, 0]
-        wid_hor = img2.shape[1] if img1.shape[1] > img2.shape[1] else img2.shape[1] - corner[0, 1]
-        mask2 = np.ones([wid_ver, wid_hor])
-        buffer1 = img1[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + wid_hor]
-        buffer2 = img2[:wid_ver, :wid_hor]
-    # for new image with overlap at left only
-    else:
-        abs_width = np.count_nonzero(np.isfinite(img1[margin, :]))
-        wid_ver = img2.shape[0] - corner[0, 0]
-        wid_hor = abs_width - corner[0, 1]
-        mask2 = np.ones([wid_ver, wid_hor])
-        buffer1 = img1[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + wid_hor]
-        buffer2 = img2[:wid_ver, :wid_hor]
+    case, rough_shift, corner, buffer1, buffer2, wid_hor, wid_ver = find_overlap(img1, img2, shift, margin=margin)
+    mask2 = np.ones(buffer1.shape)
     if abs(rough_shift[1]) > margin:
         mask2[:, :int(wid_hor / 2)] = 0
     if abs(rough_shift[0]) > margin:
@@ -494,7 +472,7 @@ def img_merge_pyramid(img1, img2, shift, margin=100, blur=0.4, depth=4):
     lapl2 = _lapl_pyramid(gauss2, blur)
     ovlp_blended = _collapse(_blend(lapl2, lapl1, gauss_mask), blur)
     print('    Blend: Blending done in', str(time.time() - t0), 'sec.')
-    ##
+
     if abs(rough_shift[1]) > margin and abs(rough_shift[0]) > margin:
         newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + mask2.shape[1]] = \
             ovlp_blended[:wid_ver, :]
@@ -504,6 +482,7 @@ def img_merge_pyramid(img1, img2, shift, margin=100, blur=0.4, depth=4):
         newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + wid_hor] = ovlp_blended
     print('    Blend: Done with this tile in', str(time.time() - t00), 'sec.')
     gc.collect()
+
     return newimg
 
 
@@ -627,8 +606,8 @@ def img_merge_pwd(img1, img2, shift, margin=100, chunk_size=10000):
         wid_hor = img2.shape[1] if img1.shape[1] > img2.shape[1] else img2.shape[1] - corner[0, 1]
         buffer1 = img1[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + wid_hor]
         buffer2 = img2[:wid_ver, :wid_hor]
-        buffer1[buffer1==np.nan] = 0
-        buffer2[buffer2==np.nan] = 0
+        buffer1[np.isnan(buffer1)] = 0
+        buffer2[np.isnan(buffer2)] = 0
     # for new image with overlap at left only
     else:
         abs_width = np.count_nonzero(np.isfinite(img1[margin, :]))
@@ -636,8 +615,8 @@ def img_merge_pwd(img1, img2, shift, margin=100, chunk_size=10000):
         wid_hor = abs_width - corner[0, 1]
         buffer1 = img1[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + wid_hor]
         buffer2 = img2[:wid_ver, :wid_hor]
-        buffer1[buffer1==np.nan] = 0
-        buffer2[buffer2==np.nan] = 0
+        buffer1[np.isnan(buffer1)] = 0
+        buffer2[np.isnan(buffer2)] = 0
 
     # find seam
 
@@ -859,7 +838,62 @@ def _trace_seam(dv, seam, s, begin, mode='br2tl'):
             seam[y, x] = True
     return seam
 
+
 def _norm(arr):
 
     res = np.sqrt(arr[:, :, 0]**2 + arr[:, :, 1]**2)
     return res
+
+
+def correct_luminance(img1, img2, shift, margin=50):
+
+    _, _, _, buffer1, buffer2, _, _ = find_overlap(img1, img2, shift, margin=margin)
+    judge = buffer1 > buffer1[np.isfinite(buffer1)].mean()
+    sum1 = np.sum(buffer1[np.isfinite(buffer1)*judge])
+    sum2 = np.sum(buffer2[np.isfinite(buffer2)*judge])
+    if np.abs(sum2) < 1e-2 or sum1/sum2 > 10 or sum1/sum2 < 0.01:
+        return img2
+    else:
+        return img2 * (sum1/sum2)
+
+
+def find_overlap(img1, img2, shift, margin=50):
+
+    rough_shift = morph.get_roughshift(shift)
+    corner = _get_corner(rough_shift, img2.shape)
+    if abs(rough_shift[1]) > margin and abs(rough_shift[0]) > margin:
+        abs_width = np.count_nonzero(np.isfinite(img1[-margin, :]))
+        abs_height = np.count_nonzero(np.isfinite(img1[:, abs_width-margin]))
+        temp0 = img2.shape[0] if corner[1, 0] <= abs_height - 1 else abs_height - corner[0, 0]
+        temp1 = img2.shape[1] if corner[1, 1] <= img1.shape[1] - 1 else img1.shape[1] - corner[0, 1]
+        mask = np.zeros([temp0, temp1], dtype='bool')
+        temp = img1[corner[0, 0]:corner[0, 0] + temp0, corner[0, 1]:corner[0, 1] + temp1]
+        temp = np.isfinite(temp)
+        wid_ver = np.count_nonzero(temp[:, -1])
+        wid_hor = np.count_nonzero(temp[-1, :])
+        mask[:wid_ver, :] = True
+        mask[:, :wid_hor] = True
+        buffer1 = img1[corner[0, 0]:corner[0, 0] + mask.shape[0], corner[0, 1]:corner[0, 1] + mask.shape[1]]
+        buffer2 = img2[:mask.shape[0], :mask.shape[1]]
+        buffer1[1-mask] = np.nan
+        buffer2[1-mask] = np.nan
+        case = 'tl'
+    # for new image with overlap at top only
+    elif abs(rough_shift[1]) < margin and abs(rough_shift[0]) > margin:
+        abs_height = np.count_nonzero(np.isfinite(img1[:, margin]))
+        wid_ver = abs_height - corner[0, 0]
+        wid_hor = img2.shape[1] if img1.shape[1] > img2.shape[1] else img2.shape[1] - corner[0, 1]
+        buffer1 = img1[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + wid_hor]
+        buffer2 = img2[:wid_ver, :wid_hor]
+        case = 't'
+    # for new image with overlap at left only
+    else:
+        abs_width = np.count_nonzero(np.isfinite(img1[margin, :]))
+        wid_ver = img2.shape[0] - corner[0, 0]
+        wid_hor = abs_width - corner[0, 1]
+        buffer1 = img1[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + wid_hor]
+        buffer2 = img2[:wid_ver, :wid_hor]
+        case = 'l'
+    res1 = np.copy(buffer1)
+    res2 = np.copy(buffer2)
+    return case, rough_shift, corner, res1, res2, wid_hor, wid_ver

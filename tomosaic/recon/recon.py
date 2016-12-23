@@ -161,7 +161,6 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
             fstart = sino_ls[istart]
             fend = sino_ls[iend-1]
             print('Reading data...')
-            print(fstart, fend, sino_step)
             data = dset[:, fstart:fend+1:sino_step, :]
             data[np.isnan(data)] = 0
             data = data.astype('float32')
@@ -229,7 +228,7 @@ def recon_hdf5_mpi(src_fanme, dest_folder, sino_range, sino_step, center_vec, sh
 
 def recon_block(grid, shift_grid, src_folder, dest_folder, dest_fname, slice_range, sino_step, center_vec, ds_level=0, blend_method='max',
                 blend_options=None, tolerance=1, sinogram_order=False, algorithm='gridrec', init_recon=None, ncore=None, nchunk=None, dtype='float32',
-                crop=None, save_sino=False, assert_width=None, sino_blur=None, **kwargs):
+                crop=None, save_sino=False, assert_width=None, sino_blur=None, corr_lum=True, **kwargs):
     """
     Reconstruct dsicrete HDF5 tiles, blending sinograms only.
     """
@@ -271,7 +270,7 @@ def recon_block(grid, shift_grid, src_folder, dest_folder, dest_fname, slice_ran
         center_pos_0 = center_pos
         row_sino, center_pos = prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=ds_level,
                                              method=blend_method, blend_options=blend_options, rot_center=center_pos,
-                                             assert_width=assert_width, sino_blur=sino_blur)
+                                             assert_width=assert_width, sino_blur=sino_blur, corr_lum=corr_lum)
         rec = recon_slice(row_sino, center_pos, sinogram_order=sinogram_order, algorithm=algorithm,
                           init_recon=init_recon, ncore=ncore, nchunk=nchunk, **kwargs)
         print('Center:            {:d}'.format(center_pos))
@@ -287,7 +286,7 @@ def recon_block(grid, shift_grid, src_folder, dest_folder, dest_fname, slice_ran
         os.chdir(raw_folder)
         dxchange.write_tiff(rec, fname=os.path.join(dest_folder, 'recon/recon_{:05d}_{:d}.tiff'.format((i_slice), int(center_pos)))+dest_fname, dtype=dtype)
         if save_sino:
-            dxchange.write_tiff(np.squeeze(row_sino), fname=os.path.join(dest_folder, 'sino/recon_{:05d}_{:d}.tiff'.format(i_slice, int(center_pos))))
+            dxchange.write_tiff(np.squeeze(row_sino), fname=os.path.join(dest_folder, 'sino/sino_{:05d}_{:d}.tiff'.format(i_slice, int(center_pos))))
         os.chdir(src_folder)
     os.chdir(raw_folder)
     return
@@ -301,7 +300,7 @@ def to_rgb2(im):
 
 
 def prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=0, method='max', blend_options=None, pad=None,
-                  rot_center=None, assert_width=None, sino_blur=None):
+                  rot_center=None, assert_width=None, sino_blur=None, corr_lum=True):
     sinos = [None] * grid.shape[1]
     for col in range(grid.shape[1]):
         try:
@@ -310,7 +309,7 @@ def prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=0, metho
             pass
     t = time.time()
     row_sino = register_recon(grid, grid_lines, shift_grid, sinos, method=method, blend_options=blend_options,
-                              assert_width=assert_width)
+                              corr_lum=corr_lum, assert_width=assert_width)
     if not pad is None:
         row_sino, rot_center = pad_sino(row_sino, pad, rot_center)
 
@@ -377,21 +376,21 @@ def load_sino(filename, sino_n):
     return np.squeeze(sino)
 
 
-def register_recon(grid, grid_lines, shift_grid, sinos, method='max', blend_options=None, assert_width=None):
+def register_recon(grid, grid_lines, shift_grid, sinos, method='max', blend_options=None, corr_lum=True, assert_width=None):
     t = time.time()
     file_list = [grid[grid_lines[col], col] for col in range(grid.shape[1])]
     buff = np.zeros([1, 1], dtype='float32')
     for col in range(len(file_list)):
-        try:
-            x_shift = shift_grid[grid_lines[col], col, 1]
-            temp = np.copy(sinos[col]).astype(np.float32)
-            if blend_options is not None:
-                opt = blend_options
-            else:
-                opt = {}
-            buff = blend(buff, temp, [0, x_shift], method=method, **opt)
-        except:
-            continue
+        # try:
+        x_shift = shift_grid[grid_lines[col], col, 1]
+        temp = np.copy(sinos[col]).astype(np.float32)
+        if blend_options is not None:
+            opt = blend_options
+        else:
+            opt = {}
+        buff = blend(buff, temp, [0, x_shift], method=method, correct_lum=corr_lum, **opt)
+        # except:
+        #     continue
     row_sino = buff.reshape([buff.shape[0], 1, buff.shape[1]])
     i = 0
     if assert_width is None:
