@@ -448,14 +448,16 @@ def img_merge_pyramid(img1, img2, shift, margin=100, blur=0.4, depth=4):
 
     t00 = time.time()
     t0 = time.time()
-    print(    'Starting pyramid blend...')
+    # print(    'Starting pyramid blend...')
     newimg = morph.arrange_image(img1, img2, shift)
     if abs(shift[0]) < margin and abs(shift[1]) < margin:
         return newimg
-    print('    Blend: Image aligned and built in', str(time.time() - t0))
+    # print('    Blend: Image aligned and built in', str(time.time() - t0))
 
     t0 = time.time()
     case, rough_shift, corner, buffer1, buffer2, wid_hor, wid_ver = find_overlap(img1, img2, shift, margin=margin)
+    if case == 'skip':
+        return newimg
     mask2 = np.ones(buffer1.shape)
     if abs(rough_shift[1]) > margin:
         mask2[:, :int(wid_hor / 2)] = 0
@@ -471,7 +473,7 @@ def img_merge_pyramid(img1, img2, shift, margin=100, blur=0.4, depth=4):
     lapl1 = _lapl_pyramid(gauss1, blur)
     lapl2 = _lapl_pyramid(gauss2, blur)
     ovlp_blended = _collapse(_blend(lapl2, lapl1, gauss_mask), blur)
-    print('    Blend: Blending done in', str(time.time() - t0), 'sec.')
+    # print('    Blend: Blending done in', str(time.time() - t0), 'sec.')
 
     if abs(rough_shift[1]) > margin and abs(rough_shift[0]) > margin:
         newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + mask2.shape[1]] = \
@@ -480,7 +482,7 @@ def img_merge_pyramid(img1, img2, shift, margin=100, blur=0.4, depth=4):
             ovlp_blended[wid_ver:, :wid_hor]
     else:
         newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + wid_hor] = ovlp_blended
-    print('    Blend: Done with this tile in', str(time.time() - t00), 'sec.')
+    # print('    Blend: Done with this tile in', str(time.time() - t00), 'sec.')
     gc.collect()
 
     return newimg
@@ -850,13 +852,17 @@ def correct_luminance(img1, img2, shift, margin=50):
     _, _, _, buffer1, buffer2, _, _ = find_overlap(img1, img2, shift, margin=margin)
     mean1 = buffer1.mean()
     mean2 = buffer2.mean()
+    print('mean1 mean2: ', mean1, mean2)
     buffer1[buffer1>10*mean1] = mean1
     buffer2[buffer2>10*mean1] = mean2
     judge = buffer1 > buffer1[np.isfinite(buffer1)].mean()
+    print('updated mean1: ', buffer1[np.isfinite(buffer1)].mean())
+    print('judge size, total size: ', np.count_nonzero(judge), buffer1.size)
     if np.countnonzero(judge) < 0.3*buffer1.size:
         return img2
     sum1 = np.sum(buffer1[np.isfinite(buffer1)*judge])
     sum2 = np.sum(buffer2[np.isfinite(buffer2)*judge])
+    print('sum1, sum2, sum ratio: ', sum1, sum2, sum1/sum2)
     if np.abs(sum2) < 1e-2 or sum1/sum2 > 2 or sum1/sum2 < 0.5:
         return img2
     else:
@@ -884,6 +890,8 @@ def find_overlap(img1, img2, shift, margin=50):
         buffer1[1-mask] = np.nan
         buffer2[1-mask] = np.nan
         case = 'tl'
+        if abs_width < corner[0, 1]:
+            case = 'skip'
     # for new image with overlap at top only
     elif abs(rough_shift[1]) < margin and abs(rough_shift[0]) > margin:
         abs_height = np.count_nonzero(np.isfinite(img1[:, margin]))
@@ -900,6 +908,8 @@ def find_overlap(img1, img2, shift, margin=50):
         buffer1 = img1[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + wid_hor]
         buffer2 = img2[:wid_ver, :wid_hor]
         case = 'l'
+        if abs_width < corner[0, 1]:
+            case = 'skip'
     res1 = np.copy(buffer1)
     res2 = np.copy(buffer2)
     return case, rough_shift, corner, res1, res2, wid_hor, wid_ver

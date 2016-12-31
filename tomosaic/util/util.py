@@ -160,17 +160,25 @@ def build_panorama(file_grid, shift_grid, frame=0, method='max', method2=None, b
             temp_shift[:, :, 0] = temp_shift[:, :, 0] - offset
             row_buff = np.zeros([1, 1])
             prj, flt, drk = dxchange.read_aps_32id(temp_grid[0, 0], proj=(frame, frame + 1))
+            print('raw proj nonot nan', np.count_nonzero(np.isfinite(prj)))
             prj = tomopy.normalize(prj, flt, drk)
             prj = preprecess(prj, blur=blur)
+            print('normalized proj nonot nan', np.count_nonzero(np.isfinite(prj)))
             row_buff = arrange_image(row_buff, np.squeeze(prj), temp_shift[0, 0, :], order=1)
             for x in range(1, temp_grid.shape[1]):
                 value = temp_grid[0, x]
                 if (value != None and frame < g_shapes(value)[0]):
                     prj, flt, drk = dxchange.read_aps_32id(value, proj=(frame, frame + 1))
+                    print(value)
+                    print('raw proj nonot nan', np.count_nonzero(np.isfinite(prj)))
                     prj = tomopy.normalize(prj, flt, drk)
                     prj = preprecess(prj, blur=blur)
+                    print('normalized proj nonot nan', np.count_nonzero(np.isfinite(prj)))
                     row_buff = blend(row_buff, np.squeeze(prj), temp_shift[0, x, :], method=method, correct_lum=lum_corr, **blend_options)
             buff = blend(buff, row_buff, [offset, 0], method=method2, correct_lum=lum_corr, **blend_options2)
+            print('row buff max', row_buff[np.isfinite(row_buff)].max())
+            print('row no of not nan', np.count_nonzero(np.isfinite(row_buff)))
+        print('pano max', buff[np.isfinite(buff)].max())
     return buff
 
 
@@ -598,23 +606,24 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
     t0 = time.time()
     alloc_set = allocate_mpi_subsets(n_frames, size)
     for frame in alloc_set[rank]:
+        print('alloc set {:d}'.format(rank))
         print('    Rank: {:d}; current frame: {:d}..'.format(rank, frame))
         t00 = time.time()
         pano = np.zeros((full_height, full_width), dtype=dtype)
-        save_stdout = sys.stdout
-        sys.stdout = open('trash', 'w')
+        # save_stdout = sys.stdout
+        # sys.stdout = open('log', 'w')
         temp = build_panorama(file_grid, shift_grid, frame=frame, method=blend_method, method2=blend_method2,
                               blend_options=blend_options, blend_options2=blend_options2, blur=blur, lum_corr=lum_corr)
         temp[np.isnan(temp)] = 0
-        sys.stdout = save_stdout
+        # sys.stdout = save_stdout
         pano[:temp.shape[0], :temp.shape[1]] = temp.astype(dtype)
         dset_data[frame, :, :] = pano
         print('    Frame {:d} done in {:.3f} s.'.format(frame, time.time() - t00))
     print('Data built and written in {:.3f} s.'.format(time.time() - t0))
-    try:
-        os.remove('trash')
-    except:
-        print('Please remove trash manually.')
+    # try:
+    #     os.remove('trash')
+    # except:
+    #     print('Please remove trash manually.')
 
     os.chdir(origin_dir)
 

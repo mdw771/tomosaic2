@@ -134,26 +134,31 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
             print('Block {:d} finished in {:.2f} s.'.format(iblock, time.time()-t0))
     else:
         # divide chunks
-        grid_bins = np.append(np.ceil(shift_grid[:, 0, 0]), np.inf)
+        grid_bins = np.append(np.ceil(shift_grid[:, 0, 0]), sino_ls[-1]-1)
         chunks = []
         center_ls = []
         istart = 0
         counter = 0
-        irow = np.searchsorted(grid_bins, sino_ls[0])
+        irow = np.searchsorted(grid_bins, sino_ls[0])-1
+
         for i in range(sino_ls.size):
             counter += 1
+            print(sino_ls[i], grid_bins[irow], i)
             if counter >= chunk_size or sino_ls[i] >= grid_bins[irow]:
-                iend = i + 1
+                iend = i+1
                 chunks.append((istart, iend))
+                print(i, chunks)
                 istart = iend
                 center_ls.append(center_vec[irow-1])
                 if sino_ls[i] >= grid_bins[irow]:
                     irow += 1
                 counter = 0
-        if sino_ls[i] < grid_bins[irow]:
+        if sino_ls[i] < grid_bins[irow-1]:
             chunks.append((istart, sino_ls.size))
             center_ls.append(center_vec[irow-1])
         # reconstruct chunks
+        print(chunks)
+        print(sino_ls)
         iblock = 1
         for (istart, iend), center in izip(chunks, center_ls):
             print('Beginning block {:d}.'.format(iblock))
@@ -176,7 +181,7 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
                 slice = fstart + i*sino_step
                 dxchange.write_tiff(rec[i, :, :], fname=os.path.join(dest_folder, 'recon/recon_{:05d}_{:d}.tiff').format(slice, center))
                 if save_sino:
-                    dxchange.write_tiff(data[:, i, :], fname=os.path.join(dest_folder, 'sino/recon_{:05d}_{:d}.tiff').format(slice, int(center[i])))
+                    dxchange.write_tiff(data[:, i, :], fname=os.path.join(dest_folder, 'sino/recon_{:05d}_{:d}.tiff').format(slice, center))
             iblock += 1
             print('Block {:d} finished in {:.2f} s.'.format(iblock, time.time()-t0))
     return
