@@ -850,23 +850,31 @@ def _norm(arr):
 def correct_luminance(img1, img2, shift, margin=50):
 
     _, _, _, buffer1, buffer2, _, _ = find_overlap(img1, img2, shift, margin=margin)
-    mean1 = buffer1.mean()
-    mean2 = buffer2.mean()
-    print('mean1 mean2: ', mean1, mean2)
-    buffer1[buffer1>10*mean1] = mean1
-    buffer2[buffer2>10*mean1] = mean2
-    judge = buffer1 > buffer1[np.isfinite(buffer1)].mean()
-    print('updated mean1: ', buffer1[np.isfinite(buffer1)].mean())
-    print('judge size, total size: ', np.count_nonzero(judge), buffer1.size)
-    if np.countnonzero(judge) < 0.3*buffer1.size:
+
+    mean1 = buffer1[np.isfinite(buffer1)].mean()
+    mean2 = buffer2[np.isfinite(buffer2)].mean()
+    fin1 = np.isfinite(buffer1)
+    fin2 = np.isfinite(buffer2)
+
+    # remove singularities
+    buffer1[(buffer1>10*mean1)*fin1] = mean1
+    buffer2[(buffer2>10*mean2)*fin2] = mean2
+    judge = buffer1 > buffer1[fin1].mean()
+    judge = judge * fin1 * fin2
+
+    # if the number of above average pixels is too small, do nothing and return
+    if np.count_nonzero(judge) < 0.2*buffer1.size:
         return img2
-    sum1 = np.sum(buffer1[np.isfinite(buffer1)*judge])
-    sum2 = np.sum(buffer2[np.isfinite(buffer2)*judge])
-    print('sum1, sum2, sum ratio: ', sum1, sum2, sum1/sum2)
-    if np.abs(sum2) < 1e-2 or sum1/sum2 > 2 or sum1/sum2 < 0.5:
-        return img2
-    else:
-        return img2 * (sum1/sum2)
+
+    # build color correction dataset
+    orig = buffer2[judge].flatten()
+    targ = buffer1[judge].flatten()
+
+    # quadratic fit
+    a, b, c = np.polyfit(orig, targ, 2)
+    print(a, b, c)
+
+    return a * img2 ** 2 + b * img2 + c
 
 
 def find_overlap(img1, img2, shift, margin=50):
