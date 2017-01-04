@@ -85,7 +85,7 @@ __all__ = ['blend',
            'img_merge_pwd']
 
 
-def blend(img1, img2, shift, method, margin=50, correct_lum=True, **kwargs):
+def blend(img1, img2, shift, method, margin=50, color_correction=True, **kwargs):
     """
     Blend images.
     Parameters
@@ -112,13 +112,13 @@ def blend(img1, img2, shift, method, margin=50, correct_lum=True, **kwargs):
     """
 
     allowed_kwargs = {
-    'alpha': ['alpha'],
-    'max': [],
-    'min': [],
-    'poisson': [],
-    'pyramid': ['blur', 'margin', 'depth'],
-    'pwd': ['margin', 'chunk_size'],
-    'overlay': []
+        'alpha': ['alpha'],
+        'max': [],
+        'min': [],
+        'poisson': [],
+        'pyramid': ['blur', 'margin', 'depth'],
+        'pwd': ['margin', 'chunk_size'],
+        'overlay': []
     }
 
     generic_kwargs = []
@@ -126,7 +126,7 @@ def blend(img1, img2, shift, method, margin=50, correct_lum=True, **kwargs):
     kwargs_defaults = _get_algorithm_kwargs()
 
     if 'margin' not in kwargs and 'margin' in allowed_kwargs[method]:
-        kwargs.update({'margin':margin})
+        kwargs.update({'margin': margin})
 
     if isinstance(method, six.string_types):
 
@@ -145,37 +145,39 @@ def blend(img1, img2, shift, method, margin=50, correct_lum=True, **kwargs):
                     (key, allowed_kwargs[method]))
             else:
                 # Make sure they are numpy arrays.
-                if not isinstance(kwargs[key], (np.ndarray, np.generic)) and not isinstance(kwargs[key], six.string_types):
+                if not isinstance(kwargs[key], (np.ndarray, np.generic)) and not isinstance(kwargs[key],
+                                                                                            six.string_types):
                     kwargs[key] = np.array(value)
 
                 # Make sure reg_par and filter_par is float32.
                 if key == 'alpha':
                     if not isinstance(kwargs[key], np.float32):
                         kwargs[key] = np.array(value, dtype='float32')
-                # if key == 'blur':
-                #     if not isinstance(kwargs[key], np.float32):
-                #         kwargs[key] = np.array(value, dtype='float32')
-        # Set kwarg defaults.
+                        # if key == 'blur':
+                        #     if not isinstance(kwargs[key], np.float32):
+                        #         kwargs[key] = np.array(value, dtype='float32')
+                        # Set kwarg defaults.
 
     elif hasattr(method, '__call__'):
-    # Set kwarg defaults.
+        # Set kwarg defaults.
         for kw in generic_kwargs:
             kwargs.setdefault(kw, kwargs_defaults[kw])
     else:
-       raise ValueError(
+        raise ValueError(
             'Keyword "method" must be one of %s, or a Python method.' %
-           (list(allowed_kwargs.keys()),))
+            (list(allowed_kwargs.keys()),))
 
     func = _get_func(method)
 
-    if correct_lum:
-        print('Correcting luminance...')
+    if color_correction:
         try:
-            img2 = correct_luminance(img1, img2, shift, margin=margin)
+            if img1.size > 1:
+                img2 = correct_luminance(img1, img2, shift, margin=margin)
         except:
             pass
 
     return func(img1, img2, shift, **kwargs)
+
 
 def _get_func(method):
     if method == 'alpha':
@@ -194,8 +196,10 @@ def _get_func(method):
         func = img_merge_pwd
     return func
 
+
 def _get_algorithm_kwargs():
     return {'alpha': 1, 'blur': 0.4, 'depth': 4}
+
 
 def img_merge_alpha(img1, img2, shift, alpha=0.4):
     """
@@ -224,7 +228,6 @@ def img_merge_overlay(img1, img2, shift):
     """
     Simple overlay of two images. Equivalent to alpha blending with alpha = 1.
     """
-    print('Simple overlay')
     newimg = morph.arrange_image(img1, img2, shift, order=1)
     return newimg
 
@@ -251,7 +254,6 @@ def img_merge_max(img1, img2, shift):
     final_img = buff.max(2)
 
     return final_img
-
 
 
 def img_merge_min(img1, img2, shift):
@@ -445,7 +447,6 @@ def _circ_neighbor(mat):
 # Codes are adapted from Computer Vision Lab, Image blending using pyramid, https://compvisionlab.wordpress.com/2013/
 # 05/13/image-blending-using-pyramid/.
 def img_merge_pyramid(img1, img2, shift, margin=100, blur=0.4, depth=4):
-
     t00 = time.time()
     t0 = time.time()
     # print(    'Starting pyramid blend...')
@@ -563,7 +564,6 @@ def _collapse(lapl_pyr, blur):
 
 
 def img_merge_pwd(img1, img2, shift, margin=100, chunk_size=10000):
-
     t00 = time.time()
     t0 = time.time()
     newimg = morph.arrange_image(img1, img2, shift, order=2)
@@ -587,7 +587,7 @@ def img_merge_pwd(img1, img2, shift, margin=100, chunk_size=10000):
     # for new image with overlap at left and top
     if rel_pos == 'lt':
         abs_width = np.count_nonzero(np.isfinite(img1[-margin, :]))
-        abs_height = np.count_nonzero(np.isfinite(img1[:, abs_width-margin]))
+        abs_height = np.count_nonzero(np.isfinite(img1[:, abs_width - margin]))
         temp0 = img2.shape[0] if corner[1, 0] <= abs_height - 1 else abs_height - corner[0, 0]
         temp1 = img2.shape[1] if corner[1, 1] <= img1.shape[1] - 1 else img1.shape[1] - corner[0, 1]
         mask = np.zeros([temp0, temp1], dtype='bool')
@@ -599,8 +599,8 @@ def img_merge_pwd(img1, img2, shift, margin=100, chunk_size=10000):
         mask[:, :wid_hor] = True
         buffer1 = img1[corner[0, 0]:corner[0, 0] + mask.shape[0], corner[0, 1]:corner[0, 1] + mask.shape[1]]
         buffer2 = img2[:mask.shape[0], :mask.shape[1]]
-        buffer1[1-mask] = np.nan
-        buffer2[1-mask] = np.nan
+        buffer1[1 - mask] = np.nan
+        buffer2[1 - mask] = np.nan
     # for new image with overlap at top only
     elif rel_pos == 't':
         abs_height = np.count_nonzero(np.isfinite(img1[:, margin]))
@@ -632,19 +632,19 @@ def img_merge_pwd(img1, img2, shift, margin=100, chunk_size=10000):
         if corner[1, 0] <= abs_height - 1:
             dir_l = 'br2tl'
             dv_l = _get_cef_br2tl(temp_l1, temp_l2)
-            begin_l = np.array([buffer1.shape[0]-1, wid_hor-1])
+            begin_l = np.array([buffer1.shape[0] - 1, wid_hor - 1])
         else:
             dir_l = 'bl2tr'
             dv_l = _get_cef_bl2tr(temp_l1, temp_l2)
-            begin_l = np.array([buffer1.shape[0]-1, 0])
+            begin_l = np.array([buffer1.shape[0] - 1, 0])
         if corner[1, 1] <= img1.shape[1] - 1:
             dir_r = 'br2tl'
             dv_r = _get_cef_br2tl(temp_r1, temp_r2)
-            begin_r = np.array([wid_ver-1, buffer1.shape[1]-1])
+            begin_r = np.array([wid_ver - 1, buffer1.shape[1] - 1])
         else:
             dir_r = 'bl2tr'
             dv_r = _get_cef_bl2tr(temp_r1, temp_r2)
-            begin_r = np.array([0, buffer1.shape[1]-1])
+            begin_r = np.array([0, buffer1.shape[1] - 1])
         dv_l_full = np.zeros(buffer1.shape)
         dv_r_full = np.zeros(buffer1.shape)
         dv_l_full[...] = np.inf
@@ -652,9 +652,10 @@ def img_merge_pwd(img1, img2, shift, margin=100, chunk_size=10000):
         dv_l_full[:, :wid_hor] = dv_l
         dv_r_full[:wid_ver, :] = dv_r
         dv = dv_r_full + dv_l_full
-        inflect = np.array([wid_ver-1, wid_hor-1])
+        inflect = np.array([wid_ver - 1, wid_hor - 1])
         xx, yy = np.meshgrid(range(dv.shape[1]), range(dv.shape[0]))
-        diag_judge = np.abs(inflect[0]*xx-inflect[1]*yy)/np.sqrt(inflect[0]**2+inflect[1]**2) < np.sqrt(2)/2
+        diag_judge = np.abs(inflect[0] * xx - inflect[1] * yy) / np.sqrt(inflect[0] ** 2 + inflect[1] ** 2) < np.sqrt(
+            2) / 2
         diag_line = dv * diag_judge
         s = np.unravel_index(np.argmin(diag_line), dv.shape)
         seam = np.zeros(buffer1.shape, dtype='bool')
@@ -666,19 +667,19 @@ def img_merge_pwd(img1, img2, shift, margin=100, chunk_size=10000):
             ind = np.nonzero(mask1[i, :])[0][0]
             mask1[i, :ind] = True
         mask2 = 1 - mask1
-        if np.count_nonzero(mask2.shape==img2.shape) < 2:
+        if np.count_nonzero(mask2.shape == img2.shape) < 2:
             temp = np.ones(img2.shape, dtype='bool')
             temp[:mask2.shape[0], :mask2.shape[1]] = mask2
             mask2 = temp
         full_mask2 = np.zeros(newimg.shape, dtype='bool')
-        full_mask2[corner[0, 0]:corner[0, 0]+img2.shape[0], corner[0, 1]:corner[0, 1]+img2.shape[1]] = mask2
+        full_mask2[corner[0, 0]:corner[0, 0] + img2.shape[0], corner[0, 1]:corner[0, 1] + img2.shape[1]] = mask2
         newimg[full_mask2] = img2[mask2]
 
 
     elif rel_pos == 't':
         dv = _get_cef_bl2tr(buffer1, buffer2)
-        begin = np.array([dv.shape[0]-1, 0])
-        s = np.array([0, dv.shape[1]-1])
+        begin = np.array([dv.shape[0] - 1, 0])
+        s = np.array([0, dv.shape[1] - 1])
         seam = np.zeros(buffer1.shape, dtype='bool')
         seam[s[0], s[1]] = True
         seam = _trace_seam(dv, seam, s, begin, mode='bl2tr')
@@ -691,13 +692,13 @@ def img_merge_pwd(img1, img2, shift, margin=100, chunk_size=10000):
         temp[:mask2.shape[0], :mask2.shape[1]] = mask2
         mask2 = temp
         full_mask2 = np.zeros(newimg.shape, dtype='bool')
-        full_mask2[corner[0, 0]:corner[0, 0]+img2.shape[0], corner[0, 1]:corner[0, 1]+img2.shape[1]] = mask2
+        full_mask2[corner[0, 0]:corner[0, 0] + img2.shape[0], corner[0, 1]:corner[0, 1] + img2.shape[1]] = mask2
         newimg[full_mask2] = img2[mask2]
 
     else:
         dv = _get_cef_bl2tr(buffer1, buffer2)
-        begin = np.array([dv.shape[0]-1, 0])
-        s = np.array([0, dv.shape[1]-1])
+        begin = np.array([dv.shape[0] - 1, 0])
+        s = np.array([0, dv.shape[1] - 1])
         seam = np.zeros(buffer1.shape, dtype='bool')
         seam[s[0], s[1]] = True
         seam = _trace_seam(dv, seam, s, begin, mode='bl2tr')
@@ -710,12 +711,12 @@ def img_merge_pwd(img1, img2, shift, margin=100, chunk_size=10000):
         temp[:mask2.shape[0], :mask2.shape[1]] = mask2
         mask2 = temp
         full_mask2 = np.zeros(newimg.shape, dtype='bool')
-        full_mask2[corner[0, 0]:corner[0, 0]+img2.shape[0], corner[0, 1]:corner[0, 1]+img2.shape[1]] = mask2
+        full_mask2[corner[0, 0]:corner[0, 0] + img2.shape[0], corner[0, 1]:corner[0, 1] + img2.shape[1]] = mask2
         newimg[full_mask2] = img2[mask2]
     seam_y, seam_x = np.nonzero(seam)
     seam_coords = np.dstack([seam_y, seam_x])[0] + corner[0, :]
     p_seam = buffer1[seam] - buffer2[seam]
-    p_seam = p_seam[p_seam!=0]
+    p_seam = p_seam[p_seam != 0]
     img2_y, img2_x = np.nonzero(full_mask2)
     img2_coords = np.dstack([img2_y, img2_x])[0]
     img2_coords_chunk = []
@@ -730,10 +731,10 @@ def img_merge_pwd(img1, img2, shift, margin=100, chunk_size=10000):
     ################## THIS LOOP NEEDS OPTIMIZATION ##################
     for img2_coords_sub in img2_coords_chunk:
         t0 = time.time()
-        w_denom = np.sum(1/_norm(np.swapaxes(seam_coords[:, np.newaxis]-img2_coords_sub, 0, 1)), axis=1)
-        w = 1 / _norm(np.swapaxes(seam_coords[:, np.newaxis]-img2_coords_sub, 0, 1))
+        w_denom = np.sum(1 / _norm(np.swapaxes(seam_coords[:, np.newaxis] - img2_coords_sub, 0, 1)), axis=1)
+        w = 1 / _norm(np.swapaxes(seam_coords[:, np.newaxis] - img2_coords_sub, 0, 1))
         w /= w_denom.reshape([w_denom.shape[0], 1])
-        p_sub = np.sum(w*p_seam, axis=1)
+        p_sub = np.sum(w * p_seam, axis=1)
         i_new = np.append(i_new, p_sub)
     newimg[full_mask2] = newimg[full_mask2] + i_new
     # for q in img2_coords:
@@ -747,47 +748,44 @@ def img_merge_pwd(img1, img2, shift, margin=100, chunk_size=10000):
 
 
 def _get_cef_bl2tr(buffer1, buffer2):
-
-    dv = (buffer1-buffer2) ** 2
+    dv = (buffer1 - buffer2) ** 2
     cor_down = dv.shape[0] - 1
     cor_right = dv.shape[1] - 1
-    for x in range(1, cor_right+1):
-        dv[cor_down, x] += dv[cor_down, x-1]
-    for y in range(cor_down-1, -1, -1):
-        for x in range(cor_right+1):
+    for x in range(1, cor_right + 1):
+        dv[cor_down, x] += dv[cor_down, x - 1]
+    for y in range(cor_down - 1, -1, -1):
+        for x in range(cor_right + 1):
             if x == 0:
-                dv[y, x] += dv[y+1, x] + dv[y+1, x+1]
+                dv[y, x] += dv[y + 1, x] + dv[y + 1, x + 1]
             elif x == cor_right:
-                dv[y, x] += dv[y, x-1] + dv[y+1, x-1] + dv[y+1, x]
+                dv[y, x] += dv[y, x - 1] + dv[y + 1, x - 1] + dv[y + 1, x]
             else:
-                dv[y, x] += dv[y, x-1] + dv[y+1, x-1] + dv[y+1, x] + dv[y+1, x+1]
+                dv[y, x] += dv[y, x - 1] + dv[y + 1, x - 1] + dv[y + 1, x] + dv[y + 1, x + 1]
     return dv
 
 
 def _get_cef_br2tl(buffer1, buffer2):
-
-    dv = (buffer1-buffer2) ** 2
+    dv = (buffer1 - buffer2) ** 2
     cor_down = dv.shape[0] - 1
     cor_right = dv.shape[1] - 1
-    for x in range(cor_right-1, -1, -1):
-        dv[cor_down, x] += dv[cor_down, x+1]
-    for y in range(cor_down-1, -1, -1):
+    for x in range(cor_right - 1, -1, -1):
+        dv[cor_down, x] += dv[cor_down, x + 1]
+    for y in range(cor_down - 1, -1, -1):
         for x in range(cor_right, -1, -1):
             if x == cor_right:
-                dv[y, x] += dv[y+1, x-1] + dv[y+1, x]
+                dv[y, x] += dv[y + 1, x - 1] + dv[y + 1, x]
             elif x == 0:
-                dv[y, x] += dv[y, x+1] + dv[y+1, x+1] + dv[y+1, x]
+                dv[y, x] += dv[y, x + 1] + dv[y + 1, x + 1] + dv[y + 1, x]
             else:
-                dv[y, x] += dv[y, x+1] + dv[y+1, x-1] + dv[y+1, x] + dv[y+1, x+1]
+                dv[y, x] += dv[y, x + 1] + dv[y + 1, x - 1] + dv[y + 1, x] + dv[y + 1, x + 1]
     return dv
 
 
 def _trace_seam(dv, seam, s, begin, mode='br2tl'):
-
     y, x = s
     if mode == 'br2tl':
-        while np.count_nonzero((y, x)==begin) < 2:
-            move_ls = [(y, x+1), (y+1, x-1), (y+1, x), (y+1, x+1)]
+        while np.count_nonzero((y, x) == begin) < 2:
+            move_ls = [(y, x + 1), (y + 1, x - 1), (y + 1, x), (y + 1, x + 1)]
             if x == 0:
                 del move_ls[1]
             if y == dv.shape[0] - 1:
@@ -810,12 +808,12 @@ def _trace_seam(dv, seam, s, begin, mode='br2tl'):
             y, x = move_ls[amin]
             seam[y, x] = True
     else:
-        while np.count_nonzero((y, x)==begin) < 2:
+        while np.count_nonzero((y, x) == begin) < 2:
             # print(y, x)
-            move_dict = {0:(y, x-1),
-                         1:(y+1, x-1),
-                         2:(y+1, x),
-                         3:(y+1, x+1)}
+            move_dict = {0: (y, x - 1),
+                         1: (y + 1, x - 1),
+                         2: (y + 1, x),
+                         3: (y + 1, x + 1)}
             if x == dv.shape[1] - 1:
                 del move_dict[3]
             if y == dv.shape[0] - 1:
@@ -842,39 +840,48 @@ def _trace_seam(dv, seam, s, begin, mode='br2tl'):
 
 
 def _norm(arr):
-
-    res = np.sqrt(arr[:, :, 0]**2 + arr[:, :, 1]**2)
+    res = np.sqrt(arr[:, :, 0] ** 2 + arr[:, :, 1] ** 2)
     return res
 
 
-def correct_luminance(img1, img2, shift, margin=50):
+def correct_luminance(img1, img2, shift, margin=50, threshold=0.5, max_intercept=1):
 
     _, _, _, buffer1, buffer2, _, _ = find_overlap(img1, img2, shift, margin=margin)
 
     mean1 = buffer1[np.isfinite(buffer1)].mean()
+    if mean1 < threshold:
+        return img2
     mean2 = buffer2[np.isfinite(buffer2)].mean()
     fin1 = np.isfinite(buffer1)
     fin2 = np.isfinite(buffer2)
 
     # remove singularities
-    buffer1[(buffer1>10*mean1)*fin1] = mean1
-    buffer2[(buffer2>10*mean2)*fin2] = mean2
-    judge = buffer1 > buffer1[fin1].mean()
-    judge = judge * fin1 * fin2
+    buffer1[(buffer1 > 10 * mean1) * fin1] = mean1
+    buffer2[(buffer2 > 10 * mean2) * fin2] = mean2
+    judge = fin1 * fin2 * (buffer1/buffer2 < 1.5) * (buffer2/buffer1 < 1.5)
 
     # if the number of above average pixels is too small, do nothing and return
-    if np.count_nonzero(judge) < 0.2*buffer1.size:
+    if np.count_nonzero(judge) < 0.3 * buffer1.size:
         return img2
 
     # build color correction dataset
     orig = buffer2[judge].flatten()
     targ = buffer1[judge].flatten()
 
-    # quadratic fit
-    a, b, c = np.polyfit(orig, targ, 2)
-    print(a, b, c)
+    # least square fit
+    A = np.vstack([orig, np.ones(len(orig))]).T
+    a, b = np.linalg.lstsq(A, targ)[0]
 
-    return a * img2 ** 2 + b * img2 + c
+    # reject abnormal mismatch
+    if a < 0.5:
+        a = 0.5
+    elif a > 2:
+        a = 2
+    if b > max_intercept:
+        b = max_intercept
+    elif b < -max_intercept:
+        b = -max_intercept
+    return a * img2 + b
 
 
 def find_overlap(img1, img2, shift, margin=50):
@@ -883,7 +890,7 @@ def find_overlap(img1, img2, shift, margin=50):
     corner = _get_corner(rough_shift, img2.shape)
     if abs(rough_shift[1]) > margin and abs(rough_shift[0]) > margin:
         abs_width = np.count_nonzero(np.isfinite(img1[-margin, :]))
-        abs_height = np.count_nonzero(np.isfinite(img1[:, abs_width-margin]))
+        abs_height = np.count_nonzero(np.isfinite(img1[:, abs_width - margin]))
         temp0 = img2.shape[0] if corner[1, 0] <= abs_height - 1 else abs_height - corner[0, 0]
         temp1 = img2.shape[1] if corner[1, 1] <= img1.shape[1] - 1 else img1.shape[1] - corner[0, 1]
         mask = np.zeros([temp0, temp1], dtype='bool')
@@ -895,8 +902,8 @@ def find_overlap(img1, img2, shift, margin=50):
         mask[:, :wid_hor] = True
         buffer1 = img1[corner[0, 0]:corner[0, 0] + mask.shape[0], corner[0, 1]:corner[0, 1] + mask.shape[1]]
         buffer2 = img2[:mask.shape[0], :mask.shape[1]]
-        buffer1[1-mask] = np.nan
-        buffer2[1-mask] = np.nan
+        buffer1[1 - mask] = np.nan
+        buffer2[1 - mask] = np.nan
         case = 'tl'
         if abs_width < corner[0, 1]:
             case = 'skip'
