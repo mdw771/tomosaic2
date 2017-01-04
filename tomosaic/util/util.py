@@ -559,7 +559,7 @@ def hdf5_retrieve_phase(src_folder, src_fname, dest_folder, dest_fname, method='
 
 
 def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, blend_method='pyramid', blend_method2=None,
-                 blend_options={}, blend_options2={}, blur=None, color_correction=True, dtype='float16'):
+                 blend_options={}, blend_options2={}, blur=None, color_correction=False, dtype='float16'):
     """
     Fuse hdf5 of all tiles in to one single file. MPI is supported.
 
