@@ -140,7 +140,9 @@ g_shapes = lambda fname: h5py.File(fname, "r")['exchange/data'].shape
 
 
 def build_panorama(file_grid, shift_grid, frame=0, method='max', method2=None, blend_options={}, blend_options2={},
-                   blur=None, lum_corr=True):
+                   blur=None, color_correction=False):
+
+    t00 = time.time()
     cam_size = g_shapes(file_grid[0, 0])
     cam_size = cam_size[1:3]
     img_size = shift_grid[-1, -1] + cam_size
@@ -151,7 +153,10 @@ def build_panorama(file_grid, shift_grid, frame=0, method='max', method2=None, b
                 prj, flt, drk = dxchange.read_aps_32id(value, proj=(frame, frame + 1))
                 prj = tomopy.normalize(prj, flt, drk)
                 prj = preprecess(prj, blur=blur)
-                buff = blend(buff, np.squeeze(prj), shift_grid[y, x, :], method=method, correct_lum=lum_corr, **blend_options)
+                t0 = time.time()
+                buff = blend(buff, np.squeeze(prj), shift_grid[y, x, :], method=method, color_correction=color_correction, **blend_options)
+                print('Rank: {:d}; Frame: {:d}; Pos: ({:d}, {:d}); Method: {:s}; Color Corr.:{:b}; Tile stitched in '
+                      '{:.2f} s.'.format(rank, frame, y, x, method, color_correction, time.time()-t0))
     else:
         for y in range(file_grid.shape[0]):
             temp_grid = file_grid[y:y+1, :]
@@ -169,8 +174,14 @@ def build_panorama(file_grid, shift_grid, frame=0, method='max', method2=None, b
                     prj, flt, drk = dxchange.read_aps_32id(value, proj=(frame, frame + 1))
                     prj = tomopy.normalize(prj, flt, drk)
                     prj = preprecess(prj, blur=blur)
-                    row_buff = blend(row_buff, np.squeeze(prj), temp_shift[0, x, :], method=method, correct_lum=lum_corr, **blend_options)
-            buff = blend(buff, row_buff, [offset, 0], method=method2, correct_lum=lum_corr, **blend_options2)
+                    t0 = time.time()
+                    row_buff = blend(row_buff, np.squeeze(prj), temp_shift[0, x, :], method=method, color_correction=color_correction, **blend_options)
+                    print('Rank: {:d}; Frame: {:d}; Pos: ({:d}, {:d}); Method: {:s}; Color Corr.:{:b}; Tile stitched in '
+                          '{:.2f} s.'.format(rank, frame, y, x, method, color_correction, time.time() - t0))
+            t0 = time.time()
+            buff = blend(buff, row_buff, [offset, 0], method=method2, color_correction=False, **blend_options2)
+            print('Rank: {:d}; Frame: {:d}; Row: {:d}; Row stitched in {:.2f} s.'.format(rank, frame, y, time.time()-t0))
+    print('Rank: {:d}; Frame: {:d}; Panorama built in {:.2f} s.'.format(rank, frame, time.time()-t00))
     return buff
 
 
@@ -548,7 +559,7 @@ def hdf5_retrieve_phase(src_folder, src_fname, dest_folder, dest_fname, method='
 
 
 def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, blend_method='pyramid', blend_method2=None,
-                 blend_options={}, blend_options2={}, blur=None, lum_corr=True, dtype='float16'):
+                 blend_options={}, blend_options2={}, blur=None, color_correction=True, dtype='float16'):
     """
     Fuse hdf5 of all tiles in to one single file. MPI is supported.
 
@@ -598,23 +609,24 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
     t0 = time.time()
     alloc_set = allocate_mpi_subsets(n_frames, size)
     for frame in alloc_set[rank]:
+        print('alloc set {:d}'.format(rank))
         print('    Rank: {:d}; current frame: {:d}..'.format(rank, frame))
         t00 = time.time()
         pano = np.zeros((full_height, full_width), dtype=dtype)
-        save_stdout = sys.stdout
-        sys.stdout = open('trash', 'w')
+        # save_stdout = sys.stdout
+        # sys.stdout = open('log', 'w')
         temp = build_panorama(file_grid, shift_grid, frame=frame, method=blend_method, method2=blend_method2,
-                              blend_options=blend_options, blend_options2=blend_options2, blur=blur, lum_corr=lum_corr)
+                              blend_options=blend_options, blend_options2=blend_options2, blur=blur, color_correction=color_correction)
         temp[np.isnan(temp)] = 0
-        sys.stdout = save_stdout
+        # sys.stdout = save_stdout
         pano[:temp.shape[0], :temp.shape[1]] = temp.astype(dtype)
         dset_data[frame, :, :] = pano
         print('    Frame {:d} done in {:.3f} s.'.format(frame, time.time() - t00))
     print('Data built and written in {:.3f} s.'.format(time.time() - t0))
-    try:
-        os.remove('trash')
-    except:
-        print('Please remove trash manually.')
+    # try:
+    #     os.remove('trash')
+    # except:
+    #     print('Please remove trash manually.')
 
     os.chdir(origin_dir)
 

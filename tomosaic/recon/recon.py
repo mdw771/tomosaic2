@@ -134,26 +134,31 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
             print('Block {:d} finished in {:.2f} s.'.format(iblock, time.time()-t0))
     else:
         # divide chunks
-        grid_bins = np.append(np.ceil(shift_grid[:, 0, 0]), np.inf)
+        grid_bins = np.append(np.ceil(shift_grid[:, 0, 0]), sino_ls[-1]-1)
         chunks = []
         center_ls = []
         istart = 0
         counter = 0
-        irow = np.searchsorted(grid_bins, sino_ls[0])
+        irow = np.searchsorted(grid_bins, sino_ls[0])-1
+
         for i in range(sino_ls.size):
             counter += 1
+            print(sino_ls[i], grid_bins[irow], i)
             if counter >= chunk_size or sino_ls[i] >= grid_bins[irow]:
-                iend = i + 1
+                iend = i+1
                 chunks.append((istart, iend))
+                print(i, chunks)
                 istart = iend
                 center_ls.append(center_vec[irow-1])
                 if sino_ls[i] >= grid_bins[irow]:
                     irow += 1
                 counter = 0
-        if sino_ls[i] < grid_bins[irow]:
+        if sino_ls[i] < grid_bins[irow-1]:
             chunks.append((istart, sino_ls.size))
             center_ls.append(center_vec[irow-1])
         # reconstruct chunks
+        print(chunks)
+        print(sino_ls)
         iblock = 1
         for (istart, iend), center in izip(chunks, center_ls):
             print('Beginning block {:d}.'.format(iblock))
@@ -176,7 +181,7 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
                 slice = fstart + i*sino_step
                 dxchange.write_tiff(rec[i, :, :], fname=os.path.join(dest_folder, 'recon/recon_{:05d}_{:d}.tiff').format(slice, center))
                 if save_sino:
-                    dxchange.write_tiff(data[:, i, :], fname=os.path.join(dest_folder, 'sino/recon_{:05d}_{:d}.tiff').format(slice, int(center[i])))
+                    dxchange.write_tiff(data[:, i, :], fname=os.path.join(dest_folder, 'sino/recon_{:05d}_{:d}.tiff').format(slice, center))
             iblock += 1
             print('Block {:d} finished in {:.2f} s.'.format(iblock, time.time()-t0))
     return
@@ -228,7 +233,7 @@ def recon_hdf5_mpi(src_fanme, dest_folder, sino_range, sino_step, center_vec, sh
 
 def recon_block(grid, shift_grid, src_folder, dest_folder, dest_fname, slice_range, sino_step, center_vec, ds_level=0, blend_method='max',
                 blend_options=None, tolerance=1, sinogram_order=False, algorithm='gridrec', init_recon=None, ncore=None, nchunk=None, dtype='float32',
-                crop=None, save_sino=False, assert_width=None, sino_blur=None, corr_lum=True, **kwargs):
+                crop=None, save_sino=False, assert_width=None, sino_blur=None, color_correction=True, **kwargs):
     """
     Reconstruct dsicrete HDF5 tiles, blending sinograms only.
     """
@@ -270,7 +275,7 @@ def recon_block(grid, shift_grid, src_folder, dest_folder, dest_fname, slice_ran
         center_pos_0 = center_pos
         row_sino, center_pos = prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=ds_level,
                                              method=blend_method, blend_options=blend_options, rot_center=center_pos,
-                                             assert_width=assert_width, sino_blur=sino_blur, corr_lum=corr_lum)
+                                             assert_width=assert_width, sino_blur=sino_blur, color_correction=color_correction)
         rec = recon_slice(row_sino, center_pos, sinogram_order=sinogram_order, algorithm=algorithm,
                           init_recon=init_recon, ncore=ncore, nchunk=nchunk, **kwargs)
         print('Center:            {:d}'.format(center_pos))
@@ -300,7 +305,7 @@ def to_rgb2(im):
 
 
 def prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=0, method='max', blend_options=None, pad=None,
-                  rot_center=None, assert_width=None, sino_blur=None, corr_lum=True):
+                  rot_center=None, assert_width=None, sino_blur=None, color_correction=True):
     sinos = [None] * grid.shape[1]
     for col in range(grid.shape[1]):
         try:
@@ -309,7 +314,7 @@ def prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=0, metho
             pass
     t = time.time()
     row_sino = register_recon(grid, grid_lines, shift_grid, sinos, method=method, blend_options=blend_options,
-                              corr_lum=corr_lum, assert_width=assert_width)
+                              color_correction=color_correction, assert_width=assert_width)
     if not pad is None:
         row_sino, rot_center = pad_sino(row_sino, pad, rot_center)
 
@@ -376,7 +381,7 @@ def load_sino(filename, sino_n):
     return np.squeeze(sino)
 
 
-def register_recon(grid, grid_lines, shift_grid, sinos, method='max', blend_options=None, corr_lum=True, assert_width=None):
+def register_recon(grid, grid_lines, shift_grid, sinos, method='max', blend_options=None, color_correction=True, assert_width=None):
     t = time.time()
     file_list = [grid[grid_lines[col], col] for col in range(grid.shape[1])]
     buff = np.zeros([1, 1], dtype='float32')
@@ -388,7 +393,7 @@ def register_recon(grid, grid_lines, shift_grid, sinos, method='max', blend_opti
             opt = blend_options
         else:
             opt = {}
-        buff = blend(buff, temp, [0, x_shift], method=method, correct_lum=corr_lum, **opt)
+        buff = blend(buff, temp, [0, x_shift], method=method, color_correction=color_correction, **opt)
         # except:
         #     continue
     row_sino = buff.reshape([buff.shape[0], 1, buff.shape[1]])
