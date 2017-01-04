@@ -233,7 +233,7 @@ def recon_hdf5_mpi(src_fanme, dest_folder, sino_range, sino_step, center_vec, sh
 
 def recon_block(grid, shift_grid, src_folder, dest_folder, dest_fname, slice_range, sino_step, center_vec, ds_level=0, blend_method='max',
                 blend_options=None, tolerance=1, sinogram_order=False, algorithm='gridrec', init_recon=None, ncore=None, nchunk=None, dtype='float32',
-                crop=None, save_sino=False, assert_width=None, sino_blur=None, color_correction=True, **kwargs):
+                crop=None, save_sino=False, assert_width=None, sino_blur=None, color_correction=False, **kwargs):
     """
     Reconstruct dsicrete HDF5 tiles, blending sinograms only.
     """
@@ -305,7 +305,7 @@ def to_rgb2(im):
 
 
 def prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=0, method='max', blend_options=None, pad=None,
-                  rot_center=None, assert_width=None, sino_blur=None, color_correction=True):
+                  rot_center=None, assert_width=None, sino_blur=None, color_correction=False):
     sinos = [None] * grid.shape[1]
     for col in range(grid.shape[1]):
         try:
@@ -381,7 +381,7 @@ def load_sino(filename, sino_n):
     return np.squeeze(sino)
 
 
-def register_recon(grid, grid_lines, shift_grid, sinos, method='max', blend_options=None, color_correction=True, assert_width=None):
+def register_recon(grid, grid_lines, shift_grid, sinos, method='max', blend_options=None, color_correction=False, assert_width=None):
     t = time.time()
     file_list = [grid[grid_lines[col], col] for col in range(grid.shape[1])]
     buff = np.zeros([1, 1], dtype='float32')
