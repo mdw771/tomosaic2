@@ -169,7 +169,7 @@ def build_panorama(src_folder, file_grid, shift_grid, frame=0, method='max', met
             prj, flt, drk = dxchange.read_aps_32id(temp_grid[0, 0], proj=(frame, frame + 1))
             prj = tomopy.normalize(prj, flt, drk)
             prj = preprecess(prj, blur=blur)
-            row_buff = arrange_image(row_buff, np.squeeze(prj), temp_shift[0, 0, :], order=1)
+            row_buff, _ = arrange_image(row_buff, np.squeeze(prj), temp_shift[0, 0, :], order=1)
             for x in range(1, temp_grid.shape[1]):
                 value = temp_grid[0, x]
                 if (value != None and frame < g_shapes(value)[0]):
