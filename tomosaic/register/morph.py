@@ -58,6 +58,7 @@ from scipy.ndimage import fourier_shift
 import numpy as np
 import operator
 import dxchange
+import gc
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +71,7 @@ __all__ = ['realign_image',
            'vig_image']
 
 
-def arrange_image(img1, img2, shift, order=1):
+def arrange_image(img1, img2, shift, order=1, trim=True):
     """
     Place properly aligned image in buff
 
@@ -87,6 +88,9 @@ def arrange_image(img1, img2, shift, order=1):
     order : int
         Order that images are arranged. If order is 1, img1 is written first and img2 is placed on the top. If order is
         2, img2 is written first and img1 is placed on the top.
+    trim : bool
+        In the case that shifts involve negative or float numbers where Fourier shift is needed, remove the circular
+        shift stripe.
 
     Returns
     -------
@@ -94,7 +98,13 @@ def arrange_image(img1, img2, shift, order=1):
         Output array.
     """
     rough_shift = get_roughshift(shift)
-    img2 = realign_image(img2, shift - rough_shift.astype('float'))
+    adj_shift = shift - rough_shift.astype('float')
+    img2 = realign_image(img2, adj_shift)
+    if trim:
+        temp = np.zeros(img2.shape-np.ceil(np.abs(adj_shift)))
+        temp[:, :] = img2[:temp.shape[0], :temp.shape[1]]
+        img2 = np.copy(temp)
+        temp = 0
     new_shape = map(int, map(max, map(operator.add, img2.shape, rough_shift), img1.shape))
     newimg = np.empty(new_shape)
     newimg[:, :] = np.NaN
@@ -109,7 +119,11 @@ def arrange_image(img1, img2, shift, order=1):
         newimg[0:img1.shape[0], 0:img1.shape[1]][notnan] = img1[notnan]
     else:
         print('Warning: images are not arranged due to misspecified order.')
-    return newimg
+    gc.collect()
+    if trim:
+        return newimg, img2
+    else:
+        return newimg
 
 
 def realign_image(arr, shift, angle=0):
@@ -132,9 +146,10 @@ def realign_image(arr, shift, angle=0):
     ndarray
         Output array.
     """
+    # if both shifts are integers, do circular shift; otherwise perform Fourier shift.
     if np.count_nonzero(np.abs(np.array(shift) - np.round(shift)) < 0.01) == 2:
         temp = np.roll(arr, int(shift[0]), axis=0)
-        temp = np.roll(arr, int(shift[1]), axis=1)
+        temp = np.roll(temp, int(shift[1]), axis=1)
         temp = temp.astype('float32')
     else:
         temp = fourier_shift(np.fft.fftn(arr), shift)
@@ -170,6 +185,7 @@ def realign_block(arr, shift_vector, angle_vector=None, axis=0):
 
 
 def get_roughshift(shift):
+
     rough_shift = np.ceil(shift)
     rough_shift[rough_shift < 0] = 0
     return rough_shift

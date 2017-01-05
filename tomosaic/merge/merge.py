@@ -218,8 +218,8 @@ def img_merge_alpha(img1, img2, shift, alpha=0.4):
     ndarray
     """
     print('Alpha Blend = ' + str(alpha))
-    newimg1 = morph.arrange_image(img1, img2, shift, order=1)
-    newimg2 = morph.arrange_image(img1, img2, shift, order=2)
+    newimg1, _ = morph.arrange_image(img1, img2, shift, order=1)
+    newimg2, _ = morph.arrange_image(img1, img2, shift, order=2)
     final_img = alpha * newimg1 + (1 - alpha) * newimg2
     return final_img
 
@@ -228,7 +228,7 @@ def img_merge_overlay(img1, img2, shift):
     """
     Simple overlay of two images. Equivalent to alpha blending with alpha = 1.
     """
-    newimg = morph.arrange_image(img1, img2, shift, order=1)
+    newimg, _ = morph.arrange_image(img1, img2, shift, order=1)
     return newimg
 
 
@@ -248,8 +248,8 @@ def img_merge_max(img1, img2, shift):
         Output array.
     """
     print('Max Blend')
-    newimg1 = morph.arrange_image(img1, img2, shift, order=1)
-    newimg2 = morph.arrange_image(img1, img2, shift, order=2)
+    newimg1, _ = morph.arrange_image(img1, img2, shift, order=1)
+    newimg2, _ = morph.arrange_image(img1, img2, shift, order=2)
     buff = np.dstack((newimg1, newimg2))
     final_img = buff.max(2)
 
@@ -271,8 +271,8 @@ def img_merge_min(img1, img2, shift):
     ndarray
         Output array.
     """
-    newimg1 = morph.arrange_image(img1, img2, shift, order=1)
-    newimg2 = morph.arrange_image(img1, img2, shift, order=2)
+    newimg1, _ = morph.arrange_image(img1, img2, shift, order=1)
+    newimg2, _ = morph.arrange_image(img1, img2, shift, order=2)
     buff = np.dstack((newimg1, newimg2))
     final_img = buff.min(2)
 
@@ -281,7 +281,7 @@ def img_merge_min(img1, img2, shift):
 
 # Modified for subpixel fourier shift.
 def img_merge_poisson(img1, img2, shift):
-    newimg = morph.arrange_image(img1, img2, shift)
+    newimg, img2 = morph.arrange_image(img1, img2, shift)
     if abs(shift[0]) < 10 and abs(shift[1]) < 10:
         return newimg
     # Get corner positions for img2 INCLUDING boundary.
@@ -447,10 +447,11 @@ def _circ_neighbor(mat):
 # Codes are adapted from Computer Vision Lab, Image blending using pyramid, https://compvisionlab.wordpress.com/2013/
 # 05/13/image-blending-using-pyramid/.
 def img_merge_pyramid(img1, img2, shift, margin=100, blur=0.4, depth=4):
+
     t00 = time.time()
     t0 = time.time()
     # print(    'Starting pyramid blend...')
-    newimg = morph.arrange_image(img1, img2, shift)
+    newimg, img2 = morph.arrange_image(img1, img2, shift)
     if abs(shift[0]) < margin and abs(shift[1]) < margin:
         return newimg
     # print('    Blend: Image aligned and built in', str(time.time() - t0))
@@ -566,7 +567,7 @@ def _collapse(lapl_pyr, blur):
 def img_merge_pwd(img1, img2, shift, margin=100, chunk_size=10000):
     t00 = time.time()
     t0 = time.time()
-    newimg = morph.arrange_image(img1, img2, shift, order=2)
+    newimg, _ = morph.arrange_image(img1, img2, shift, order=2)
     print('Starting PWD blend...')
     if abs(shift[0]) < margin and abs(shift[1]) < margin:
         return newimg

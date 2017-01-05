@@ -139,10 +139,12 @@ def save_partial_raw(file_grid, save_folder, prefix):
 g_shapes = lambda fname: h5py.File(fname, "r")['exchange/data'].shape
 
 
-def build_panorama(file_grid, shift_grid, frame=0, method='max', method2=None, blend_options={}, blend_options2={},
+def build_panorama(src_folder, file_grid, shift_grid, frame=0, method='max', method2=None, blend_options={}, blend_options2={},
                    blur=None, color_correction=False):
 
     t00 = time.time()
+    root = os.getcwd()
+    os.chdir(src_folder)
     cam_size = g_shapes(file_grid[0, 0])
     cam_size = cam_size[1:3]
     img_size = shift_grid[-1, -1] + cam_size
@@ -167,7 +169,7 @@ def build_panorama(file_grid, shift_grid, frame=0, method='max', method2=None, b
             prj, flt, drk = dxchange.read_aps_32id(temp_grid[0, 0], proj=(frame, frame + 1))
             prj = tomopy.normalize(prj, flt, drk)
             prj = preprecess(prj, blur=blur)
-            row_buff = arrange_image(row_buff, np.squeeze(prj), temp_shift[0, 0, :], order=1)
+            row_buff, _ = arrange_image(row_buff, np.squeeze(prj), temp_shift[0, 0, :], order=1)
             for x in range(1, temp_grid.shape[1]):
                 value = temp_grid[0, x]
                 if (value != None and frame < g_shapes(value)[0]):
@@ -182,6 +184,7 @@ def build_panorama(file_grid, shift_grid, frame=0, method='max', method2=None, b
             buff = blend(buff, row_buff, [offset, 0], method=method2, color_correction=False, **blend_options2)
             print('Rank: {:d}; Frame: {:d}; Row: {:d}; Row stitched in {:.2f} s.'.format(rank, frame, y, time.time()-t0))
     print('Rank: {:d}; Frame: {:d}; Panorama built in {:.2f} s.'.format(rank, frame, time.time()-t00))
+    os.chdir(root)
     return buff
 
 
@@ -615,7 +618,7 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
         pano = np.zeros((full_height, full_width), dtype=dtype)
         # save_stdout = sys.stdout
         # sys.stdout = open('log', 'w')
-        temp = build_panorama(file_grid, shift_grid, frame=frame, method=blend_method, method2=blend_method2,
+        temp = build_panorama(src_folder, file_grid, shift_grid, frame=frame, method=blend_method, method2=blend_method2,
                               blend_options=blend_options, blend_options2=blend_options2, blur=blur, color_correction=color_correction)
         temp[np.isnan(temp)] = 0
         # sys.stdout = save_stdout

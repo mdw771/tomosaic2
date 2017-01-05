@@ -134,28 +134,28 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
             print('Block {:d} finished in {:.2f} s.'.format(iblock, time.time()-t0))
     else:
         # divide chunks
-        grid_bins = np.append(np.ceil(shift_grid[:, 0, 0]), sino_ls[-1]-1)
+        grid_bins = np.append(np.ceil(shift_grid[:, 0, 0]), full_shape[1])
         chunks = []
         center_ls = []
         istart = 0
         counter = 0
-        irow = np.searchsorted(grid_bins, sino_ls[0])-1
+        # irow should be 0 for slice 0
+        irow = np.searchsorted(grid_bins, sino_ls[0], side='right')-1
 
         for i in range(sino_ls.size):
             counter += 1
             print(sino_ls[i], grid_bins[irow], i)
-            if counter >= chunk_size or sino_ls[i] >= grid_bins[irow]:
+            sino_next = i+1 if i != sino_ls.size-1 else i
+            if counter >= chunk_size or sino_ls[sino_next] >= grid_bins[irow+1] or sino_next == i:
                 iend = i+1
                 chunks.append((istart, iend))
                 print(i, chunks)
                 istart = iend
-                center_ls.append(center_vec[irow-1])
-                if sino_ls[i] >= grid_bins[irow]:
+                center_ls.append(center_vec[irow])
+                if sino_ls[sino_next] >= grid_bins[irow+1]:
                     irow += 1
                 counter = 0
-        if sino_ls[i] < grid_bins[irow-1]:
-            chunks.append((istart, sino_ls.size))
-            center_ls.append(center_vec[irow-1])
+
         # reconstruct chunks
         print(chunks)
         print(sino_ls)
