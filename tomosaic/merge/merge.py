@@ -447,10 +447,11 @@ def _circ_neighbor(mat):
 # Codes are adapted from Computer Vision Lab, Image blending using pyramid, https://compvisionlab.wordpress.com/2013/
 # 05/13/image-blending-using-pyramid/.
 def img_merge_pyramid(img1, img2, shift, margin=100, blur=0.4, depth=4):
+
     t00 = time.time()
     t0 = time.time()
     # print(    'Starting pyramid blend...')
-    newimg = morph.arrange_image(img1, img2, shift)
+    newimg, img2 = morph.arrange_image(img1, img2, shift)
     if abs(shift[0]) < margin and abs(shift[1]) < margin:
         return newimg
     # print('    Blend: Image aligned and built in', str(time.time() - t0))
