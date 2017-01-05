@@ -146,9 +146,10 @@ def realign_image(arr, shift, angle=0):
     ndarray
         Output array.
     """
+    # if both shifts are integers, do circular shift; otherwise perform Fourier shift.
     if np.count_nonzero(np.abs(np.array(shift) - np.round(shift)) < 0.01) == 2:
         temp = np.roll(arr, int(shift[0]), axis=0)
-        temp = np.roll(arr, int(shift[1]), axis=1)
+        temp = np.roll(temp, int(shift[1]), axis=1)
         temp = temp.astype('float32')
     else:
         temp = fourier_shift(np.fft.fftn(arr), shift)
