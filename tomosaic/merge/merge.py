@@ -446,7 +446,7 @@ def _circ_neighbor(mat):
 # Pyramid blend.
 # Codes are adapted from Computer Vision Lab, Image blending using pyramid, https://compvisionlab.wordpress.com/2013/
 # 05/13/image-blending-using-pyramid/.
-def img_merge_pyramid(img1, img2, shift, margin=100, blur=0.4, depth=4):
+def img_merge_pyramid(img1, img2, shift, margin=100, blur=0.4, depth=5):
 
     t00 = time.time()
     t0 = time.time()
