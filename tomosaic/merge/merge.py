@@ -851,7 +851,7 @@ def _norm(arr):
     return res
 
 
-def correct_luminance(img1, img2, shift, margin=50, threshold=0.5, max_intercept=1):
+def correct_luminance(img1, img2, shift, margin=100, threshold=0.5, max_intercept=1):
 
     _, _, _, buffer1, buffer2, _, _ = find_overlap(img1, img2, shift, margin=margin)
 

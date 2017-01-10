@@ -117,14 +117,14 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
             data = dset[:, fstart:fend:sino_step, :]
             data[np.isnan(data)] = 0
             data = data.astype('float32')
-            # data = tomopy.remove_stripe_ti(data)
+            data = tomopy.remove_stripe_ti(data, alpha=4)
             if sino_blur is not None:
                 for i in range(data.shape[1]):
                     data[:, i, :] = gaussian_filter(data[:, i, :], sino_blur)
             rec = tomopy.recon(data, theta, center=center, algorithm=algorithm, **kwargs)
-            # rec = tomopy.remove_ring(rec)
+            rec = tomopy.remove_ring(rec)
             rec = tomopy.remove_outlier(rec, tolerance)
-            # rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
+            rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
             for i in range(rec.shape[0]):
                 slice = fstart + i*sino_step
                 dxchange.write_tiff(rec[i, :, :], fname=os.path.join(dest_folder, 'recon/recon_{:05d}_{:d}.tiff').format(slice, int(center[i])))
@@ -172,11 +172,13 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
             if sino_blur is not None:
                 for i in range(data.shape[1]):
                     data[:, i, :] = gaussian_filter(data[:, i, :], sino_blur)
-            # data = tomopy.remove_stripe_ti(data)
-            rec = tomopy.recon(data, theta, center=center, algorithm=algorithm, **kwargs)
-            # rec = tomopy.remove_ring(rec)
+            data = tomopsy.remove_stripe_ti(data, alpha=4)
+            rec0 = tomopy.recon(data, theta, center=center, algorithm=algorithm, **kwargs)
+            rec1 = tomopy.remove_ring(np.copy(rec0))
+            rec = rec0 + rec1
             rec = tomopy.remove_outlier(rec, tolerance)
             rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
+
             for i in range(rec.shape[0]):
                 slice = fstart + i*sino_step
                 dxchange.write_tiff(rec[i, :, :], fname=os.path.join(dest_folder, 'recon/recon_{:05d}_{:d}.tiff').format(slice, center))

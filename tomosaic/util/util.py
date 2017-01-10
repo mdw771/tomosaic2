@@ -140,7 +140,7 @@ g_shapes = lambda fname: h5py.File(fname, "r")['exchange/data'].shape
 
 
 def build_panorama(src_folder, file_grid, shift_grid, frame=0, method='max', method2=None, blend_options={}, blend_options2={},
-                   blur=None, color_correction=False, margin=50):
+                   blur=None, color_correction=False, margin=100):
 
     t00 = time.time()
     root = os.getcwd()
