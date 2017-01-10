@@ -140,7 +140,7 @@ g_shapes = lambda fname: h5py.File(fname, "r")['exchange/data'].shape
 
 
 def build_panorama(src_folder, file_grid, shift_grid, frame=0, method='max', method2=None, blend_options={}, blend_options2={},
-                   blur=None, color_correction=False):
+                   blur=None, color_correction=False, margin=100):
 
     t00 = time.time()
     root = os.getcwd()
@@ -149,6 +149,7 @@ def build_panorama(src_folder, file_grid, shift_grid, frame=0, method='max', met
     cam_size = cam_size[1:3]
     img_size = shift_grid[-1, -1] + cam_size
     buff = np.zeros([1, 1])
+    last_none = False
     if method2 is None:
         for (y, x), value in np.ndenumerate(file_grid):
             if (value != None and frame < g_shapes(value)[0]):
@@ -159,6 +160,11 @@ def build_panorama(src_folder, file_grid, shift_grid, frame=0, method='max', met
                 buff = blend(buff, np.squeeze(prj), shift_grid[y, x, :], method=method, color_correction=color_correction, **blend_options)
                 print('Rank: {:d}; Frame: {:d}; Pos: ({:d}, {:d}); Method: {:s}; Color Corr.:{:b}; Tile stitched in '
                       '{:.2f} s.'.format(rank, frame, y, x, method, color_correction, time.time()-t0))
+                if last_none:
+                    buff[margin:, margin:-margin][np.isnan(buff[margin:, margin:-margin])] = 0
+                    last_none = False
+            else:
+                last_none = True
     else:
         for y in range(file_grid.shape[0]):
             temp_grid = file_grid[y:y+1, :]
@@ -180,6 +186,11 @@ def build_panorama(src_folder, file_grid, shift_grid, frame=0, method='max', met
                     row_buff = blend(row_buff, np.squeeze(prj), temp_shift[0, x, :], method=method, color_correction=color_correction, **blend_options)
                     print('Rank: {:d}; Frame: {:d}; Pos: ({:d}, {:d}); Method: {:s}; Color Corr.:{:b}; Tile stitched in '
                           '{:.2f} s.'.format(rank, frame, y, x, method, color_correction, time.time() - t0))
+                    if last_none:
+                        row_buff[margin:, margin:-margin][np.isnan(row_buff[margin:, margin:-margin])] = 0
+                        last_none = False
+                else:
+                    last_none = True
             t0 = time.time()
             buff = blend(buff, row_buff, [offset, 0], method=method2, color_correction=False, **blend_options2)
             print('Rank: {:d}; Frame: {:d}; Row: {:d}; Row stitched in {:.2f} s.'.format(rank, frame, y, time.time()-t0))

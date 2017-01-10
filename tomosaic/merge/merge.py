@@ -447,6 +447,12 @@ def _circ_neighbor(mat):
 # Codes are adapted from Computer Vision Lab, Image blending using pyramid, https://compvisionlab.wordpress.com/2013/
 # 05/13/image-blending-using-pyramid/.
 def img_merge_pyramid(img1, img2, shift, margin=100, blur=0.4, depth=5):
+    """
+    Perform pyramid blending. Codes are adapted from Computer Vision Lab, Image blending using pyramid,
+    https://compvisionlab.wordpress.com/2013/05/13/image-blending-using-pyramid/.
+    Users are strongly suggested to run tests before beginning the actual stitching job using this function to determine
+    the biggest depth value that does not give seams due to over-blurring.
+    """
 
     t00 = time.time()
     t0 = time.time()
@@ -845,7 +851,7 @@ def _norm(arr):
     return res
 
 
-def correct_luminance(img1, img2, shift, margin=50, threshold=0.5, max_intercept=1):
+def correct_luminance(img1, img2, shift, margin=100, threshold=0.5, max_intercept=1):
 
     _, _, _, buffer1, buffer2, _, _ = find_overlap(img1, img2, shift, margin=margin)
 
