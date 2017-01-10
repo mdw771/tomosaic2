@@ -172,10 +172,10 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
             if sino_blur is not None:
                 for i in range(data.shape[1]):
                     data[:, i, :] = gaussian_filter(data[:, i, :], sino_blur)
-            data = tomopsy.remove_stripe_ti(data, alpha=4)
+            data = tomopy.remove_stripe_ti(data, alpha=4)
             rec0 = tomopy.recon(data, theta, center=center, algorithm=algorithm, **kwargs)
             rec1 = tomopy.remove_ring(np.copy(rec0))
-            rec = rec0 + rec1
+            rec = (rec0 + rec1) / 2
             rec = tomopy.remove_outlier(rec, tolerance)
             rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
 
