@@ -87,7 +87,7 @@ name = MPI.Get_processor_name()
 
 
 def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center_vec=None, center_eq=None, dtype='float32',
-               algorithm='gridrec', tolerance=1, chunk_size=20, save_sino=False, sino_blur=None, **kwargs):
+               algorithm='gridrec', tolerance=1, chunk_size=20, save_sino=False, sino_blur=None, flattened_radius=120, **kwargs):
     """
     center_eq: a and b parameters in fitted center position equation center = a*slice + b.
     """
@@ -144,12 +144,10 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
 
         for i in range(sino_ls.size):
             counter += 1
-            print(sino_ls[i], grid_bins[irow], i)
             sino_next = i+1 if i != sino_ls.size-1 else i
             if counter >= chunk_size or sino_ls[sino_next] >= grid_bins[irow+1] or sino_next == i:
                 iend = i+1
                 chunks.append((istart, iend))
-                print(i, chunks)
                 istart = iend
                 center_ls.append(center_vec[irow])
                 if sino_ls[sino_next] >= grid_bins[irow+1]:
@@ -157,8 +155,6 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
                 counter = 0
 
         # reconstruct chunks
-        print(chunks)
-        print(sino_ls)
         iblock = 1
         for (istart, iend), center in izip(chunks, center_ls):
             print('Beginning block {:d}.'.format(iblock))
@@ -174,8 +170,14 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
                     data[:, i, :] = gaussian_filter(data[:, i, :], sino_blur)
             data = tomopy.remove_stripe_ti(data, alpha=4)
             rec0 = tomopy.recon(data, theta, center=center, algorithm=algorithm, **kwargs)
-            rec1 = tomopy.remove_ring(np.copy(rec0))
-            rec = (rec0 + rec1) / 2
+            rec = tomopy.remove_ring(np.copy(rec0))
+            cent = int((rec.shape[1]-1) / 2)
+            xx, yy = np.meshgrid(np.arange(rec.shape[2]), np.arange(rec.shape[1]))
+            mask0 = ((xx-cent)**2+(yy-cent)**2 <= flattened_radius**2)
+            mask = np.zeros(rec.shape, dtype='bool')
+            for i in range(mask.shape[0]):
+                mask[i, :, :] = mask0
+            rec[mask] = (rec[mask] + rec0[mask])/2
             rec = tomopy.remove_outlier(rec, tolerance)
             rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
 
@@ -184,8 +186,8 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
                 dxchange.write_tiff(rec[i, :, :], fname=os.path.join(dest_folder, 'recon/recon_{:05d}_{:d}.tiff').format(slice, center))
                 if save_sino:
                     dxchange.write_tiff(data[:, i, :], fname=os.path.join(dest_folder, 'sino/recon_{:05d}_{:d}.tiff').format(slice, center))
-            iblock += 1
             print('Block {:d} finished in {:.2f} s.'.format(iblock, time.time()-t0))
+            iblock += 1
     return
 
 
@@ -195,6 +197,7 @@ def recon_hdf5_mpi(src_fanme, dest_folder, sino_range, sino_step, center_vec, sh
     Reconstruct a single tile, or fused HDF5 created using util/total_fusion. MPI supported.
     """
 
+    raise DeprecationWarning
     if rank == 0:
         if not os.path.exists(dest_folder):
             os.mkdir(dest_folder)
@@ -235,7 +238,7 @@ def recon_hdf5_mpi(src_fanme, dest_folder, sino_range, sino_step, center_vec, sh
 
 def recon_block(grid, shift_grid, src_folder, dest_folder, dest_fname, slice_range, sino_step, center_vec, ds_level=0, blend_method='max',
                 blend_options=None, tolerance=1, sinogram_order=False, algorithm='gridrec', init_recon=None, ncore=None, nchunk=None, dtype='float32',
-                crop=None, save_sino=False, assert_width=None, sino_blur=None, color_correction=False, **kwargs):
+                crop=None, save_sino=False, assert_width=None, sino_blur=None, color_correction=False, flattened_radius=120, **kwargs):
     """
     Reconstruct dsicrete HDF5 tiles, blending sinograms only.
     """
@@ -278,18 +281,27 @@ def recon_block(grid, shift_grid, src_folder, dest_folder, dest_fname, slice_ran
         row_sino, center_pos = prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=ds_level,
                                              method=blend_method, blend_options=blend_options, rot_center=center_pos,
                                              assert_width=assert_width, sino_blur=sino_blur, color_correction=color_correction)
-        rec = recon_slice(row_sino, center_pos, sinogram_order=sinogram_order, algorithm=algorithm,
+        rec0 = recon_slice(row_sino, center_pos, sinogram_order=sinogram_order, algorithm=algorithm,
                           init_recon=init_recon, ncore=ncore, nchunk=nchunk, **kwargs)
-        print('Center:            {:d}'.format(center_pos))
-        rec = tomopy.remove_ring(rec)
+        rec = tomopy.remove_ring(np.copy(rec0))
+        cent = int((rec.shape[1] - 1) / 2)
+        xx, yy = np.meshgrid(np.arange(rec.shape[2]), np.arange(rec.shape[1]))
+        mask0 = ((xx - cent) ** 2 + (yy - cent) ** 2 <= flattened_radius ** 2)
+        mask = np.zeros(rec.shape, dtype='bool')
+        for i in range(mask.shape[0]):
+            mask[i, :, :] = mask0
+        rec[mask] = (rec[mask] + rec0[mask]) / 2
         rec = tomopy.remove_outlier(rec, tolerance)
-        rec = tomopy.circ_mask(rec, axis=0, ratio=0.9)
+        rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
+
+        print('Center:            {:d}'.format(center_pos))
         rec = np.squeeze(rec)
         if center_diff != 0:
             rec = np.roll(rec, -center_diff, axis=0)
         if not crop is None:
             crop = np.asarray(crop)
             rec = rec[crop[0, 0]:crop[1, 0], crop[0, 1]:crop[1, 1]]
+
         os.chdir(raw_folder)
         dxchange.write_tiff(rec, fname=os.path.join(dest_folder, 'recon/recon_{:05d}_{:d}.tiff'.format((i_slice), int(center_pos)))+dest_fname, dtype=dtype)
         if save_sino:
@@ -364,8 +376,8 @@ def recon_slice(row_sino, center_pos, sinogram_order=False, algorithm=None,
     ang = tomopy.angles(row_sino.shape[0])
     print(row_sino.shape)
     row_sino = row_sino.astype('float32')
-    # row_sino = tomopy.remove_stripe_ti(row_sino)
     # row_sino = tomopy.normalize_bg(row_sino) # WARNING: normalize_bg can unpredicatably give bad results for some slices
+    row_sino = tomopy.remove_stripe_ti(row_sino, alpha=4)
     rec = tomopy.recon(row_sino, ang, center=center_pos, sinogram_order=sinogram_order, algorithm=algorithm,
         init_recon=init_recon, ncore=ncore, nchunk=nchunk, **kwargs)
 
