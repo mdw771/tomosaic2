@@ -96,7 +96,10 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
         os.mkdir(dest_folder)
     sino_ini = int(sino_range[0])
     sino_end = int(sino_range[1])
-    sino_ls = np.arange(sino_ini, sino_end, sino_step, dtype='int')
+    sino_ls_all = np.arange(sino_ini, sino_end, sino_step, dtype='int')
+    alloc_set = allocate_mpi_subsets(sino_ls_all.size, size, task_list=sino_ls_all)
+    sino_ls = alloc_set[rank]
+
     # prepare metadata
     f = h5py.File(src_fanme)
     dset = f['exchange/data']
@@ -197,7 +200,6 @@ def recon_hdf5_mpi(src_fanme, dest_folder, sino_range, sino_step, center_vec, sh
     Reconstruct a single tile, or fused HDF5 created using util/total_fusion. MPI supported.
     """
 
-    raise DeprecationWarning
     if rank == 0:
         if not os.path.exists(dest_folder):
             os.mkdir(dest_folder)

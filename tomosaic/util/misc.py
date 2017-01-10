@@ -81,7 +81,7 @@ def allocate_mpi_subsets(n_task, size, task_list=None):
             length += 1
             remainder -= 1
         sets.append(task_list[start:start+length])
-        start = start+length
+        start = start + length
     return sets
 
 
