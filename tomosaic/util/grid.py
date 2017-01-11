@@ -147,7 +147,10 @@ def find_pairs(file_grid):
 g_shapes = lambda fname: h5py.File(fname, "r")['exchange/data'].shape
 
 
-def refine_shift_grid(grid, shift_grid, motor_readout, savefolder='.', step=200, upsample=100, y_mask=[-5,5], x_mask=[-5,5]):
+def refine_shift_grid(grid, shift_grid, savefolder='.', step=200, upsample=100, y_mask=[-5,5], x_mask=[-5,5], motor_readout=None):
+
+    if motor_readout is None:
+        motor_readout = [shift_grid[1, 0, 0], shift_grid[0, 1, 1]]
 
     if (grid.shape[0] != shift_grid.shape[0] or grid.shape[1] != shift_grid.shape[1]):
         return
