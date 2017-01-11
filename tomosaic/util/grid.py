@@ -147,7 +147,7 @@ def find_pairs(file_grid):
 g_shapes = lambda fname: h5py.File(fname, "r")['exchange/data'].shape
 
 
-def refine_shift_grid(grid, shift_grid, savefolder='.', step=200, upsample=100, y_mask=[-5,5], x_mask=[-5,5]):
+def refine_shift_grid(grid, shift_grid, motor_readout, savefolder='.', step=200, upsample=100, y_mask=[-5,5], x_mask=[-5,5]):
 
     if (grid.shape[0] != shift_grid.shape[0] or grid.shape[1] != shift_grid.shape[1]):
         return
@@ -194,7 +194,7 @@ def refine_shift_grid(grid, shift_grid, savefolder='.', step=200, upsample=100, 
                     bottom_shape = [0,0,0]
                 size_max = max(main_shape[0],right_shape[0],bottom_shape[0])
                 prj, flt, drk = dxchange.read_aps_32id(grid[main_pos], proj=(0,size_max,step))
-                prj = tomopy.normalize(prj, flt[10:15, :, :], drk)
+                prj = tomopy.normalize(prj, flt, drk)
                 prj[np.abs(prj) < 2e-3] = 2e-3
                 prj[prj > 1] = 1
                 prj = -np.log(prj)
@@ -204,7 +204,7 @@ def refine_shift_grid(grid, shift_grid, savefolder='.', step=200, upsample=100, 
 
                 if (right_pos != None):
                     prj, flt, drk = dxchange.read_aps_32id(grid[right_pos], proj=(0, size_max, step))
-                    prj = tomopy.normalize(prj, flt[10:15, :, :], drk)
+                    prj = tomopy.normalize(prj, flt, drk)
                     prj[np.abs(prj) < 2e-3] = 2e-3
                     prj[prj > 1] = 1
                     prj = -np.log(prj)
@@ -214,11 +214,16 @@ def refine_shift_grid(grid, shift_grid, savefolder='.', step=200, upsample=100, 
                     rangeX = shift_ini[1] + x_mask
                     rangeY = shift_ini[0] + y_mask
                     right_vec = create_stitch_shift(main_prj, right_prj, rangeX, rangeY, down=0, upsample=upsample)
+                    # if the computed shift drifts out of the mask, use motor readout instead
+                    if right_vec[0] < y_mask[0] or right_vec[0] > y_mask[1]:
+                        right_vec[0] = motor_readout[0]
+                    if right_vec[1] < x_mask[1] or right_vec[1] > x_mask[1]:
+                        right_vec[1] = motor_readout[1]
                     pairs_shift[line, 2:4] = right_vec
 
                 if (bottom_pos != None):
                     prj, flt, drk = dxchange.read_aps_32id(grid[bottom_pos], proj=(0,size_max,step))
-                    prj = tomopy.normalize(prj, flt[10:15, :, :], drk)
+                    prj = tomopy.normalize(prj, flt, drk)
                     prj[np.abs(prj) < 2e-3] = 2e-3
                     prj[prj > 1] = 1
                     prj = -np.log(prj)
@@ -228,6 +233,10 @@ def refine_shift_grid(grid, shift_grid, savefolder='.', step=200, upsample=100, 
                     rangeX = shift_ini[1] + x_mask
                     rangeY = shift_ini[0] + y_mask
                     right_vec = create_stitch_shift(main_prj, bottom_prj, rangeX, rangeY, down=1, upsample=upsample)
+                    if right_vec[0] < y_mask[0] or right_vec[0] > y_mask[1]:
+                        right_vec[0] = motor_readout[0]
+                    if right_vec[1] < x_mask[1] or right_vec[1] > x_mask[1]:
+                        right_vec[1] = motor_readout[1]
                     pairs_shift[line, 4:6] = right_vec
 
     print('Rank: '+str(rank), pairs_shift)
@@ -249,8 +258,13 @@ def refine_shift_grid(grid, shift_grid, savefolder='.', step=200, upsample=100, 
 
 
 def create_stitch_shift(block1, block2, rangeX=None, rangeY=None, down=0, upsample=100):
+    """
+    Find the relative shift between two tiles. If the inputs are image stacks, the correlation function receives the
+    maximum intensity projection along the stacking axis.
+    """
+
     shift_vec = np.zeros([block1.shape[0], 2])
-    shift_vec[0, :] = register_translation(block1.mean(0), block2.mean(0), rangeX=rangeX,
+    shift_vec[0, :] = register_translation(block1.max(axis=0), block2.max(axis=0), rangeX=rangeX,
                                                    rangeY=rangeY, down=down, upsample_factor=upsample)
 
     #for frame in range(block1.shape[0]):
