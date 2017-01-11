@@ -221,9 +221,9 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', savefolder='.', step=200
                     rangeY = shift_ini[0] + y_mask
                     right_vec = create_stitch_shift(main_prj, right_prj, rangeX, rangeY, down=0, upsample=upsample)
                     # if the computed shift drifts out of the mask, use motor readout instead
-                    if right_vec[0] < y_mask[0] or right_vec[0] > y_mask[1]:
+                    if right_vec[0] <= rangeY[0] or right_vec[0] >= rangeY[1]:
                         right_vec[0] = motor_readout[0]
-                    if right_vec[1] < x_mask[1] or right_vec[1] > x_mask[1]:
+                    if right_vec[1] <= rangeX[0] or right_vec[1] >= rangeX[1]:
                         right_vec[1] = motor_readout[1]
                     pairs_shift[line, 2:4] = right_vec
 
@@ -239,9 +239,9 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', savefolder='.', step=200
                     rangeX = shift_ini[1] + x_mask
                     rangeY = shift_ini[0] + y_mask
                     right_vec = create_stitch_shift(main_prj, bottom_prj, rangeX, rangeY, down=1, upsample=upsample)
-                    if right_vec[0] < y_mask[0] or right_vec[0] > y_mask[1]:
+                    if right_vec[0] <= rangeY[0] or right_vec[0] >= rangeY[1]:
                         right_vec[0] = motor_readout[0]
-                    if right_vec[1] < x_mask[1] or right_vec[1] > x_mask[1]:
+                    if right_vec[1] <= rangeX[0] or right_vec[1] >= rangeX[1]:
                         right_vec[1] = motor_readout[1]
                     pairs_shift[line, 4:6] = right_vec
 
