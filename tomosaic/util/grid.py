@@ -147,7 +147,10 @@ def find_pairs(file_grid):
 g_shapes = lambda fname: h5py.File(fname, "r")['exchange/data'].shape
 
 
-def refine_shift_grid(grid, shift_grid, savefolder='.', step=200, upsample=100, y_mask=[-5,5], x_mask=[-5,5], motor_readout=None):
+def refine_shift_grid(grid, shift_grid, src_folder='.', savefolder='.', step=200, upsample=100, y_mask=[-5,5], x_mask=[-5,5], motor_readout=None):
+
+    root = os.getcwd()
+    os.chdir(src_folder)
 
     if motor_readout is None:
         motor_readout = [shift_grid[1, 0, 0], shift_grid[0, 1, 1]]
@@ -252,6 +255,7 @@ def refine_shift_grid(grid, shift_grid, savefolder='.', step=200, upsample=100, 
         for src in range(1, size):
             temp = comm.recv(source=src)
             pairs_shift = pairs_shift + temp
+    os.chdir(root)
     try:
         np.savetxt(savefolder+'/shifts.txt', pairs_shift)
     except:
