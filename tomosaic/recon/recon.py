@@ -158,6 +158,7 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
                 counter = 0
 
         # reconstruct chunks
+        # theta = tomopy.angles(4270, ang1=0, ang2=170.8)
         iblock = 1
         for (istart, iend), center in izip(chunks, center_ls):
             print('Beginning block {:d}.'.format(iblock))
@@ -166,6 +167,7 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
             fend = sino_ls[iend-1]
             print('Reading data...')
             data = dset[:, fstart:fend+1:sino_step, :]
+            # data = data[:4270, :, :]
             data[np.isnan(data)] = 0
             data = data.astype('float32')
             if sino_blur is not None:
