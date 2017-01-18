@@ -127,7 +127,8 @@ def read_aps_32id_adaptive(fname, proj=None, sino=None):
     dxver = dxchange.__version__
     m = re.search(r'(\d+)\.(\d+)\.(\d+)', dxver)
     ver = m.group(1, 2, 3)
-    if ver[0] > 0 or ver[1] > 0 or ver[3] > 1:
+    ver = map(int, ver)
+    if ver[0] > 0 or ver[1] > 1 or ver[2] > 1:
         dat, flt, drk, _ = dxchange.read_aps_32id(fname, proj=proj, sino=sino)
     else:
         dat, flt, drk = dxchange.read_aps_32id(fname, proj=proj, sino=sino)
