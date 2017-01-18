@@ -56,6 +56,8 @@ from __future__ import (absolute_import, division, print_function,
 import logging
 import h5py
 import numpy as np
+import dxchange
+import re
 
 
 logger = logging.getLogger(__name__)
@@ -64,7 +66,8 @@ __author__ = ["Rafael Vescovi", "Ming Du"]
 __credits__ = "Doga Gursoy"
 __copyright__ = "Copyright (c) 2015, UChicago Argonne, LLC."
 __docformat__ = 'restructuredtext en'
-__all__ = ['allocate_mpi_subsets']
+__all__ = ['allocate_mpi_subsets',
+           'read_aps_32id_adaptive']
 
 
 def allocate_mpi_subsets(n_task, size, task_list=None):
@@ -116,3 +119,18 @@ def entropy(img, range=[-0.02, 0.02]):
     val = -np.dot(hist, np.log2(hist))
     return val
 
+
+def read_aps_32id_adaptive(fname, proj=None, sino=None):
+    """
+    Adaptive data reading function that works with dxchange both below and beyond version 0.0.11.
+    """
+    dxver = dxchange.__version__
+    m = re.search(r'(\d+)\.(\d+)\.(\d+)', dxver)
+    ver = m.group(1, 2, 3)
+    ver = map(int, ver)
+    if ver[0] > 0 or ver[1] > 1 or ver[2] > 1:
+        dat, flt, drk, _ = dxchange.read_aps_32id(fname, proj=proj, sino=sino)
+    else:
+        dat, flt, drk = dxchange.read_aps_32id(fname, proj=proj, sino=sino)
+
+    return dat, flt, drk
