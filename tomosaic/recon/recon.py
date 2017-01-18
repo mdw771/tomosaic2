@@ -158,6 +158,7 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
                 counter = 0
 
         # reconstruct chunks
+        # theta = tomopy.angles(4270, ang1=0, ang2=170.8)
         iblock = 1
         for (istart, iend), center in izip(chunks, center_ls):
             print('Beginning block {:d}.'.format(iblock))
@@ -166,6 +167,7 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
             fend = sino_ls[iend-1]
             print('Reading data...')
             data = dset[:, fstart:fend+1:sino_step, :]
+            # data = data[:4270, :, :]
             data[np.isnan(data)] = 0
             data = data.astype('float32')
             if sino_blur is not None:
@@ -226,21 +228,23 @@ def recon_hdf5_mpi(src_fanme, dest_folder, sino_range, sino_step, center_vec, sh
         data = data.reshape([full_shape[0], 1, full_shape[2]])
         data[np.isnan(data)] = 0
         data = data.astype('float32')
+        if save_sino:
+            dxchange.write_tiff(data[:, slice, :], fname=os.path.join(dest_folder, 'sino/recon_{:05d}_{:d}.tiff').format(slice, center))
         # data = tomopy.remove_stripe_ti(data)
         rec = tomopy.recon(data, theta, center=center, algorithm=algorithm, **kwargs)
         # rec = tomopy.remove_ring(rec)
         rec = tomopy.remove_outlier(rec, tolerance)
         rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
         dxchange.write_tiff(rec, fname='{:s}/recon/recon_{:05d}_{:d}'.format(dest_folder, slice, center), dtype=dtype)
-        if save_sino:
-            dxchange.write_tiff(data[:, slice, :], fname=os.path.join(dest_folder, 'sino/recon_{:05d}_{:d}.tiff').format(slice, center))
+
     print('Rank {:d} finished in {:.2f} s.'.format(rank, time.time()-t0))
     return
 
 
 def recon_block(grid, shift_grid, src_folder, dest_folder, dest_fname, slice_range, sino_step, center_vec, ds_level=0, blend_method='max',
                 blend_options=None, tolerance=1, sinogram_order=False, algorithm='gridrec', init_recon=None, ncore=None, nchunk=None, dtype='float32',
-                crop=None, save_sino=False, assert_width=None, sino_blur=None, color_correction=False, flattened_radius=120, **kwargs):
+                crop=None, save_sino=False, assert_width=None, sino_blur=None, color_correction=False, flattened_radius=120, normalize=True,
+                **kwargs):
     """
     Reconstruct dsicrete HDF5 tiles, blending sinograms only.
     """
@@ -282,7 +286,8 @@ def recon_block(grid, shift_grid, src_folder, dest_folder, dest_fname, slice_ran
         center_pos_0 = center_pos
         row_sino, center_pos = prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=ds_level,
                                              method=blend_method, blend_options=blend_options, rot_center=center_pos,
-                                             assert_width=assert_width, sino_blur=sino_blur, color_correction=color_correction)
+                                             assert_width=assert_width, sino_blur=sino_blur, color_correction=color_correction,
+                                             normalize=normalize)
         rec0 = recon_slice(row_sino, center_pos, sinogram_order=sinogram_order, algorithm=algorithm,
                           init_recon=init_recon, ncore=ncore, nchunk=nchunk, **kwargs)
         rec = tomopy.remove_ring(np.copy(rec0))
@@ -321,11 +326,11 @@ def to_rgb2(im):
 
 
 def prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=0, method='max', blend_options=None, pad=None,
-                  rot_center=None, assert_width=None, sino_blur=None, color_correction=False):
+                  rot_center=None, assert_width=None, sino_blur=None, color_correction=False, normalize=True):
     sinos = [None] * grid.shape[1]
     for col in range(grid.shape[1]):
         try:
-            sinos[col] = load_sino(grid[grid_lines[col], col], slice_in_tile[col])
+            sinos[col] = load_sino(grid[grid_lines[col], col], slice_in_tile[col], normalize=normalize)
         except:
             pass
     t = time.time()
@@ -387,10 +392,13 @@ def recon_slice(row_sino, center_pos, sinogram_order=False, algorithm=None,
     return rec
 
 
-def load_sino(filename, sino_n):
+def load_sino(filename, sino_n, normalize=True):
     print('Loading {:s}, slice {:d}'.format(filename, sino_n))
     sino_n = int(sino_n)
-    sino, flt, drk = dxchange.read_aps_32id(filename, sino=(sino_n, sino_n + 1))
+    sino, flt, drk, _ = dxchange.read_aps_32id(filename, sino=(sino_n, sino_n + 1))
+    if not normalize:
+        flt[:, :, :] = flt.max()
+        drk[:, :, :] = 0
     sino = tomopy.normalize(sino, flt, drk)
     # 1st slice of each tile of some samples contains mostly abnormally large values which should be removed.
     if sino.max() > 1e2:
@@ -438,7 +446,3 @@ def register_recon(grid, grid_lines, shift_grid, sinos, method='max', blend_opti
     return row_sino
 
 
-
-    # ############# debug only #############
-    # data = data[:4270, :, :]
-    # ######################################

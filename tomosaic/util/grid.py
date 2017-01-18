@@ -199,7 +199,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', savefolder='.', step=200
                 else:
                     bottom_shape = [0,0,0]
                 size_max = max(main_shape[0],right_shape[0],bottom_shape[0])
-                prj, flt, drk = dxchange.read_aps_32id(grid[main_pos], proj=(0,size_max,step))
+                prj, flt, drk, _ = dxchange.read_aps_32id(grid[main_pos], proj=(0,size_max,step))
                 prj = tomopy.normalize(prj, flt, drk)
                 prj[np.abs(prj) < 2e-3] = 2e-3
                 prj[prj > 1] = 1
@@ -209,7 +209,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', savefolder='.', step=200
                 pairs_shift[line, 0:2] = main_pos
 
                 if (right_pos != None):
-                    prj, flt, drk = dxchange.read_aps_32id(grid[right_pos], proj=(0, size_max, step))
+                    prj, flt, drk, _ = dxchange.read_aps_32id(grid[right_pos], proj=(0, size_max, step))
                     prj = tomopy.normalize(prj, flt, drk)
                     prj[np.abs(prj) < 2e-3] = 2e-3
                     prj[prj > 1] = 1
@@ -228,7 +228,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', savefolder='.', step=200
                     pairs_shift[line, 2:4] = right_vec
 
                 if (bottom_pos != None):
-                    prj, flt, drk = dxchange.read_aps_32id(grid[bottom_pos], proj=(0,size_max,step))
+                    prj, flt, drk, _ = dxchange.read_aps_32id(grid[bottom_pos], proj=(0,size_max,step))
                     prj = tomopy.normalize(prj, flt, drk)
                     prj[np.abs(prj) < 2e-3] = 2e-3
                     prj[prj > 1] = 1
