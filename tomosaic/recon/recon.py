@@ -57,7 +57,7 @@ import tomosaic
 import logging
 import glob, time, itertools, os
 from tomosaic.register.morph import *
-from tomosaic.util.misc import allocate_mpi_subsets
+from tomosaic.util.misc import allocate_mpi_subsets, read_aps_32id_adaptive
 from scipy.ndimage import gaussian_filter
 import numpy as np
 import tomopy
@@ -395,7 +395,7 @@ def recon_slice(row_sino, center_pos, sinogram_order=False, algorithm=None,
 def load_sino(filename, sino_n, normalize=True):
     print('Loading {:s}, slice {:d}'.format(filename, sino_n))
     sino_n = int(sino_n)
-    sino, flt, drk, _ = dxchange.read_aps_32id(filename, sino=(sino_n, sino_n + 1))
+    sino, flt, drk = read_aps_32id_adaptive(filename, sino=(sino_n, sino_n + 1))
     if not normalize:
         flt[:, :, :] = flt.max()
         drk[:, :, :] = 0
