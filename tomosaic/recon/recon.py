@@ -73,7 +73,8 @@ __author__ = "Rafael Vescovi, Ming Du"
 __credits__ = "Doga Gursoy"
 __copyright__ = "Copyright (c) 2015, UChicago Argonne, LLC."
 __docformat__ = 'restructuredtext en'
-__all__ = ['recon_block',
+__all__ = ['recon_hdf5',
+           'recon_block',
            'recon_slice',
            'prepare_slice',
            'load_sino',
@@ -93,7 +94,10 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
     """
 
     if not os.path.exists(dest_folder):
-        os.mkdir(dest_folder)
+        try:
+            os.mkdir(dest_folder)
+        except:
+            pass
     sino_ini = int(sino_range[0])
     sino_end = int(sino_range[1])
     sino_ls_all = np.arange(sino_ini, sino_end, sino_step, dtype='int')
