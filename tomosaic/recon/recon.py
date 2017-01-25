@@ -188,7 +188,7 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
 
             for i in range(rec.shape[0]):
                 slice = fstart + i*sino_step
-                dxchange.write_tiff(rec[i, :, :], fname=os.path.join(dest_folder, 'recon/recon_{:05d}_{:d}.tiff').format(slice, center))
+                dxchange.write_tiff(rec[i, :, :], fname=os.path.join(dest_folder, 'recon/recon_{:05d}.tiff').format(slice))
                 if save_sino:
                     dxchange.write_tiff(data[:, i, :], fname=os.path.join(dest_folder, 'sino/recon_{:05d}_{:d}.tiff').format(slice, center))
             print('Block {:d} finished in {:.2f} s.'.format(iblock, time.time()-t0))
@@ -312,9 +312,9 @@ def recon_block(grid, shift_grid, src_folder, dest_folder, dest_fname, slice_ran
             rec = rec[crop[0, 0]:crop[1, 0], crop[0, 1]:crop[1, 1]]
 
         os.chdir(raw_folder)
-        dxchange.write_tiff(rec, fname=os.path.join(dest_folder, 'recon/recon_{:05d}_{:05d}.tiff'.format(i_slice, sino_ini)+dest_fname, dtype=dtype)
+        dxchange.write_tiff(rec, fname=os.path.join(dest_folder, 'recon/recon_{:05d}.tiff'.format(i_slice)+dest_fname, dtype=dtype)
         if save_sino:
-            dxchange.write_tiff(np.squeeze(row_sino), fname=os.path.join(dest_folder, 'sino/sino_{:05d}_{:d}.tiff'.format(i_slice, int(center_pos))))
+            dxchange.write_tiff(np.squeeze(row_sino), fname=os.path.join(dest_folder, 'sino/sino_{:05d}.tiff'.format(i_slice)))
         os.chdir(src_folder)
     os.chdir(raw_folder)
     return
