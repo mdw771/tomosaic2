@@ -130,7 +130,7 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
             rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
             for i in range(rec.shape[0]):
                 slice = fstart + i*sino_step
-                dxchange.write_tiff(rec[i, :, :], fname=os.path.join(dest_folder, 'recon/recon_{:05d}_{:d}.tiff').format(slice, int(center[i])))
+                dxchange.write_tiff(rec[i, :, :], fname=os.path.join(dest_folder, 'recon/recon_{:05d}_{:05d}.tiff').format(slice, sino_ini))
                 if save_sino:
                     dxchange.write_tiff(data[:, i, :], fname=os.path.join(dest_folder, 'sino/recon_{:05d}_{:d}.tiff').format(slice, int(center[i])))
             iblock += 1
@@ -201,6 +201,8 @@ def recon_hdf5_mpi(src_fanme, dest_folder, sino_range, sino_step, center_vec, sh
     """
     Reconstruct a single tile, or fused HDF5 created using util/total_fusion. MPI supported.
     """
+
+    raise DeprecationWarning
 
     if rank == 0:
         if not os.path.exists(dest_folder):
@@ -310,7 +312,7 @@ def recon_block(grid, shift_grid, src_folder, dest_folder, dest_fname, slice_ran
             rec = rec[crop[0, 0]:crop[1, 0], crop[0, 1]:crop[1, 1]]
 
         os.chdir(raw_folder)
-        dxchange.write_tiff(rec, fname=os.path.join(dest_folder, 'recon/recon_{:05d}_{:d}.tiff'.format((i_slice), int(center_pos)))+dest_fname, dtype=dtype)
+        dxchange.write_tiff(rec, fname=os.path.join(dest_folder, 'recon/recon_{:05d}_{:05d}.tiff'.format(i_slice, sino_ini)+dest_fname, dtype=dtype)
         if save_sino:
             dxchange.write_tiff(np.squeeze(row_sino), fname=os.path.join(dest_folder, 'sino/sino_{:05d}_{:d}.tiff'.format(i_slice, int(center_pos))))
         os.chdir(src_folder)
