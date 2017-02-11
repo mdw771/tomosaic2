@@ -65,7 +65,7 @@ __all__ = ['start_file_grid',
            'start_shift_grid',
            'shift2center_grid',
            'refine_shift_grid',
-           'create_stitch_shift'
+           'create_stitch_shift',
            'absolute_shift_grid']
 
 import numpy as np
