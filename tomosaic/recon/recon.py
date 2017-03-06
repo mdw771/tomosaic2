@@ -247,10 +247,10 @@ def recon_hdf5_mpi(src_fanme, dest_folder, sino_range, sino_step, center_vec, sh
     return
 
 
-def recon_block(grid, shift_grid, src_folder, dest_folder, dest_fname, slice_range, sino_step, center_vec, ds_level=0, blend_method='max',
+def recon_block(grid, shift_grid, src_folder, dest_folder, slice_range, sino_step, center_vec, ds_level=0, blend_method='max',
                 blend_options=None, tolerance=1, sinogram_order=False, algorithm='gridrec', init_recon=None, ncore=None, nchunk=None, dtype='float32',
                 crop=None, save_sino=False, assert_width=None, sino_blur=None, color_correction=False, flattened_radius=120, normalize=True,
-                **kwargs):
+                test_mode=False, **kwargs):
     """
     Reconstruct dsicrete HDF5 tiles, blending sinograms only.
     """
@@ -316,9 +316,12 @@ def recon_block(grid, shift_grid, src_folder, dest_folder, dest_fname, slice_ran
             rec = rec[crop[0, 0]:crop[1, 0], crop[0, 1]:crop[1, 1]]
 
         os.chdir(raw_folder)
-        dxchange.write_tiff(rec, fname=os.path.join(dest_folder, 'recon/recon_{:05d}.tiff'.format(i_slice)+dest_fname, dtype=dtype))
+        if test_mode:
+            dxchange.write_tiff(rec, fname=os.path.join(dest_folder, 'recon/recon_{:05d}_{:04d}.tiff'.format(i_slice, center_pos), dtype=dtype))
+        else:
+            dxchange.write_tiff(rec, fname=os.path.join(dest_folder, 'recon/recon_{:05d}.tiff'.format(i_slice), dtype=dtype))
         if save_sino:
-            dxchange.write_tiff(np.squeeze(row_sino), fname=os.path.join(dest_folder, 'sino/sino_{:05d}.tiff'.format(i_slice)))
+            dxchange.write_tiff(np.squeeze(row_sino), fname=os.path.join(dest_folder, 'sino/sino_{:05d}.tiff'.format(i_slice)), overwrite=True)
         os.chdir(src_folder)
     os.chdir(raw_folder)
     return
