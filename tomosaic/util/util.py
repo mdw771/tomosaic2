@@ -128,10 +128,8 @@ def save_partial_raw(file_grid, save_folder, prefix):
         if (value != None):
             prj, flt, drk = read_aps_32id_adaptive(value, proj=(0, 1))
             fname = value
-            flt = flt.mean(axis=0).astype('float32')
-            dxchange.write_tiff(np.squeeze(flt), fname=os.path.join(save_folder, 'partial_flats', fname))
-            drk = drk.mean(axis=0).astype('float16')
-            dxchange.write_tiff(np.squeeze(drk), fname=os.path.join(save_folder, 'partial_darks', fname))
+            dxchange.write_tiff_stack(np.squeeze(flt), fname=os.path.join(save_folder, 'partial_flats', fname))
+            dxchange.write_tiff_stack(np.squeeze(drk), fname=os.path.join(save_folder, 'partial_darks', fname))
             prj = prj.astype('float32')
             dxchange.write_tiff(np.squeeze(prj), fname=os.path.join(save_folder, 'partial_frames_raw', fname))
 

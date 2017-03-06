@@ -58,6 +58,8 @@ import h5py
 import numpy as np
 import dxchange
 import re
+import os
+import glob
 
 
 logger = logging.getLogger(__name__)
@@ -112,12 +114,26 @@ def which_tile(shift_grid, file_grid, x_coord, y_coord):
     return s
 
 
-def entropy(img, range=[-0.02, 0.02]):
+def entropy(img, range=[-0.002, 0.002]):
 
     hist, e = np.histogram(img, bins=1024, range=range)
     hist = hist.astype('float32') / img.size + 1e-12
     val = -np.dot(hist, np.log2(hist))
     return val
+
+
+def minimum_entropy(folder, pattern='*.tiff', range=[-0.002, 0.002]):
+
+    flist = glob.glob(os.path.join(folder, pattern))
+    a = []
+    s = []
+    for fname in flist:
+        img = dxchange.read_tiff(fname)
+        s.append(entropy(img, range=range))
+        a.append(fname)
+    return a[np.argmin(s)]
+
+
 
 
 def read_aps_32id_adaptive(fname, proj=None, sino=None):
