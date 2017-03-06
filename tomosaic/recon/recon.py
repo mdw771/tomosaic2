@@ -317,9 +317,9 @@ def recon_block(grid, shift_grid, src_folder, dest_folder, slice_range, sino_ste
 
         os.chdir(raw_folder)
         if test_mode:
-            dxchange.write_tiff(rec, fname=os.path.join(dest_folder, 'recon/recon_{:05d}_{:04d}.tiff'.format(i_slice, center_pos), dtype=dtype))
+            dxchange.write_tiff(rec, fname=os.path.join(dest_folder, 'recon/recon_{:05d}_{:04d}.tiff'.format(i_slice, center_pos)), dtype=dtype)
         else:
-            dxchange.write_tiff(rec, fname=os.path.join(dest_folder, 'recon/recon_{:05d}.tiff'.format(i_slice), dtype=dtype))
+            dxchange.write_tiff(rec, fname=os.path.join(dest_folder, 'recon/recon_{:05d}.tiff'.format(i_slice)), dtype=dtype)
         if save_sino:
             dxchange.write_tiff(np.squeeze(row_sino), fname=os.path.join(dest_folder, 'sino/sino_{:05d}.tiff'.format(i_slice)), overwrite=True)
         os.chdir(src_folder)
