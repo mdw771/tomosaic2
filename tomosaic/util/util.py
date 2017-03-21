@@ -131,8 +131,8 @@ def save_partial_frames(file_grid, save_folder, prefix, frame=0):
             dxchange.write_tiff(np.squeeze(prj), fname=os.path.join(save_folder, 'partial_frames', fname))
 
 
-def save_partial_raw(file_grid, save_folder, prefix):
-    for (y, x), value in np.ndenumerate(file_grid):
+def save_partial_raw(file_list, save_folder):
+    for value in file_list:
         if (value != None):
             prj, flt, drk = read_aps_32id_adaptive(value, proj=(0, 1))
             fname = value
