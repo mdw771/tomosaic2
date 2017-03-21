@@ -88,7 +88,8 @@ name = MPI.Get_processor_name()
 
 
 def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center_vec=None, center_eq=None, dtype='float32',
-               algorithm='gridrec', tolerance=1, chunk_size=20, save_sino=False, sino_blur=None, flattened_radius=120, **kwargs):
+               algorithm='gridrec', tolerance=1, chunk_size=20, save_sino=False, sino_blur=None, flattened_radius=120,
+               mode='180', **kwargs):
     """
     center_eq: a and b parameters in fitted center position equation center = a*slice + b.
     """
@@ -171,7 +172,9 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
             fend = sino_ls[iend-1]
             print('Reading data...')
             data = dset[:, fstart:fend+1:sino_step, :]
-            # data = data[:4270, :, :]
+            if mode == '360':
+                overlap =  2 * (dset.shape[2] - center)
+                data = tomosaic.morph.sino_360_to_180(data, overlap=overlap, rotation='right')
             data[np.isnan(data)] = 0
             data = data.astype('float32')
             if sino_blur is not None:
@@ -192,9 +195,9 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
 
             for i in range(rec.shape[0]):
                 slice = fstart + i*sino_step
-                dxchange.write_tiff(rec[i, :, :], fname=os.path.join(dest_folder, 'recon/recon_{:05d}.tiff').format(slice))
+                dxchange.write_tiff(rec[i, :, :], fname=os.path.join(dest_folder, 'recon/recon_{:05d}.tiff').format(slice), dtype=dtype)
                 if save_sino:
-                    dxchange.write_tiff(data[:, i, :], fname=os.path.join(dest_folder, 'sino/recon_{:05d}_{:d}.tiff').format(slice, center))
+                    dxchange.write_tiff(data[:, i, :], fname=os.path.join(dest_folder, 'sino/recon_{:05d}_{:d}.tiff').format(slice, center), dtype=dtype)
             print('Block {:d} finished in {:.2f} s.'.format(iblock, time.time()-t0))
             iblock += 1
     return

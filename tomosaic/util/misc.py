@@ -114,7 +114,7 @@ def which_tile(shift_grid, file_grid, x_coord, y_coord):
     return s
 
 
-def entropy(img, range=[-0.002, 0.002]):
+def entropy(img, range=(-0.002, 0.002)):
 
     hist, e = np.histogram(img, bins=1024, range=range)
     hist = hist.astype('float32') / img.size + 1e-12
@@ -122,7 +122,7 @@ def entropy(img, range=[-0.002, 0.002]):
     return val
 
 
-def minimum_entropy(folder, pattern='*.tiff', range=[-0.002, 0.002]):
+def minimum_entropy(folder, pattern='*.tiff', range=(-0.002, 0.002)):
 
     flist = glob.glob(os.path.join(folder, pattern))
     a = []
