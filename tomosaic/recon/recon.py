@@ -64,7 +64,10 @@ import tomopy
 import dxchange
 import h5py
 from itertools import izip
-from mpi4py import MPI
+try:
+    from mpi4py import MPI
+except:
+    from tomosaic.util.pseudo import pseudo_comm
 
 
 logger = logging.getLogger(__name__)
@@ -80,11 +83,15 @@ __all__ = ['recon_hdf5',
            'load_sino',
            'register_recon']
 
-
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-name = MPI.Get_processor_name()
+try:
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+    name = MPI.Get_processor_name()
+except:
+    comm = pseudo_comm()
+    rank = 0
+    size = 1
 
 
 def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center_vec=None, center_eq=None, dtype='float32',

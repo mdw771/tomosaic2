@@ -83,15 +83,23 @@ from scipy.misc import imread, imsave
 import matplotlib.pyplot as plt
 from tomopy import downsample
 from scipy.misc import imresize
-from mpi4py import MPI
 import time
 import gc, sys
+try:
+    from mpi4py import MPI
+except:
+    from tomosaic.util.pseudo import pseudo_comm
 
 
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-name = MPI.Get_processor_name()
+try:
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+    name = MPI.Get_processor_name()
+except:
+    comm = pseudo_comm()
+    rank = 0
+    size = 1
 
 
 def get_files(folder, prefix, type='.h5'):

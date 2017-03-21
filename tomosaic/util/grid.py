@@ -78,15 +78,24 @@ from tomosaic.register.register_translation import register_translation
 from tomosaic.util.util import *
 from tomosaic.util.misc import read_aps_32id_adaptive
 from scipy import ndimage
-from mpi4py import MPI
 import warnings
+import os
+try:
+    from mpi4py import MPI
+except:
+    from tomosaic.util.pseudo import pseudo_comm
 
 warnings.filterwarnings('ignore')
 
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-name = MPI.Get_processor_name()
+try:
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+    name = MPI.Get_processor_name()
+except:
+    comm = pseudo_comm()
+    rank = 0
+    size = 1
 
 
 def start_file_grid(file_list, ver_dir=0, hor_dir=0, pattern=0):
