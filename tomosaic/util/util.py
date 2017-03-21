@@ -74,7 +74,7 @@ import numpy as np
 import tomopy
 import dxchange
 from tomosaic.util.phase import retrieve_phase
-from tomosaic.util.misc import allocate_mpi_subsets, read_aps_32id_adaptive
+from tomosaic.misc.misc import allocate_mpi_subsets, read_aps_32id_adaptive
 from tomosaic.merge.merge import blend
 from tomosaic.register.morph import arrange_image
 import shutil
@@ -82,9 +82,9 @@ from scipy.ndimage import gaussian_filter
 from scipy.misc import imread, imsave
 import matplotlib.pyplot as plt
 from tomopy import downsample
-from scipy.misc import imresize
 import time
-import gc, sys
+import gc
+
 try:
     from mpi4py import MPI
 except:

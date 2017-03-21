@@ -52,18 +52,22 @@ Module for image merging
 
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-from tomosaic import blend
-import tomosaic
+
 import logging
-import glob, time, itertools, os
-from tomosaic.register.morph import *
-from tomosaic.util.misc import allocate_mpi_subsets, read_aps_32id_adaptive
-from scipy.ndimage import gaussian_filter
-import numpy as np
-import tomopy
+import os
+import time
+from itertools import izip
+
 import dxchange
 import h5py
-from itertools import izip
+import numpy as np
+import tomopy
+from scipy.ndimage import gaussian_filter
+
+import tomosaic
+from tomosaic import blend
+from tomosaic.misc.misc import allocate_mpi_subsets, read_aps_32id_adaptive
+
 try:
     from mpi4py import MPI
 except:

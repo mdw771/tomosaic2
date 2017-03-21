@@ -71,13 +71,10 @@ __all__ = ['start_file_grid',
 import numpy as np
 import h5py
 import tomopy
-import dxchange
 from tomosaic.register.morph import *
-from tomosaic.register.register import *
 from tomosaic.register.register_translation import register_translation
 from tomosaic.util.util import *
-from tomosaic.util.misc import read_aps_32id_adaptive
-from scipy import ndimage
+from tomosaic.misc.misc import read_aps_32id_adaptive
 import warnings
 import os
 try:

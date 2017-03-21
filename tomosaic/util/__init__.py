@@ -51,6 +51,5 @@ from __future__ import (absolute_import, division, print_function,
 
 from .grid import *
 from .phase import *
-from .util import *
-from .misc import *
 from .pseudo import *
+from .util import *
