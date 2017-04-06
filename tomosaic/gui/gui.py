@@ -46,21 +46,18 @@
 # POSSIBILITY OF SUCH DAMAGE.                                             #
 # #########################################################################
 
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
+# from __future__ import (absolute_import, division, print_function, unicode_literals)
+import tkinter
 
-import logging
+import tomosaic
 
-from tomosaic.merge import *
-from tomosaic.register import *
-from tomosaic.recon import *
-from tomosaic.util import *
-from tomosaic.gui import *
 
-logging.basicConfig()
+def launch():
 
-try:
-    import pkg_resources
-    __version__ = pkg_resources.working_set.require("tomosaic")[0].version
-except:
-    pass
+    root = tkinter.Tk()
+    root.mainloop()
+
+
+if __name__ == '__main__':
+
+    launch()
