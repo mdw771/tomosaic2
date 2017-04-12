@@ -33,6 +33,6 @@ class TomosaicUI(Frame):
 if __name__ == '__main__':
 
     root = Tk()
-    root.geometry("250x150+300+300")
+    # root.geometry("250x150+300+300")
     app = TomosaicUI(root)
     root.mainloop()
