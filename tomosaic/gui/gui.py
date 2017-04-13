@@ -56,19 +56,26 @@ class TomosaicUI(Frame):
         formMeta = Frame(tabMeta)
         bottMeta = Frame(tabMeta)
 
+        # path line
+        framePath = Frame(formMeta)
+        labRawPath = Label(framePath, text='Data path:').pack(side=LEFT)
+        self.entRawPath = Entry(framePath).pack(side=LEFT, fill=X, expand=True)
+        buttRawBrowse = Button(framePath, text='Browse...').pack(side=LEFT)
+        labDiv = Label(framePath, text='--------------------')
+
         # prefix line
-        labPrefix = Label(formMeta, text='Prefix:').grid(row=0, column=0, sticky=W)
-        self.entPrefix = Entry(formMeta).grid(row=0, column=1, columnspan=3, sticky=W+E)
+        labPrefix = Label(formMeta, text='Prefix:').grid(row=1, column=0, sticky=W)
+        self.entPrefix = Entry(formMeta).grid(row=1, column=1, columnspan=3, sticky=W+E)
 
         # shift line
         labRoughY = Label(formMeta, text='Estimated shift Y:')
-        labRoughY.grid(row=1, column=0, sticky=W)
+        labRoughY.grid(row=2, column=0, sticky=W)
         self.entRoughY = Entry(formMeta)
-        self.entRoughY.grid(row=1, column=1)
+        self.entRoughY.grid(row=2, column=1)
         labRoughX = Label(formMeta, text='X:')
-        labRoughX.grid(row=1, column=2, sticky=W)
+        labRoughX.grid(row=2, column=2, sticky=W)
         self.entRoughX = Entry(formMeta)
-        self.entRoughX.grid(row=1, column=3)
+        self.entRoughX.grid(row=2, column=3)
 
         # confirm button line
         buttMetaSave = Button(bottMeta, text='Save all parameters...')
@@ -76,6 +83,7 @@ class TomosaicUI(Frame):
         buttMetaConfirm = Button(bottMeta, text='Confirm', command=self.readMeta)
         buttMetaConfirm.grid(row=0, column=1, sticky=W+E)
 
+        framePath.grid(row=0, column=0, columnspan=4, sticky=W+E)
         formMeta.pack()
         bottMeta.pack(side=BOTTOM)
 
