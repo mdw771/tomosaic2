@@ -3,12 +3,11 @@
 
 from Tkinter import *
 from ttk import Notebook
-from pars import *
+from tkFileDialog import *
+from tkMessageBox import showerror, showwarning, showinfo
 
-# from tomosaic.merge import *
-# from tomosaic.misc import *
-# from tomosaic.register import *
-# from tomosaic.util import *
+from pars import *
+from metascripts import *
 
 
 class TomosaicUI(Frame):
@@ -36,7 +35,7 @@ class TomosaicUI(Frame):
         menubar.add_cascade(label='File', menu=fileFenu)
 
         # ======================================================
-        # tab
+        # tabs
 
         tabFrame = Frame(root)
         tabs = Notebook(tabFrame)
@@ -53,29 +52,41 @@ class TomosaicUI(Frame):
         # ======================================================
         # metadata tab
 
+        rowPrefix = 2
+        rowFirstFrame = 3
+        rowShift = 4
+
         formMeta = Frame(tabMeta)
         bottMeta = Frame(tabMeta)
 
         # path line
         framePath = Frame(formMeta)
-        labRawPath = Label(framePath, text='Data path:').pack(side=LEFT)
-        self.entRawPath = Entry(framePath).pack(side=LEFT, fill=X, expand=True)
-        buttRawBrowse = Button(framePath, text='Browse...').pack(side=LEFT)
-        labDiv = Label(framePath, text='--------------------')
+        labRawPath = Label(framePath, text='Data path:')
+        labRawPath.pack(side=LEFT)
+        self.entRawPath = Entry(framePath)
+        self.entRawPath.pack(side=LEFT, fill=X, expand=True)
+        buttRawBrowse = Button(framePath, text='Browse...', command=self.getRawDirectory)
+        buttRawBrowse.pack(side=LEFT)
 
         # prefix line
-        labPrefix = Label(formMeta, text='Prefix:').grid(row=1, column=0, sticky=W)
-        self.entPrefix = Entry(formMeta).grid(row=1, column=1, columnspan=3, sticky=W+E)
+        labPrefix = Label(formMeta, text='Prefix:')
+        labPrefix.grid(row=rowPrefix, column=0, sticky=W)
+        self.entPrefix = Entry(formMeta)
+        self.entPrefix.grid(row=rowPrefix, column=1, columnspan=3, sticky=W+E)
+
+        # writer line
+        buttFirstFrame = Button(formMeta, text='Write first projection frame for all files')
+        buttFirstFrame.grid(row=rowFirstFrame, columnspan=4)
 
         # shift line
         labRoughY = Label(formMeta, text='Estimated shift Y:')
-        labRoughY.grid(row=2, column=0, sticky=W)
+        labRoughY.grid(row=rowShift, column=0, sticky=W)
         self.entRoughY = Entry(formMeta)
-        self.entRoughY.grid(row=2, column=1)
+        self.entRoughY.grid(row=rowShift, column=1)
         labRoughX = Label(formMeta, text='X:')
-        labRoughX.grid(row=2, column=2, sticky=W)
+        labRoughX.grid(row=rowShift, column=2, sticky=W)
         self.entRoughX = Entry(formMeta)
-        self.entRoughX.grid(row=2, column=3)
+        self.entRoughX.grid(row=rowShift, column=3)
 
         # confirm button line
         buttMetaSave = Button(bottMeta, text='Save all parameters...')
@@ -92,9 +103,25 @@ class TomosaicUI(Frame):
         tabFrame.pack()
         tabs.pack()
 
+    def getRawDirectory(self):
+
+        raw_folder = askdirectory()
+        self.entRawPath.insert(0, raw_folder)
+
+    def writeFirstFrames(self):
+
+        self.readMeta()
+        if raw_folder is None or prefix is None:
+            showerror(message='Data path and prefix must be filled. ')
+        else:
+            write_first_frames()
+
     def readMeta(self):
 
+        raw_folder = self.entRawPath.get()
         prefix = self.entPrefix.get()
+        if raw_folder is not None and prefix is not None:
+            filelist = get_filelist()
 
     def onExit(self):
 
