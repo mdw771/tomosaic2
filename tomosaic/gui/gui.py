@@ -75,7 +75,8 @@ class TomosaicUI(Frame):
         self.entPrefix.grid(row=rowPrefix, column=1, columnspan=3, sticky=W+E)
 
         # writer line
-        buttFirstFrame = Button(formMeta, text='Write first projection frame for all files')
+        buttFirstFrame = Button(formMeta, text='Write first projection frame for all files',
+                                command=self.writeFirstFrames)
         buttFirstFrame.grid(row=rowFirstFrame, columnspan=4)
 
         # shift line
