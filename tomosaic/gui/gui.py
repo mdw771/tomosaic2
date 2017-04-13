@@ -122,6 +122,7 @@ class TomosaicUI(Frame):
         prefix = self.entPrefix.get()
         if raw_folder is not None and prefix is not None:
             filelist = get_filelist()
+            print filelist
 
     def onExit(self):
 
