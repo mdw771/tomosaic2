@@ -6,7 +6,6 @@ from ttk import Notebook
 from tkFileDialog import *
 from tkMessageBox import showerror, showwarning, showinfo
 
-from pars import *
 from metascripts import *
 
 
@@ -17,6 +16,12 @@ class TomosaicUI(Frame):
         Frame.__init__(self, parent, background='white')
         self.parent = parent
         self.initUI()
+
+        self.raw_folder = None
+        self.prefix = None
+        self.y_shift = None
+        self.x_shift = None
+        self.filelist = None
 
     def initUI(self):
 
@@ -106,24 +111,26 @@ class TomosaicUI(Frame):
 
     def getRawDirectory(self):
 
-        raw_folder = askdirectory()
+        self.raw_folder = askdirectory()
         self.entRawPath.insert(0, raw_folder)
 
     def writeFirstFrames(self):
 
         self.readMeta()
-        if raw_folder is None or prefix is None:
+        if self.raw_folder is None or self.prefix is None:
             showerror(message='Data path and prefix must be filled. ')
         else:
             write_first_frames()
 
     def readMeta(self):
 
-        raw_folder = self.entRawPath.get()
-        prefix = self.entPrefix.get()
-        if raw_folder is not None and prefix is not None:
-            filelist = get_filelist()
-            print filelist
+        self.raw_folder = self.entRawPath.get()
+        self.prefix = self.entPrefix.get()
+        print raw_folder
+        print raw_folder is None
+        print raw_folder == ''
+        if self.raw_folder is not None and prefix is not None:
+            self.filelist = get_filelist()
 
     def onExit(self):
 
