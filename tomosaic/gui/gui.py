@@ -2,6 +2,14 @@
 # -*- coding: utf-8 -*-
 
 from Tkinter import *
+from ttk import Notebook
+from pars import *
+
+# from tomosaic.merge import *
+# from tomosaic.misc import *
+# from tomosaic.register import *
+# from tomosaic.util import *
+
 
 class TomosaicUI(Frame):
 
@@ -15,16 +23,70 @@ class TomosaicUI(Frame):
 
         self.parent.title('Tomosaic')
 
-        menubar = Menu(self.parent)
+        # ======================================================
+        # menubar
+
+        menuFrame = Frame(self.parent)
+        menubar = Menu(menuFrame)
         self.parent.config(menu=menubar)
 
-        # menubar
         fileFenu = Menu(menubar)
         fileFenu.add_command(label='Save parameters...')
         fileFenu.add_command(label='Exit', command=self.onExit)
         menubar.add_cascade(label='File', menu=fileFenu)
 
+        # ======================================================
+        # tab
 
+        tabFrame = Frame(root)
+        tabs = Notebook(tabFrame)
+        tabMeta = Frame(tabs)
+        tabRegi = Frame(tabs)
+        tabMerg = Frame(tabs)
+        tabReco = Frame(tabs)
+
+        tabs.add(tabMeta, text='Metadata')
+        tabs.add(tabRegi, text='Registration')
+        tabs.add(tabMerg, text='Merging')
+        tabs.add(tabReco, text='Reconstruction')
+
+        # ======================================================
+        # metadata tab
+
+        formMeta = Frame(tabMeta)
+        bottMeta = Frame(tabMeta)
+
+        # prefix line
+        labPrefix = Label(formMeta, text='Prefix:').grid(row=0, column=0, sticky=W)
+        self.entPrefix = Entry(formMeta).grid(row=0, column=1, columnspan=3, sticky=W+E)
+
+        # shift line
+        labRoughY = Label(formMeta, text='Estimated shift Y:')
+        labRoughY.grid(row=1, column=0, sticky=W)
+        self.entRoughY = Entry(formMeta)
+        self.entRoughY.grid(row=1, column=1)
+        labRoughX = Label(formMeta, text='X:')
+        labRoughX.grid(row=1, column=2, sticky=W)
+        self.entRoughX = Entry(formMeta)
+        self.entRoughX.grid(row=1, column=3)
+
+        # confirm button line
+        buttMetaSave = Button(bottMeta, text='Save all parameters...')
+        buttMetaSave.grid(row=0, column=0, sticky=W+E)
+        buttMetaConfirm = Button(bottMeta, text='Confirm', command=self.readMeta)
+        buttMetaConfirm.grid(row=0, column=1, sticky=W+E)
+
+        formMeta.pack()
+        bottMeta.pack(side=BOTTOM)
+
+        # ======================================================
+
+        tabFrame.pack()
+        tabs.pack()
+
+    def readMeta(self):
+
+        prefix = self.entPrefix.get()
 
     def onExit(self):
 
