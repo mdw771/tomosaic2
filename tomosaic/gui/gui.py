@@ -39,7 +39,7 @@ class TomosaicUI(Frame):
         fileFenu.add_command(label='Exit', command=self.onExit)
         menubar.add_cascade(label='File', menu=fileFenu)
 
-        # ======================================================
+        # ======================================================d
         # tabs
 
         tabFrame = Frame(root)
@@ -112,25 +112,22 @@ class TomosaicUI(Frame):
     def getRawDirectory(self):
 
         self.raw_folder = askdirectory()
-        self.entRawPath.insert(0, raw_folder)
+        self.entRawPath.insert(0, self.raw_folder)
 
     def writeFirstFrames(self):
 
         self.readMeta()
-        if self.raw_folder is None or self.prefix is None:
+        if self.raw_folder is '' or self.prefix is '':
             showerror(message='Data path and prefix must be filled. ')
         else:
-            write_first_frames()
+            write_first_frames(self)
 
     def readMeta(self):
 
         self.raw_folder = self.entRawPath.get()
         self.prefix = self.entPrefix.get()
-        print raw_folder
-        print raw_folder is None
-        print raw_folder == ''
-        if self.raw_folder is not None and prefix is not None:
-            self.filelist = get_filelist()
+        if self.raw_folder is not '' and self.prefix is not '':
+            self.filelist = get_filelist(self)
 
     def onExit(self):
 
