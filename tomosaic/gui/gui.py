@@ -117,9 +117,10 @@ class TomosaicUI(Frame):
     def writeFirstFrames(self):
 
         self.readMeta()
-        if self.raw_folder is None or self.prefix is None:
+        if self.raw_folder is '' or self.prefix is '':
             showerror(message='Data path and prefix must be filled. ')
         else:
+            self.
             write_first_frames()
 
     def readMeta(self):
@@ -127,9 +128,9 @@ class TomosaicUI(Frame):
         self.raw_folder = self.entRawPath.get()
         self.prefix = self.entPrefix.get()
         print raw_folder
-        print raw_folder is None
+        print raw_folder is ''
         print raw_folder == ''
-        if self.raw_folder is not None and prefix is not None:
+        if self.raw_folder is not '' and prefix is not '':
             self.filelist = get_filelist()
 
     def onExit(self):
