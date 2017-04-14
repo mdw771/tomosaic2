@@ -2,6 +2,7 @@ import os, glob
 
 import dxchange
 import tomopy
+from Tkinter import *
 
 from tomosaic.misc import *
 from tomosaic.util import *
@@ -17,6 +18,7 @@ def write_first_frames(ui):
     os.chdir(ui.raw_folder)
     os.mkdir('first_frames')
     for i in ui.filelist:
+        ui.boxMetaOut.insert(END, i)
         prj, flt, drk = dxchange.read_aps_32id(i, proj=(0, 1))
         prj = tomopy.normalize(prj, flt, drk)
         dxchange.write_tiff(prj, os.path.join('first_frames', os.path.splitext(i)[0]))

@@ -96,9 +96,9 @@ class TomosaicUI(Frame):
         self.entRoughX.grid(row=rowShift, column=3)
 
         # outbox line
-        boxMetaOut = Text(formMeta)
-        boxMetaOut.insert(END, 'Tomosaic GUI (Beta)\n--------------')
-        boxMetaOut.grid(row=rowOutbox, column=0, rowspan=4, columnspan=4, sticky=N+S+W+E)
+        self.boxMetaOut = Text(formMeta)
+        self.boxMetaOut.insert(END, 'Tomosaic GUI (Beta)\n--------------')
+        self.boxMetaOut.grid(row=rowOutbox, column=0, rowspan=4, columnspan=4, sticky=N+S+W+E)
 
         # confirm button line
         buttMetaSave = Button(bottMeta, text='Save all parameters...')
@@ -126,6 +126,7 @@ class TomosaicUI(Frame):
         if self.raw_folder is '' or self.prefix is '':
             showerror(message='Data path and prefix must be filled. ')
         else:
+            self.boxMetaOut.insert(END, 'Writing first frames...')
             write_first_frames(self)
 
     def readMeta(self):
