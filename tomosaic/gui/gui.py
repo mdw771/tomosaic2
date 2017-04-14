@@ -60,6 +60,7 @@ class TomosaicUI(Frame):
         rowPrefix = 2
         rowFirstFrame = 3
         rowShift = 4
+        rowOutbox = 5
 
         formMeta = Frame(tabMeta)
         bottMeta = Frame(tabMeta)
@@ -93,6 +94,11 @@ class TomosaicUI(Frame):
         labRoughX.grid(row=rowShift, column=2, sticky=W)
         self.entRoughX = Entry(formMeta)
         self.entRoughX.grid(row=rowShift, column=3)
+
+        # outbox line
+        boxMetaOut = Text(formMeta)
+        boxMetaOut.insert(END, 'Tomosaic GUI (Beta)\n--------------')
+        boxMetaOut.grid(row=rowOutbox, column=0, rowspan=4, columnspan=4, sticky=N+S+W+E)
 
         # confirm button line
         buttMetaSave = Button(bottMeta, text='Save all parameters...')
@@ -128,6 +134,8 @@ class TomosaicUI(Frame):
         self.prefix = self.entPrefix.get()
         if self.raw_folder is not '' and self.prefix is not '':
             self.filelist = get_filelist(self)
+        self.y_shift = self.entRoughY.get()
+        self.x_shift = self.entRoughX.get()
 
     def onExit(self):
 
