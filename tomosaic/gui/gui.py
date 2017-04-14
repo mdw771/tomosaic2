@@ -39,7 +39,7 @@ class TomosaicUI(Frame):
         fileFenu.add_command(label='Exit', command=self.onExit)
         menubar.add_cascade(label='File', menu=fileFenu)
 
-        # ======================================================
+        # ======================================================d
         # tabs
 
         tabFrame = Frame(root)
@@ -60,6 +60,7 @@ class TomosaicUI(Frame):
         rowPrefix = 2
         rowFirstFrame = 3
         rowShift = 4
+        rowOutbox = 5
 
         formMeta = Frame(tabMeta)
         bottMeta = Frame(tabMeta)
@@ -94,6 +95,11 @@ class TomosaicUI(Frame):
         self.entRoughX = Entry(formMeta)
         self.entRoughX.grid(row=rowShift, column=3)
 
+        # outbox line
+        boxMetaOut = Text(formMeta)
+        boxMetaOut.insert(END, 'Tomosaic GUI (Beta)\n--------------')
+        boxMetaOut.grid(row=rowOutbox, column=0, rowspan=4, columnspan=4, sticky=N+S+W+E)
+
         # confirm button line
         buttMetaSave = Button(bottMeta, text='Save all parameters...')
         buttMetaSave.grid(row=0, column=0, sticky=W+E)
@@ -112,7 +118,7 @@ class TomosaicUI(Frame):
     def getRawDirectory(self):
 
         self.raw_folder = askdirectory()
-        self.entRawPath.insert(0, raw_folder)
+        self.entRawPath.insert(0, self.raw_folder)
 
     def writeFirstFrames(self):
 
@@ -120,18 +126,16 @@ class TomosaicUI(Frame):
         if self.raw_folder is '' or self.prefix is '':
             showerror(message='Data path and prefix must be filled. ')
         else:
-            self.
-            write_first_frames()
+            write_first_frames(self)
 
     def readMeta(self):
 
         self.raw_folder = self.entRawPath.get()
         self.prefix = self.entPrefix.get()
-        print raw_folder
-        print raw_folder is ''
-        print raw_folder == ''
-        if self.raw_folder is not '' and prefix is not '':
-            self.filelist = get_filelist()
+        if self.raw_folder is not '' and self.prefix is not '':
+            self.filelist = get_filelist(self)
+        self.y_shift = self.entRoughY.get()
+        self.x_shift = self.entRoughX.get()
 
     def onExit(self):
 
