@@ -16,9 +16,12 @@ def write_first_frames(ui):
 
     root = os.getcwd()
     os.chdir(ui.raw_folder)
-    os.mkdir('first_frames')
+    try:
+        os.mkdir('first_frames')
+    except:
+        pass
     for i in ui.filelist:
-        ui.boxMetaOut.insert(END, i)
+        ui.boxMetaOut.insert(END, i + '\n')
         prj, flt, drk = dxchange.read_aps_32id(i, proj=(0, 1))
         prj = tomopy.normalize(prj, flt, drk)
         dxchange.write_tiff(prj, os.path.join('first_frames', os.path.splitext(i)[0]))

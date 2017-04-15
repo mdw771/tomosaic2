@@ -97,7 +97,7 @@ class TomosaicUI(Frame):
 
         # outbox line
         self.boxMetaOut = Text(formMeta)
-        self.boxMetaOut.insert(END, 'Tomosaic GUI (Beta)\n--------------')
+        self.boxMetaOut.insert(END, 'Tomosaic GUI (Beta)\n--------------\n')
         self.boxMetaOut.grid(row=rowOutbox, column=0, rowspan=4, columnspan=4, sticky=N+S+W+E)
 
         # confirm button line
@@ -126,7 +126,7 @@ class TomosaicUI(Frame):
         if self.raw_folder is '' or self.prefix is '':
             showerror(message='Data path and prefix must be filled. ')
         else:
-            self.boxMetaOut.insert(END, 'Writing first frames...')
+            self.boxMetaOut.insert(END, 'Writing first frames...\n')
             write_first_frames(self)
 
     def readMeta(self):
