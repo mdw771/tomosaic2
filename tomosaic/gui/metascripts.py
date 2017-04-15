@@ -12,6 +12,15 @@ def get_filelist(ui):
 
     return get_files(ui.raw_folder, ui.prefix)
 
+def get_filegrid(ui):
+
+    return start_file_grid(ui.filelist)
+
+def get_rough_shiftgrid(ui):
+
+    return start_shift_grid(ui.filegrid, ui.x_shift, ui.y_shift)
+
+
 def write_first_frames(ui):
 
     root = os.getcwd()

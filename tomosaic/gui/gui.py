@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from functools import partial
+
 from Tkinter import *
 from ttk import Notebook
 from tkFileDialog import *
 from tkMessageBox import showerror, showwarning, showinfo
 
 from metascripts import *
+from regiscripts import *
 
 
 class TomosaicUI(Frame):
@@ -15,13 +18,17 @@ class TomosaicUI(Frame):
 
         Frame.__init__(self, parent, background='white')
         self.parent = parent
-        self.initUI()
 
         self.raw_folder = None
         self.prefix = None
         self.y_shift = None
         self.x_shift = None
         self.filelist = None
+        self.filegrid = None
+        self.shiftgrid = None
+        self.shift_path = None
+
+        self.initUI()
 
     def initUI(self):
 
@@ -47,11 +54,13 @@ class TomosaicUI(Frame):
         tabMeta = Frame(tabs)
         tabRegi = Frame(tabs)
         tabMerg = Frame(tabs)
+        tabCent = Frame(tabs)
         tabReco = Frame(tabs)
 
         tabs.add(tabMeta, text='Metadata')
         tabs.add(tabRegi, text='Registration')
         tabs.add(tabMerg, text='Merging')
+        tabs.add(tabCent, text='Center optimization')
         tabs.add(tabReco, text='Reconstruction')
 
         # ======================================================
@@ -111,6 +120,47 @@ class TomosaicUI(Frame):
         bottMeta.pack(side=BOTTOM)
 
         # ======================================================
+        # registration tab
+
+        formRegi = Frame(tabRegi)
+        bottRegi = Frame(tabRegi)
+
+        # read shifts line
+
+        frameShiftPath = Frame(formRegi)
+        labRegiUp = Label(frameShiftPath, text='Read existing shift datafile...')
+        labRegiUp.pack()
+        labShiftPath = Label(frameShiftPath, text='File location:')
+        labShiftPath.pack(side=LEFT)
+        self.entShiftPath = Entry(frameShiftPath)
+        self.entShiftPath.pack(side=LEFT, fill=X, expand=True)
+        buttShiftPath = Button(frameShiftPath, text='Browse...', command=self.getShiftFilePath)
+        buttShiftPath.pack(side=LEFT)
+        buttShiftPath = Button(frameShiftPath, text='Use default', command=self.getDefaultShiftPath)
+        buttShiftPath.pack(side=LEFT)
+        buttShiftRead = Button(frameShiftPath, text='Read', command=self.readShifts)
+        buttShiftRead.pack(side=LEFT)
+
+        # find shifts line
+
+        frameFindShift = Frame(formRegi)
+        labRegiDown = Label(frameFindShift, text='Or compute shifts...')
+        labRegiDown.pack()
+        labRegiMPI = Label(frameFindShift, text='Use MPI:')
+        labRegiMPI.pack(side=LEFT)
+        self.ifmpi = BooleanVar()
+        radMPIY = Radiobutton(frameFindShift, variable=self.ifmpi, text='Yes', value=True)
+        radMPIY.pack(side=LEFT)
+        radMPIN = Radiobutton(frameFindShift, variable=self.ifmpi, text='No', value=False)
+        radMPIN.pack(side=LEFT)
+
+
+        frameShiftPath.pack(fill=X)
+        frameFindShift.pack(fill=X)
+        formRegi.pack(fill=X)
+        bottRegi.pack(side=BOTTOM, fill=X)
+
+        # ======================================================
 
         tabFrame.pack()
         tabs.pack()
@@ -120,14 +170,36 @@ class TomosaicUI(Frame):
         self.raw_folder = askdirectory()
         self.entRawPath.insert(0, self.raw_folder)
 
+    def getDirectory(self, var):
+
+        var = askdirectory()
+
+    def getShiftFilePath(self):
+
+        self.shift_path = askopenfilename()
+        self.entShiftPath.insert(0, self.shift_path)
+
+    def getFilePath(self, var):
+
+        var = askopenfilename()
+
+    def getDefaultShiftPath(self):
+
+        try:
+            self.entShiftPath.insert(0, os.path.join(self.raw_folder, 'shifts.txt'))
+        except:
+            showerror(message='Raw folder is not specified.')
+
     def writeFirstFrames(self):
 
-        self.readMeta()
-        if self.raw_folder is '' or self.prefix is '':
-            showerror(message='Data path and prefix must be filled. ')
-        else:
+        self.raw_folder = self.entRawPath.get()
+        self.prefix = self.entPrefix.get()
+        if self.raw_folder is not '' and self.prefix is not '':
+            self.filelist = get_filelist(self)
             self.boxMetaOut.insert(END, 'Writing first frames...\n')
             write_first_frames(self)
+        else:
+            showerror(message='Data path and prefix must be filled. ')
 
     def readMeta(self):
 
@@ -135,8 +207,28 @@ class TomosaicUI(Frame):
         self.prefix = self.entPrefix.get()
         if self.raw_folder is not '' and self.prefix is not '':
             self.filelist = get_filelist(self)
-        self.y_shift = self.entRoughY.get()
-        self.x_shift = self.entRoughX.get()
+            self.filegrid = get_filegrid(self)
+        try:
+            self.y_shift = float(self.entRoughY.get())
+            self.x_shift = float(self.entRoughX.get())
+            self.shiftgrid = get_rough_shiftgrid(self)
+        except:
+            showerror(message='Estimated shifts must be numbers.')
+        self.boxMetaOut.insert(END, '--------------\n')
+        self.boxMetaOut.insert(END, 'Metadata logged:\n')
+        self.boxMetaOut.insert(END, 'Raw folder: {:s}\n'.format(self.raw_folder))
+        self.boxMetaOut.insert(END, 'Prefix: {:s}\n'.format(self.prefix))
+        self.boxMetaOut.insert(END, 'Estimated shift: ({:.2f}, {:.2f})\n'.format(self.y_shift, self.x_shift))
+        self.boxMetaOut.insert(END, 'File/shift grid established.\n')
+        self.boxMetaOut.insert(END, '--------------\n')
+
+    def readShifts(self):
+
+        self.shiftgrid = read_shifts(self)
+
+    def beginRegistration(self):
+
+        pass
 
     def onExit(self):
 

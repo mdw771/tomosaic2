@@ -66,7 +66,8 @@ __all__ = ['get_files',
            'save_partial_frames',
            'save_partial_raw',
            'build_panorama',
-           'total_fusion']
+           'total_fusion',
+           'file2grid']
 
 import os, glob, re
 import h5py
