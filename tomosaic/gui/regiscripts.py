@@ -29,13 +29,13 @@ def mpi_script_writer(ui):
 
     shutil.copyfile('mpi_common_head', os.path.join(ui.raw_folder, 'temp.py'))
     f = open(os.path.join(ui.raw_folder, 'temp.py'), 'a')
-    f.writelines(['raw_folder = ' + ui.raw_folder + '\n',
-                  'prefix = ' + ui.prefix + '\n',
-                  "file_list = tomosaic.get_files('.', prefix, type='h5')\n",
-                  "file_grid = tomosaic.start_file_grid(file_list, pattern=1)\n",
+    f.writelines(['raw_folder = "' + ui.raw_folder + '"\n',
+                  'prefix = "' + ui.prefix + '"\n',
+                  'file_list = tomosaic.get_files(".", prefix, type="h5")\n',
+                  'file_grid = tomosaic.start_file_grid(file_list, pattern=1)\n',
                   'x_shift = ' + str(ui.x_shift) + '\n',
                   'y_shift = ' + str(ui.y_shift) + '\n',
-                  "refine_shift_grid(file_grid, shift_grid, motor_readout=(y_shift, x_shift))\n"])
+                  'refine_shift_grid(file_grid, shift_grid, motor_readout=(y_shift, x_shift))\n'])
     f.close()
 
 
