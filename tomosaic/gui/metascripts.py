@@ -14,7 +14,7 @@ def get_filelist(ui):
 
 def get_filegrid(ui):
 
-    return start_file_grid(ui.filelist)
+    return start_file_grid(ui.filelist, pattern=1)
 
 def get_rough_shiftgrid(ui):
 
