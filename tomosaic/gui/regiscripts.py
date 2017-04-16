@@ -23,7 +23,7 @@ def find_shifts_mpi(ui):
         refined_shift = refine_shift_grid(ui.file_grid, ui.shift_grid, motor_readout=(ui.y_shift, ui.x_shift))
     else:
         mpi_script_writer(ui)
-        # os.system('mpirun -n ' + str(ui.mpi_ncore))
+        os.system('mpirun -n ' + str(ui.mpi_ncore) + 'python ' + os.path.join(ui.raw_folder, 'temp.py'))
 
 def mpi_script_writer(ui):
 
