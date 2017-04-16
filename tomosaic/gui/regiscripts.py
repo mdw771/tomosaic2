@@ -28,14 +28,14 @@ def find_shifts_mpi(ui):
 def mpi_script_writer(ui):
 
     shutil.copyfile('mpi_common_head', os.path.join(ui.raw_folder, 'temp.py'))
-    f = open(os.path.join(ui.raw_folder, 'temp.py'), 'w')
-    f.writelines(['raw_folder = ' + ui.raw_folder,
-                  'prefix = ' + ui.prefix,
-                  "file_list = tomosaic.get_files('.', prefix, type='h5')",
-                  "file_grid = tomosaic.start_file_grid(file_list, pattern=1)",
-                  'x_shift = ' + str(ui.x_shift),
-                  'y_shift = ' + str(ui.y_shift),
-                  "refine_shift_grid(file_grid, shift_grid, motor_readout=(y_shift, x_shift))"])
+    f = open(os.path.join(ui.raw_folder, 'temp.py'), 'a')
+    f.writelines(['raw_folder = ' + ui.raw_folder + '\n',
+                  'prefix = ' + ui.prefix + '\n',
+                  "file_list = tomosaic.get_files('.', prefix, type='h5')\n",
+                  "file_grid = tomosaic.start_file_grid(file_list, pattern=1)\n",
+                  'x_shift = ' + str(ui.x_shift) + '\n',
+                  'y_shift = ' + str(ui.y_shift) + '\n',
+                  "refine_shift_grid(file_grid, shift_grid, motor_readout=(y_shift, x_shift))\n"])
     f.close()
 
 
