@@ -33,8 +33,8 @@ def mpi_script_writer(ui):
                   'prefix = ' + ui.prefix,
                   "file_list = tomosaic.get_files('.', prefix, type='h5')",
                   "file_grid = tomosaic.start_file_grid(file_list, pattern=1)",
-                  'x_shift = ' + ui.x_shift,
-                  'y_shift = ' + ui.y_shift,
+                  'x_shift = ' + str(ui.x_shift),
+                  'y_shift = ' + str(ui.y_shift),
                   "refine_shift_grid(file_grid, shift_grid, motor_readout=(y_shift, x_shift))"])
     f.close()
 
