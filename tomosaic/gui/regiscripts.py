@@ -1,4 +1,5 @@
 import os, glob
+import shutil
 import subprocess
 
 import dxchange
@@ -18,14 +19,23 @@ def read_shifts(ui):
 
 def find_shifts_mpi(ui):
 
-    if ui.use_mpi == False:
-
+    if ui.ifmpi == False:
         refined_shift = refine_shift_grid(ui.file_grid, ui.shift_grid, motor_readout=(ui.y_shift, ui.x_shift))
-
     else:
+        mpi_script_writer(ui)
+        # os.system('mpirun -n ' + str(ui.mpi_ncore))
 
-        from mpi4py import MPI
-        comm = MPI.COMM_WORLD
-        rank = comm.Get_rank()
-        size = comm.Get_size()
-        name = MPI.Get_processor_name()
+def mpi_script_writer(ui):
+
+    shutil.copyfile('mpi_common_head', os.path.join(ui.raw_folder, 'temp.py'))
+    f = open(os.path.join(ui.raw_folder, 'temp.py'), 'w')
+    f.writelines(['raw_folder = ' + ui.raw_folder,
+                  'prefix = ' + ui.prefix,
+                  "file_list = tomosaic.get_files('.', prefix, type='h5')",
+                  "file_grid = tomosaic.start_file_grid(file_list, pattern=1)",
+                  'x_shift = ' + ui.x_shift,
+                  'y_shift = ' + ui.y_shift,
+                  "refine_shift_grid(file_grid, shift_grid, motor_readout=(y_shift, x_shift))"])
+    f.close()
+
+

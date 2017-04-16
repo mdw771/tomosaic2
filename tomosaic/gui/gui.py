@@ -27,6 +27,7 @@ class TomosaicUI(Frame):
         self.filegrid = None
         self.shiftgrid = None
         self.shift_path = None
+        self.mpi_ncore = 1
 
         self.initUI()
 
@@ -146,19 +147,42 @@ class TomosaicUI(Frame):
         frameFindShift = Frame(formRegi)
         labRegiDown = Label(frameFindShift, text='Or compute shifts...')
         labRegiDown.pack()
-        labRegiMPI = Label(frameFindShift, text='Use MPI:')
+
+        # MPI choice line
+
+        frameRegiMPI = Frame(frameFindShift)
+        labRegiMPI = Label(frameRegiMPI, text='Use MPI:')
         labRegiMPI.pack(side=LEFT)
         self.ifmpi = BooleanVar()
-        radMPIY = Radiobutton(frameFindShift, variable=self.ifmpi, text='Yes', value=True)
+        radMPIY = Radiobutton(frameRegiMPI, variable=self.ifmpi, text='Yes', value=True)
         radMPIY.pack(side=LEFT)
-        radMPIN = Radiobutton(frameFindShift, variable=self.ifmpi, text='No', value=False)
-        radMPIN.pack(side=LEFT)
+        radMPIN = Radiobutton(frameRegiMPI, variable=self.ifmpi, text='No', value=False)
+        radMPIN.pack(side=LEFT, padx=10)
+        labRegiNCore = Label(frameRegiMPI, text='Number of processes to initiate:')
+        labRegiNCore.pack(side=LEFT)
+        self.entRegiNCore = Entry(frameRegiMPI)
+        self.entRegiNCore.pack(side=LEFT, fill=X, expand=True)
+
+        # out box line
+
+        frameRegiOut = Frame(frameFindShift)
+        self.boxRegiOut = Text(frameRegiOut)
+        self.boxRegiOut.pack()
+
+        # button line
+
+        buttLaunch = Button(bottRegi, text='Launch', command=self.launchRegistration)
+        buttLaunch.pack(side=LEFT)
+        buttRegiResave = Button(bottRegi, text='Resave shifts...')
+        buttRegiResave.pack(side=LEFT)
 
 
-        frameShiftPath.pack(fill=X)
-        frameFindShift.pack(fill=X)
-        formRegi.pack(fill=X)
-        bottRegi.pack(side=BOTTOM, fill=X)
+        frameRegiMPI.pack(fill=X, expand=True)
+        frameRegiOut.pack(fill=X, expand=True)
+        frameShiftPath.pack(fill=X, expand=True)
+        frameFindShift.pack(fill=X, expand=True)
+        formRegi.pack()
+        bottRegi.pack(side=BOTTOM)
 
         # ======================================================
 
@@ -221,6 +245,11 @@ class TomosaicUI(Frame):
         self.boxMetaOut.insert(END, 'Estimated shift: ({:.2f}, {:.2f})\n'.format(self.y_shift, self.x_shift))
         self.boxMetaOut.insert(END, 'File/shift grid established.\n')
         self.boxMetaOut.insert(END, '--------------\n')
+
+    def launchRegistration(self):
+
+        self.mpi_ncore = int(self.entRegiNCore.get())
+        find_shifts_mpi(self)
 
     def readShifts(self):
 
