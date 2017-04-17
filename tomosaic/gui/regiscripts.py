@@ -1,6 +1,7 @@
 import os, glob
 import shutil
 import subprocess
+import time
 
 import dxchange
 import tomopy
@@ -31,10 +32,15 @@ def find_shifts_mpi(ui):
         temp_path = os.path.join(ui.raw_folder, 'temp.py')
         ui.boxRegiOut.insert(END, 'Refining shifts...\n')
         os.system('mpirun -n ' + str(ui.mpi_ncore) + ' python ' + temp_path)
-        relative_shift = file2grid("shifts.txt")
-        shift_grid = absolute_shift_grid(relative_shift, ui.file_grid)
-        ui.boxRegiOut.insert(END, 'Removing temporary script...\n')
-        os.remove(temp_path)
+        while True:
+            try:
+                relative_shift = file2grid(os.path.join(ui.raw_folder, "shifts.txt"))
+                shift_grid = absolute_shift_grid(relative_shift, ui.file_grid)
+                ui.boxRegiOut.insert(END, 'Removing temporary script...\n')
+                os.remove(temp_path)
+                break
+            except:
+                time.sleep(5)
     return shift_grid, relative_shift
 
 
