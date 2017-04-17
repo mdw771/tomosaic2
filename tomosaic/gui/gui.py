@@ -13,6 +13,8 @@ from meta_ui import *
 from metascripts import *
 from regi_ui import *
 from regiscripts import *
+from merg_ui import *
+from mergscripts import *
 
 
 class TomosaicUI(Frame):
@@ -70,13 +72,8 @@ class TomosaicUI(Frame):
         tabs.add(self.tabReco, text='Reconstruction')
 
         metatab_ui(self)
-
         regitab_ui(self)
-
-        formMerg = Frame(tabMerg)
-        bottMerg = Frame(tabMerg)
-
-
+        mergtab_ui(self)
 
         tabFrame.pack()
         tabs.pack()

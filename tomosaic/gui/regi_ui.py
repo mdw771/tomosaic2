@@ -6,7 +6,6 @@ from ttk import Notebook
 from tkFileDialog import *
 from tkMessageBox import showerror, showwarning, showinfo
 
-from metascripts import *
 from regiscripts import *
 
 
