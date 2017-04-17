@@ -216,6 +216,7 @@ class TomosaicUI(Frame):
         dict = np.load(path)
         dict = dict.item()
         write_pars(self, dict)
+        self.readMeta()
 
     def getRawDirectory(self):
 

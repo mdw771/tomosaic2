@@ -49,7 +49,7 @@ def mpi_script_writer(ui):
     shutil.copyfile('mpi_common_head', os.path.join(ui.raw_folder, 'temp.py'))
     f = open(os.path.join(ui.raw_folder, 'temp.py'), 'a')
     f.writelines(['raw_folder = "' + ui.raw_folder + '"\n',
-                  'os.chdir(raw_folder)'
+                  'os.chdir(raw_folder)\n'
                   'prefix = "' + ui.prefix + '"\n',
                   'file_list = tomosaic.get_files(raw_folder, prefix, type="h5")\n',
                   'file_grid = tomosaic.start_file_grid(file_list, pattern=1)\n',
