@@ -9,6 +9,7 @@ from ttk import Notebook
 from tkFileDialog import *
 from tkMessageBox import showerror, showwarning, showinfo
 
+from meta_ui import metatab_ui
 from metascripts import *
 from regiscripts import *
 
@@ -55,73 +56,19 @@ class TomosaicUI(Frame):
 
         tabFrame = Frame(root)
         tabs = Notebook(tabFrame)
-        tabMeta = Frame(tabs)
+        self.tabMeta = Frame(tabs)
         tabRegi = Frame(tabs)
         tabMerg = Frame(tabs)
         tabCent = Frame(tabs)
         tabReco = Frame(tabs)
 
-        tabs.add(tabMeta, text='Metadata')
+        tabs.add(self.tabMeta, text='Metadata')
         tabs.add(tabRegi, text='Registration')
         tabs.add(tabMerg, text='Merging')
         tabs.add(tabCent, text='Center optimization')
         tabs.add(tabReco, text='Reconstruction')
 
-        # ======================================================
-        # metadata tab
-
-        rowPrefix = 2
-        rowFirstFrame = 3
-        rowShift = 4
-        rowOutbox = 5
-
-        formMeta = Frame(tabMeta)
-        bottMeta = Frame(tabMeta)
-
-        # path line
-        framePath = Frame(formMeta)
-        labRawPath = Label(framePath, text='Data path:')
-        labRawPath.pack(side=LEFT)
-        self.entRawPath = Entry(framePath)
-        self.entRawPath.pack(side=LEFT, fill=X, expand=True)
-        buttRawBrowse = Button(framePath, text='Browse...', command=self.getRawDirectory)
-        buttRawBrowse.pack(side=LEFT)
-
-        # prefix line
-        labPrefix = Label(formMeta, text='Prefix:')
-        labPrefix.grid(row=rowPrefix, column=0, sticky=W)
-        self.entPrefix = Entry(formMeta)
-        self.entPrefix.grid(row=rowPrefix, column=1, columnspan=3, sticky=W+E)
-
-        # writer line
-        buttFirstFrame = Button(formMeta, text='Write first projection frame for all files',
-                                command=self.writeFirstFrames)
-        buttFirstFrame.grid(row=rowFirstFrame, columnspan=4)
-
-        # shift line
-        labRoughY = Label(formMeta, text='Estimated shift Y:')
-        labRoughY.grid(row=rowShift, column=0, sticky=W)
-        self.entRoughY = Entry(formMeta)
-        self.entRoughY.grid(row=rowShift, column=1)
-        labRoughX = Label(formMeta, text='X:')
-        labRoughX.grid(row=rowShift, column=2, sticky=W)
-        self.entRoughX = Entry(formMeta)
-        self.entRoughX.grid(row=rowShift, column=3)
-
-        # outbox line
-        self.boxMetaOut = Text(formMeta)
-        self.boxMetaOut.insert(END, 'Tomosaic GUI (Beta)\n--------------\n')
-        self.boxMetaOut.grid(row=rowOutbox, column=0, rowspan=4, columnspan=4, sticky=N+S+W+E)
-
-        # confirm button line
-        buttMetaSave = Button(bottMeta, text='Save all parameters...', command=self.saveAllAttr)
-        buttMetaSave.grid(row=0, column=0, sticky=W+E)
-        buttMetaConfirm = Button(bottMeta, text='Confirm', command=self.readMeta)
-        buttMetaConfirm.grid(row=0, column=1, sticky=W+E)
-
-        framePath.grid(row=0, column=0, columnspan=4, sticky=W+E)
-        formMeta.pack()
-        bottMeta.pack(side=BOTTOM)
+        metatab_ui(self)
 
         # ======================================================
         # registration tab
