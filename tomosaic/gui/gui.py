@@ -170,6 +170,7 @@ class TomosaicUI(Frame):
 
         frameRegiOut = Frame(frameFindShift)
         self.boxRegiOut = Text(frameRegiOut)
+        self.boxRegiOut.insert(END, 'Registration\n--------------\n')
         self.boxRegiOut.pack()
 
         # button line
