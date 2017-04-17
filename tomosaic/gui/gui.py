@@ -191,6 +191,11 @@ class TomosaicUI(Frame):
         # ======================================================
         # merging tab
 
+        formMerg = Frame(tabMerg)
+        bottMerg = Frame(tabMerg)
+
+
+
         tabFrame.pack()
         tabs.pack()
 
