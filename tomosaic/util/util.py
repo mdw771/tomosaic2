@@ -231,6 +231,7 @@ def grid2file(grid, file_name):
 
 
 def file2grid(file_name):
+
     with file(file_name, 'r') as infile:
         grid0 = np.loadtxt(file_name)
         grid_shape = [grid0[-1, 0] + 1, grid0[-1, 1] + 1]
@@ -244,6 +245,7 @@ def file2grid(file_name):
 
 
 def normalize(img):
+
     img = (img - img.min()) / (img.max() - img.min())
     return img
 

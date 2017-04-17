@@ -288,7 +288,7 @@ class TomosaicUI(Frame):
 
     def readShifts(self):
 
-        fname = self.entShiftPath
+        fname = self.entShiftPath.get()
         self.shiftgrid = read_shifts(self, fname)
 
     def saveShifts(self):
