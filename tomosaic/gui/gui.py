@@ -283,8 +283,11 @@ class TomosaicUI(Frame):
 
     def launchRegistration(self):
 
+        self.boxRegiOut.insert(END, 'Initiating registration...\n')
         self.mpi_ncore = int(self.entRegiNCore.get())
+        self.boxRegiOut.insert(END, 'Refer to initial terminal window for intermediate output.\n')
         self.shiftgrid, self.relative_shift = find_shifts_mpi(self)
+        self.boxRegiOut.insert(END, 'Done.\n')
 
     def readShifts(self):
 

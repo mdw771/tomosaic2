@@ -23,27 +23,28 @@ def read_shifts(ui, fname):
 def find_shifts_mpi(ui):
 
     if ui.ifmpi.get() == False:
-        ui.boxRegiOut.insert(END, 'Refining shifts...\n')
-        relative_shift = refine_shift_grid(ui.filegrid, ui.shiftgrid, motor_readout=(ui.y_shift, ui.x_shift), src_folder=ui.raw_folder)
+        # ui.boxRegiOut.insert(END, 'Refining shifts...\n')
+        refine_shift_grid(ui.filegrid, ui.shiftgrid, motor_readout=(ui.y_shift, ui.x_shift), src_folder=ui.raw_folder)
+        relative_shift = file2grid(os.path.join(ui.raw_folder, "shifts.txt"))
         shift_grid = absolute_shift_grid(relative_shift, ui.filegrid)
     else:
-        ui.boxRegiOut.insert(END, 'Generating temporary script file...\n')
+        # ui.boxRegiOut.insert(END, 'Generating temporary script file...\n')
         mpi_script_writer(ui)
         temp_path = os.path.join(ui.raw_folder, 'temp.py')
-        ui.boxRegiOut.insert(END, 'Refining shifts...\n')
-        ui.boxRegiOut.insert(END, 'Refer to initial terminal window for intermediate output.')
+        # ui.boxRegiOut.insert(END, 'Refining shifts...\n')
+        # ui.boxRegiOut.insert(END, 'Refer to initial terminal window for intermediate output.')
         flag = None
         flag = os.system('mpirun -n ' + str(ui.mpi_ncore) + ' python ' + temp_path)
         while True:
             if flag is not None:
                 relative_shift = file2grid(os.path.join(ui.raw_folder, "shifts.txt"))
                 shift_grid = absolute_shift_grid(relative_shift, ui.filegrid)
-                ui.boxRegiOut.insert(END, 'Removing temporary script...\n')
+                # ui.boxRegiOut.insert(END, 'Removing temporary script...\n')
                 os.remove(temp_path)
                 break
             else:
                 time.sleep(5)
-    ui.boxRegiOut.insert(END, 'Done.\n')
+    # ui.boxRegiOut.insert(END, 'Done.\n')
     return shift_grid, relative_shift
 
 
