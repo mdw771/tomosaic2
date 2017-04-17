@@ -50,10 +50,11 @@ def mpi_script_writer(ui):
     f = open(os.path.join(ui.raw_folder, 'temp.py'), 'a')
     f.writelines(['raw_folder = "' + ui.raw_folder + '"\n',
                   'prefix = "' + ui.prefix + '"\n',
-                  'file_list = tomosaic.get_files(".", prefix, type="h5")\n',
+                  'file_list = tomosaic.get_files(raw_folder, prefix, type="h5")\n',
                   'file_grid = tomosaic.start_file_grid(file_list, pattern=1)\n',
                   'x_shift = ' + str(ui.x_shift) + '\n',
                   'y_shift = ' + str(ui.y_shift) + '\n',
+                  'shift_grid = tomosaic.start_shift_grid(file_grid, x_shift, y_shift)\n'
                   'tomosaic.refine_shift_grid(file_grid, shift_grid, motor_readout=(y_shift, x_shift))\n'])
     f.close()
 
