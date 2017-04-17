@@ -26,7 +26,6 @@ def find_shifts_mpi(ui):
         relative_shift = refine_shift_grid(ui.file_grid, ui.shift_grid, motor_readout=(ui.y_shift, ui.x_shift))
         shift_grid = absolute_shift_grid(relative_shift, ui.file_grid)
     else:
-        ui.boxRegiOut.insert(END, )
         ui.boxRegiOut.insert(END, 'Generating temporary script file...\n')
         mpi_script_writer(ui)
         temp_path = os.path.join(ui.raw_folder, 'temp.py')

@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from functools import partial
+import copy
 
 from Tkinter import *
 from ttk import Notebook
@@ -44,7 +45,8 @@ class TomosaicUI(Frame):
         self.parent.config(menu=menubar)
 
         fileFenu = Menu(menubar)
-        fileFenu.add_command(label='Save parameters...')
+        fileFenu.add_command(label='Save parameters...', command=self.saveAllAttr)
+        fileFenu.add_command(label='Load parameters...', command=self.loadAllAttr)
         fileFenu.add_command(label='Exit', command=self.onExit)
         menubar.add_cascade(label='File', menu=fileFenu)
 
@@ -112,7 +114,7 @@ class TomosaicUI(Frame):
         self.boxMetaOut.grid(row=rowOutbox, column=0, rowspan=4, columnspan=4, sticky=N+S+W+E)
 
         # confirm button line
-        buttMetaSave = Button(bottMeta, text='Save all parameters...')
+        buttMetaSave = Button(bottMeta, text='Save all parameters...', command=self.saveAllAttr)
         buttMetaSave.grid(row=0, column=0, sticky=W+E)
         buttMetaConfirm = Button(bottMeta, text='Confirm', command=self.readMeta)
         buttMetaConfirm.grid(row=0, column=1, sticky=W+E)
@@ -190,9 +192,35 @@ class TomosaicUI(Frame):
         tabFrame.pack()
         tabs.pack()
 
+    def saveAllAttr(self):
+
+        dict = copy.copy(self.__dict__)
+        for key in dict.keys():
+            if key[:3] in ['box', 'ent']:
+                del dict[key]
+            elif isinstance(dict[key], Entry) or isinstance(dict[key], Text):
+                del dict[key]
+            elif key[0] == '_':
+                del dict[key]
+            elif key in ['children', 'widgetName', 'master', 'parent', 'tk']:
+                del dict[key]
+            elif isinstance(dict[key], BooleanVar):
+                dict[key] = dict[key].get()
+        path = asksaveasfilename()
+        if path is not None:
+            np.save(path, dict)
+
+    def loadAllAttr(self):
+
+        path = askopenfilename()
+        dict = np.load(path)
+        dict = dict.item()
+        write_pars(self, dict)
+
     def getRawDirectory(self):
 
         self.raw_folder = askdirectory()
+        self.entRawPath.delete(0, END)
         self.entRawPath.insert(0, self.raw_folder)
 
     def getDirectory(self, var):
@@ -231,14 +259,17 @@ class TomosaicUI(Frame):
         self.raw_folder = self.entRawPath.get()
         self.prefix = self.entPrefix.get()
         if self.raw_folder is not '' and self.prefix is not '':
-            self.filelist = get_filelist(self)
-            self.filegrid = get_filegrid(self)
+            try:
+                self.filelist = get_filelist(self)
+                self.filegrid = get_filegrid(self)
+            except:
+                pass
         try:
             self.y_shift = float(self.entRoughY.get())
             self.x_shift = float(self.entRoughX.get())
             self.shiftgrid = get_rough_shiftgrid(self)
         except:
-            showerror(message='Estimated shifts must be numbers.')
+            showerror(message='Estimated shifts must be numbers and file path must be valid.')
         self.boxMetaOut.insert(END, '--------------\n')
         self.boxMetaOut.insert(END, 'Metadata logged:\n')
         self.boxMetaOut.insert(END, 'Raw folder: {:s}\n'.format(self.raw_folder))
