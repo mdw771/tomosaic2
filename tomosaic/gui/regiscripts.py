@@ -24,8 +24,8 @@ def find_shifts_mpi(ui):
 
     if ui.ifmpi.get() == False:
         ui.boxRegiOut.insert(END, 'Refining shifts...\n')
-        relative_shift = refine_shift_grid(ui.file_grid, ui.shift_grid, motor_readout=(ui.y_shift, ui.x_shift), src_folder=ui.raw_folder)
-        shift_grid = absolute_shift_grid(relative_shift, ui.file_grid)
+        relative_shift = refine_shift_grid(ui.filegrid, ui.shiftgrid, motor_readout=(ui.y_shift, ui.x_shift), src_folder=ui.raw_folder)
+        shift_grid = absolute_shift_grid(relative_shift, ui.filegrid)
     else:
         ui.boxRegiOut.insert(END, 'Generating temporary script file...\n')
         mpi_script_writer(ui)
@@ -37,7 +37,7 @@ def find_shifts_mpi(ui):
         while True:
             if flag is not None:
                 relative_shift = file2grid(os.path.join(ui.raw_folder, "shifts.txt"))
-                shift_grid = absolute_shift_grid(relative_shift, ui.file_grid)
+                shift_grid = absolute_shift_grid(relative_shift, ui.filegrid)
                 ui.boxRegiOut.insert(END, 'Removing temporary script...\n')
                 os.remove(temp_path)
                 break
