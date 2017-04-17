@@ -189,6 +189,7 @@ class TomosaicUI(Frame):
         bottRegi.pack(side=BOTTOM)
 
         # ======================================================
+        # merging tab
 
         tabFrame.pack()
         tabs.pack()
@@ -287,7 +288,8 @@ class TomosaicUI(Frame):
 
     def readShifts(self):
 
-        self.shiftgrid = read_shifts(self)
+        fname = self.entShiftPath
+        self.shiftgrid = read_shifts(self, fname)
 
     def saveShifts(self):
 

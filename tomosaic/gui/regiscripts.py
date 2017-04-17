@@ -13,9 +13,9 @@ from tomosaic.misc import *
 from tomosaic.util import *
 
 
-def read_shifts(ui):
+def read_shifts(ui, fname):
 
-    shift_grid = file2grid("shifts.txt")
+    shift_grid = file2grid(fname)
     shift_grid = absolute_shift_grid(shift_grid, ui.file_grid)
     return shift_grid
 
