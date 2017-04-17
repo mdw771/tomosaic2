@@ -5,6 +5,8 @@ import subprocess
 import dxchange
 import tomopy
 from Tkinter import *
+from tkMessageBox import showerror
+import numpy as np
 
 from tomosaic.misc import *
 from tomosaic.util import *
@@ -20,10 +22,22 @@ def read_shifts(ui):
 def find_shifts_mpi(ui):
 
     if ui.ifmpi == False:
-        refined_shift = refine_shift_grid(ui.file_grid, ui.shift_grid, motor_readout=(ui.y_shift, ui.x_shift))
+        ui.boxRegiOut.insert(END, 'Refining shifts...\n')
+        relative_shift = refine_shift_grid(ui.file_grid, ui.shift_grid, motor_readout=(ui.y_shift, ui.x_shift))
+        shift_grid = absolute_shift_grid(relative_shift, ui.file_grid)
     else:
+        ui.boxRegiOut.insert(END, )
+        ui.boxRegiOut.insert(END, 'Generating temporary script file...\n')
         mpi_script_writer(ui)
-        os.system('mpirun -n ' + str(ui.mpi_ncore) + 'python ' + os.path.join(ui.raw_folder, 'temp.py'))
+        temp_path = os.path.join(ui.raw_folder, 'temp.py')
+        ui.boxRegiOut.insert(END, 'Refining shifts...\n')
+        os.system('mpirun -n ' + str(ui.mpi_ncore) + ' python ' + temp_path)
+        relative_shift = file2grid("shifts.txt")
+        shift_grid = absolute_shift_grid(relative_shift, ui.file_grid)
+        ui.boxRegiOut.insert(END, 'Removing temporary script...\n')
+        os.remove(temp_path)
+    return shift_grid, relative_shift
+
 
 def mpi_script_writer(ui):
 
@@ -39,3 +53,8 @@ def mpi_script_writer(ui):
     f.close()
 
 
+def resave_shifts(ui):
+
+    if ui.relative_shift is None:
+        showerror(message='Relative shifts must be read or computed before resaving.')
+    np.savetxt(ui._savepath, ui.relative_shift, fmt=str('%4.2f'))

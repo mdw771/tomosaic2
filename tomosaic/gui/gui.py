@@ -27,6 +27,7 @@ class TomosaicUI(Frame):
         self.filegrid = None
         self.shiftgrid = None
         self.shift_path = None
+        self.relative_shift = None
         self.mpi_ncore = 1
 
         self.initUI()
@@ -173,7 +174,7 @@ class TomosaicUI(Frame):
 
         buttLaunch = Button(bottRegi, text='Launch', command=self.launchRegistration)
         buttLaunch.pack(side=LEFT)
-        buttRegiResave = Button(bottRegi, text='Resave shifts...')
+        buttRegiResave = Button(bottRegi, text='Resave shifts...', command=self.saveShifts)
         buttRegiResave.pack(side=LEFT)
 
 
@@ -249,15 +250,16 @@ class TomosaicUI(Frame):
     def launchRegistration(self):
 
         self.mpi_ncore = int(self.entRegiNCore.get())
-        find_shifts_mpi(self)
+        self.shiftgrid, self.relative_shift = find_shifts_mpi(self)
 
     def readShifts(self):
 
         self.shiftgrid = read_shifts(self)
 
-    def beginRegistration(self):
+    def saveShifts(self):
 
-        pass
+        self._savepath = asksaveasfilename()
+        resave_shifts(self)
 
     def onExit(self):
 
