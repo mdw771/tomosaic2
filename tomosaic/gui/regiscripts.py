@@ -44,6 +44,7 @@ def find_shifts_mpi(ui):
                 break
             except:
                 time.sleep(5)
+    ui.boxRegiOut.insert(END, 'Done.\n')
     return shift_grid, relative_shift
 
 
