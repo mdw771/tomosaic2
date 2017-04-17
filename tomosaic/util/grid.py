@@ -77,6 +77,7 @@ from tomosaic.util.util import *
 from tomosaic.misc.misc import read_aps_32id_adaptive
 import warnings
 import os
+import time
 try:
     from mpi4py import MPI
 except:
@@ -175,9 +176,8 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', savefolder='.', step=200
     if remainder:
         if rank == 0:
             print('You will have {:d} files that cannot be processed in parallel. Consider optimizing number of ranks. '
-                  'Press anykey to continue.'
                   .format(remainder))
-            anykey = raw_input()
+            time.sleep(3)
     comm.Barrier()
 
     for stage in [0, 1]:
