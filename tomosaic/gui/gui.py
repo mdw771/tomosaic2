@@ -9,7 +9,7 @@ from ttk import Notebook
 from tkFileDialog import *
 from tkMessageBox import showerror, showwarning, showinfo
 
-from meta_ui import metatab_ui
+from meta_ui import *
 from metascripts import *
 from regiscripts import *
 
@@ -150,7 +150,7 @@ class TomosaicUI(Frame):
 
         dict = copy.copy(self.__dict__)
         for key in dict.keys():
-            if key[:3] in ['box', 'ent']:
+            if key[:3] in ['box', 'ent', 'tab']:
                 del dict[key]
             elif isinstance(dict[key], Entry) or isinstance(dict[key], Text):
                 del dict[key]
@@ -170,13 +170,9 @@ class TomosaicUI(Frame):
         dict = np.load(path)
         dict = dict.item()
         write_pars(self, dict)
-        self.readMeta()
+        readMeta(self)
 
-    def getRawDirectory(self):
 
-        self.raw_folder = askdirectory()
-        self.entRawPath.delete(0, END)
-        self.entRawPath.insert(0, self.raw_folder)
 
     def getDirectory(self, var):
 
@@ -198,40 +194,6 @@ class TomosaicUI(Frame):
         except:
             showerror(message='Raw folder is not specified.')
 
-    def writeFirstFrames(self):
-
-        self.raw_folder = self.entRawPath.get()
-        self.prefix = self.entPrefix.get()
-        if self.raw_folder is not '' and self.prefix is not '':
-            self.filelist = get_filelist(self)
-            self.boxMetaOut.insert(END, 'Writing first frames...\n')
-            write_first_frames(self)
-        else:
-            showerror(message='Data path and prefix must be filled. ')
-
-    def readMeta(self):
-
-        self.raw_folder = self.entRawPath.get()
-        self.prefix = self.entPrefix.get()
-        if self.raw_folder is not '' and self.prefix is not '':
-            try:
-                self.filelist = get_filelist(self)
-                self.filegrid = get_filegrid(self)
-            except:
-                pass
-        try:
-            self.y_shift = float(self.entRoughY.get())
-            self.x_shift = float(self.entRoughX.get())
-            self.shiftgrid = get_rough_shiftgrid(self)
-        except:
-            showerror(message='Estimated shifts must be numbers and file path must be valid.')
-        self.boxMetaOut.insert(END, '--------------\n')
-        self.boxMetaOut.insert(END, 'Metadata logged:\n')
-        self.boxMetaOut.insert(END, 'Raw folder: {:s}\n'.format(self.raw_folder))
-        self.boxMetaOut.insert(END, 'Prefix: {:s}\n'.format(self.prefix))
-        self.boxMetaOut.insert(END, 'Estimated shift: ({:.2f}, {:.2f})\n'.format(self.y_shift, self.x_shift))
-        self.boxMetaOut.insert(END, 'File/shift grid established.\n')
-        self.boxMetaOut.insert(END, '--------------\n')
 
     def launchRegistration(self):
 

@@ -29,18 +29,18 @@ def metatab_ui(ui):
     labRawPath.pack(side=LEFT)
     ui.entRawPath = Entry(framePath)
     ui.entRawPath.pack(side=LEFT, fill=X, expand=True)
-    buttRawBrowse = Button(framePath, text='Browse...', command=ui.getRawDirectory)
+    buttRawBrowse = Button(framePath, text='Browse...', command=partial(getRawDirectory, ui))
     buttRawBrowse.pack(side=LEFT)
 
     # prefix line
     labPrefix = Label(formMeta, text='Prefix:')
     labPrefix.grid(row=rowPrefix, column=0, sticky=W)
     ui.entPrefix = Entry(formMeta)
-    ui.entPrefix.grid(row=rowPrefix, column=1, columnspan=3, sticky=W + E)
+    ui.entPrefix.grid(row=rowPrefix, column=1, columnspan=3, sticky=W+E)
 
     # writer line
     buttFirstFrame = Button(formMeta, text='Write first projection frame for all files',
-                            command=ui.writeFirstFrames)
+                            command=partial(writeFirstFrames, ui))
     buttFirstFrame.grid(row=rowFirstFrame, columnspan=4)
 
     # shift line
@@ -60,10 +60,54 @@ def metatab_ui(ui):
 
     # confirm button line
     buttMetaSave = Button(bottMeta, text='Save all parameters...', command=ui.saveAllAttr)
-    buttMetaSave.grid(row=0, column=0, sticky=W + E)
-    buttMetaConfirm = Button(bottMeta, text='Confirm', command=ui.readMeta)
-    buttMetaConfirm.grid(row=0, column=1, sticky=W + E)
+    buttMetaSave.grid(row=0, column=0, sticky=W+E)
+    buttMetaConfirm = Button(bottMeta, text='Confirm', command=partial(readMeta, ui))
+    buttMetaConfirm.grid(row=0, column=1, sticky=W+E)
 
-    framePath.grid(row=0, column=0, columnspan=4, sticky=W + E)
+    framePath.grid(row=0, column=0, columnspan=4, sticky=W+E)
     formMeta.pack()
     bottMeta.pack(side=BOTTOM)
+    
+    
+def getRawDirectory(ui):
+
+    ui.raw_folder = askdirectory()
+    ui.entRawPath.delete(0, END)
+    ui.entRawPath.insert(0, ui.raw_folder)
+    
+
+def writeFirstFrames(ui):
+
+    ui.raw_folder = ui.entRawPath.get()
+    ui.prefix = ui.entPrefix.get()
+    if ui.raw_folder is not '' and ui.prefix is not '':
+        ui.filelist = get_filelist(ui)
+        ui.boxMetaOut.insert(END, 'Writing first frames...\n')
+        write_first_frames(ui)
+    else:
+        showerror(message='Data path and prefix must be filled. ')
+
+
+def readMeta(ui):
+
+    ui.raw_folder = ui.entRawPath.get()
+    ui.prefix = ui.entPrefix.get()
+    if ui.raw_folder is not '' and ui.prefix is not '':
+        try:
+            ui.filelist = get_filelist(ui)
+            ui.filegrid = get_filegrid(ui)
+        except:
+            pass
+    try:
+        ui.y_shift = float(ui.entRoughY.get())
+        ui.x_shift = float(ui.entRoughX.get())
+        ui.shiftgrid = get_rough_shiftgrid(ui)
+    except:
+        showerror(message='Estimated shifts must be numbers and file path must be valid.')
+    ui.boxMetaOut.insert(END, '--------------\n')
+    ui.boxMetaOut.insert(END, 'Metadata logged:\n')
+    ui.boxMetaOut.insert(END, 'Raw folder: {:s}\n'.format(ui.raw_folder))
+    ui.boxMetaOut.insert(END, 'Prefix: {:s}\n'.format(ui.prefix))
+    ui.boxMetaOut.insert(END, 'Estimated shift: ({:.2f}, {:.2f})\n'.format(ui.y_shift, ui.x_shift))
+    ui.boxMetaOut.insert(END, 'File/shift grid established.\n')
+    ui.boxMetaOut.insert(END, '--------------\n')
