@@ -11,9 +11,6 @@ from regiscripts import *
 
 
 def metatab_ui(ui):
-    
-    # ======================================================
-    # metadata tab
 
     rowPrefix = 2
     rowFirstFrame = 3

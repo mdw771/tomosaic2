@@ -11,6 +11,7 @@ from tkMessageBox import showerror, showwarning, showinfo
 
 from meta_ui import *
 from metascripts import *
+from regi_ui import *
 from regiscripts import *
 
 
@@ -57,86 +58,20 @@ class TomosaicUI(Frame):
         tabFrame = Frame(root)
         tabs = Notebook(tabFrame)
         self.tabMeta = Frame(tabs)
-        tabRegi = Frame(tabs)
-        tabMerg = Frame(tabs)
-        tabCent = Frame(tabs)
-        tabReco = Frame(tabs)
+        self.tabRegi = Frame(tabs)
+        self.tabMerg = Frame(tabs)
+        self.tabCent = Frame(tabs)
+        self.tabReco = Frame(tabs)
 
         tabs.add(self.tabMeta, text='Metadata')
-        tabs.add(tabRegi, text='Registration')
-        tabs.add(tabMerg, text='Merging')
-        tabs.add(tabCent, text='Center optimization')
-        tabs.add(tabReco, text='Reconstruction')
+        tabs.add(self.tabRegi, text='Registration')
+        tabs.add(self.tabMerg, text='Merging')
+        tabs.add(self.tabCent, text='Center optimization')
+        tabs.add(self.tabReco, text='Reconstruction')
 
         metatab_ui(self)
 
-        # ======================================================
-        # registration tab
-
-        formRegi = Frame(tabRegi)
-        bottRegi = Frame(tabRegi)
-
-        # read shifts line
-
-        frameShiftPath = Frame(formRegi)
-        labRegiUp = Label(frameShiftPath, text='Read existing shift datafile...')
-        labRegiUp.pack()
-        labShiftPath = Label(frameShiftPath, text='File location:')
-        labShiftPath.pack(side=LEFT)
-        self.entShiftPath = Entry(frameShiftPath)
-        self.entShiftPath.pack(side=LEFT, fill=X, expand=True)
-        buttShiftPath = Button(frameShiftPath, text='Browse...', command=self.getShiftFilePath)
-        buttShiftPath.pack(side=LEFT)
-        buttShiftPath = Button(frameShiftPath, text='Use default', command=self.getDefaultShiftPath)
-        buttShiftPath.pack(side=LEFT)
-        buttShiftRead = Button(frameShiftPath, text='Read', command=self.readShifts)
-        buttShiftRead.pack(side=LEFT)
-
-        # find shifts line
-
-        frameFindShift = Frame(formRegi)
-        labRegiDown = Label(frameFindShift, text='Or compute shifts...')
-        labRegiDown.pack()
-
-        # MPI choice line
-
-        frameRegiMPI = Frame(frameFindShift)
-        labRegiMPI = Label(frameRegiMPI, text='Use MPI:')
-        labRegiMPI.pack(side=LEFT)
-        self.ifmpi = BooleanVar()
-        radMPIY = Radiobutton(frameRegiMPI, variable=self.ifmpi, text='Yes', value=True)
-        radMPIY.pack(side=LEFT)
-        radMPIN = Radiobutton(frameRegiMPI, variable=self.ifmpi, text='No', value=False)
-        radMPIN.pack(side=LEFT, padx=10)
-        labRegiNCore = Label(frameRegiMPI, text='Number of processes to initiate:')
-        labRegiNCore.pack(side=LEFT)
-        self.entRegiNCore = Entry(frameRegiMPI)
-        self.entRegiNCore.pack(side=LEFT, fill=X, expand=True)
-
-        # out box line
-
-        frameRegiOut = Frame(frameFindShift)
-        self.boxRegiOut = Text(frameRegiOut)
-        self.boxRegiOut.insert(END, 'Registration\n--------------\n')
-        self.boxRegiOut.pack()
-
-        # button line
-
-        buttLaunch = Button(bottRegi, text='Launch', command=self.launchRegistration)
-        buttLaunch.pack(side=LEFT)
-        buttRegiResave = Button(bottRegi, text='Resave shifts...', command=self.saveShifts)
-        buttRegiResave.pack(side=LEFT)
-
-
-        frameRegiMPI.pack(fill=X, expand=True)
-        frameRegiOut.pack(fill=X, expand=True)
-        frameShiftPath.pack(fill=X, expand=True)
-        frameFindShift.pack(fill=X, expand=True)
-        formRegi.pack()
-        bottRegi.pack(side=BOTTOM)
-
-        # ======================================================
-        # merging tab
+        regitab_ui(self)
 
         formMerg = Frame(tabMerg)
         bottMerg = Frame(tabMerg)
@@ -172,46 +107,13 @@ class TomosaicUI(Frame):
         write_pars(self, dict)
         readMeta(self)
 
-
-
     def getDirectory(self, var):
 
         var = askdirectory()
 
-    def getShiftFilePath(self):
-
-        self.shift_path = askopenfilename()
-        self.entShiftPath.insert(0, self.shift_path)
-
     def getFilePath(self, var):
 
         var = askopenfilename()
-
-    def getDefaultShiftPath(self):
-
-        try:
-            self.entShiftPath.insert(0, os.path.join(self.raw_folder, 'shifts.txt'))
-        except:
-            showerror(message='Raw folder is not specified.')
-
-
-    def launchRegistration(self):
-
-        self.boxRegiOut.insert(END, 'Initiating registration...\n')
-        self.mpi_ncore = int(self.entRegiNCore.get())
-        self.boxRegiOut.insert(END, 'Refer to initial terminal window for intermediate output.\n')
-        self.shiftgrid, self.relative_shift = find_shifts_mpi(self)
-        self.boxRegiOut.insert(END, 'Done.\n')
-
-    def readShifts(self):
-
-        fname = self.entShiftPath.get()
-        self.shiftgrid = read_shifts(self, fname)
-
-    def saveShifts(self):
-
-        self._savepath = asksaveasfilename()
-        resave_shifts(self)
 
     def onExit(self):
 
