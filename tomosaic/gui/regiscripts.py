@@ -31,7 +31,10 @@ def find_shifts_mpi(ui):
         mpi_script_writer(ui)
         temp_path = os.path.join(ui.raw_folder, 'temp.py')
         ui.boxRegiOut.insert(END, 'Refining shifts...\n')
-        os.system('mpirun -n ' + str(ui.mpi_ncore) + ' python ' + temp_path)
+        ui.boxRegiOut.insert(END, 'Refer to initial terminal window for intermediate output.')
+        flag = None
+        flag = os.system('mpirun -n ' + str(ui.mpi_ncore) + ' python ' + temp_path)
+        print flag
         while True:
             try:
                 relative_shift = file2grid(os.path.join(ui.raw_folder, "shifts.txt"))
