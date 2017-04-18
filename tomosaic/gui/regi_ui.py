@@ -56,6 +56,7 @@ def regitab_ui(ui):
     frameRegiOut = Frame(frameFindShift)
     ui.boxRegiOut = Text(frameRegiOut)
     ui.boxRegiOut.insert(END, 'Registration\n--------------\n')
+    ui.boxRegiOut.insert(END, 'Refer to initial terminal window for intermediate output.\n')
     ui.boxRegiOut.pack()
     
     # button line
@@ -89,11 +90,9 @@ def getDefaultShiftPath(ui):
 
 def launchRegistration(ui):
 
-    ui.boxRegiOut.insert(END, 'Initiating registration...\n')
     ui.mpi_ncore = int(ui.entRegiNCore.get())
-    ui.boxRegiOut.insert(END, 'Refer to initial terminal window for intermediate output.\n')
     ui.shiftgrid, ui.relative_shift = find_shifts_mpi(ui)
-    ui.boxRegiOut.insert(END, 'Done.\n')
+    ui.boxRegiOut.insert(END, 'Registration done.\n')
 
 
 def readShifts(ui):
