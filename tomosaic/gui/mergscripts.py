@@ -30,6 +30,7 @@ def merge_mpi(ui):
                 break
             else:
                 time.sleep(5)
+    ui.boxMergOut.insert(END, 'Done.\n')
     return
 
 
@@ -37,6 +38,7 @@ def mpi_script_writer_merge(ui):
 
     shutil.copyfile('mpi_common_head', os.path.join(ui.raw_folder, 'merge.py'))
     f = open(os.path.join(ui.raw_folder, 'temp.py'), 'a')
+    opt2 = '"' + ui.merge_meth2 + '"' if ui.merge_meth2 is not None else 'None'
     f.writelines(['raw_folder = "' + ui.raw_folder + '"\n',
                   'os.chdir(raw_folder)\n',
                   'prefix = "' + ui.prefix + '"\n',
@@ -49,8 +51,8 @@ def mpi_script_writer_merge(ui):
                   'shift_grid = tomosaic.absolute_shift_grid(relative_shift, file_grid)\n',
                   'blend_options1 = ' + str(ui.merge_opts1) + '\n',
                   'blend_options2 = ' + str(ui.merge_opts2) + '\n',
-                  'tomosaic.total_fusion({:s}, {:s}, {:s}, file_grid, shift_grid, blend_method="{:s}", \
-                  blend_method2="{:s}", blend_options="{:s}", blend_options2="{:s}")\n'\
+                  'tomosaic.total_fusion("{:s}", "{:s}", "{:s}", file_grid, shift_grid, blend_method="{:s}", \
+                  blend_method2={:s}, blend_options=blend_options1, blend_options2=blend_options2)\n'\
                   .format(ui.merge_src, ui.merge_dest_folder, ui.merge_dest_fname, ui.merge_meth1, ui.merge_meth2,
                           str(ui.merge_opts1), str(ui.merge_opts2)),
                   '\n'
