@@ -53,7 +53,7 @@ def mpi_script_writer_merge(ui):
                   'blend_options2 = ' + str(ui.merge_opts2) + '\n',
                   'tomosaic.total_fusion("{:s}", "{:s}", "{:s}", file_grid, shift_grid, blend_method="{:s}", \
                   blend_method2={:s}, blend_options=blend_options1, blend_options2=blend_options2)\n'\
-                  .format(ui.merge_src, ui.merge_dest_folder, ui.merge_dest_fname, ui.merge_meth1, ui.merge_meth2,
+                  .format(ui.merge_src, ui.merge_dest_folder, ui.merge_dest_fname, ui.merge_meth1, opt2,
                           str(ui.merge_opts1), str(ui.merge_opts2)),
                   '\n'
                   ])
