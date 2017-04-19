@@ -37,7 +37,7 @@ def merge_mpi(ui):
 def mpi_script_writer_merge(ui):
 
     shutil.copyfile('mpi_common_head', os.path.join(ui.raw_folder, 'merge.py'))
-    f = open(os.path.join(ui.raw_folder, 'temp.py'), 'a')
+    f = open(os.path.join(ui.raw_folder, 'merge.py'), 'a')
     opt2 = '"' + ui.merge_meth2 + '"' if ui.merge_meth2 is not None else 'None'
     f.writelines(['raw_folder = "' + ui.raw_folder + '"\n',
                   'os.chdir(raw_folder)\n',
