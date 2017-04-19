@@ -88,6 +88,7 @@ def mergtab_ui(ui):
     labMergNCore = Label(frameMergMPI, text='Number of processes to initiate:')
     labMergNCore.pack(side=LEFT)
     ui.entMergNCore = Entry(frameMergMPI)
+    ui.entMergNCore.insert(0, '5')
     ui.entMergNCore.pack(side=LEFT, fill=X, expand=True)
 
     # out line
