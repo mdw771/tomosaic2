@@ -102,9 +102,9 @@ def mergtab_ui(ui):
     # button line
 
     buttMergLaunch = Button(bottMerg, text='Launch', command=partial(launchMerging, ui))
-    buttMergLaunch.pack(side=LEFT)
+    buttMergLaunch.grid(row=0, column=0, sticky=W+E)
     buttMergConfirm = Button(bottMerg, text='Confirm parameters', command=partial(readMergPars, ui))
-    buttMergConfirm.pack(side=LEFT)
+    buttMergConfirm.grid(row=0, column=1, sticky=W+E)
 
     ui.frameOpt1Inp.pack(side=LEFT, fill=X)
     ui.frameOpt2Inp.pack(side=LEFT, fill=X)
@@ -116,7 +116,7 @@ def mergtab_ui(ui):
     frameMergMPI.pack(fill=X)
     frameMergOut.pack(fill=X)
     formMerg.pack(fill=X)
-    bottMerg.pack(fill=X)
+    bottMerg.pack(side=BOTTOM)
 
 
 def updateOpt(ui, uid, meth):

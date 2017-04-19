@@ -48,6 +48,7 @@ def regitab_ui(ui):
     labRegiNCore = Label(frameRegiMPI, text='Number of processes to initiate:')
     labRegiNCore.pack(side=LEFT)
     ui.entRegiNCore = Entry(frameRegiMPI)
+    ui.entRegiNCore.insert(0, '5')
     ui.entRegiNCore.pack(side=LEFT, fill=X, expand=True)
     
     # out box line
@@ -100,6 +101,7 @@ def readShifts(ui):
 
     fname = ui.entShiftPath.get()
     ui.shiftgrid = read_shifts(ui, fname)
+    ui.boxRegiOut.insert(END, 'Shift grid read.\n')
 
 
 def saveShifts(ui):
