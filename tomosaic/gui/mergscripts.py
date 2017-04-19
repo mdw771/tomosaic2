@@ -26,7 +26,7 @@ def merge_mpi(ui):
         flag = os.system('mpirun -n ' + str(ui.merge_mpi_ncore) + ' python ' + temp_path)
         while True:
             if flag is not None:
-                os.remove(temp_path)
+                # os.remove(temp_path)
                 break
             else:
                 time.sleep(5)

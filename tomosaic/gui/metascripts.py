@@ -4,6 +4,7 @@ import dxchange
 import tomopy
 from Tkinter import *
 
+from merg_ui import updateOpt
 from tomosaic.misc import *
 from tomosaic.util import *
 
@@ -58,15 +59,14 @@ def write_pars(ui, dict):
     ui.entMergDest.insert(0, os.path.join(dict['merge_dest_folder'], dict['merge_dest_fname']))
     ui.entMergNCore.delete(0, END)
     ui.entMergNCore.insert(0, dict['merge_mpi_ncore'])
-    ui.entMergSrc.delete(0, END)
     ui.varMergMeth1.set(ui.merge_meth1)
     ui.varMergMeth2.set(ui.merge_meth2)
-    ui.entMergNCore.delete(0, END)
-    ui.entMergNCore.insert(0, ui.merge_mpi_ncore)
     if dict['ifmpi']:
         ui.ifmpi.set(True)
     else:
         ui.ifmpi.set(False)
+    updateOpt(ui, 0, ui.varMergMeth1.get())
+    updateOpt(ui, 1, ui.varMergMeth2.get())
 
 
 
