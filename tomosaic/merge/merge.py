@@ -198,7 +198,7 @@ def _get_func(method):
 
 
 def _get_algorithm_kwargs():
-    return {'alpha': 1, 'blur': 0.4, 'depth': 4, 'order': 1}
+    return {'alpha': 0.5, 'blur': 0.4, 'depth': 7, 'order': 1}
 
 
 def img_merge_alpha(img1, img2, shift, alpha=0.4):

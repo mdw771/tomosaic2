@@ -9,6 +9,7 @@ from tkMessageBox import showerror, showwarning, showinfo
 from metascripts import *
 from regiscripts import *
 from mergscripts import *
+from tomosaic.merge.merge import _get_algorithm_kwargs
 
 
 def mergtab_ui(ui):
@@ -94,17 +95,16 @@ def mergtab_ui(ui):
     frameMergOut = Frame(formMerg, height=230)
     frameMergOut.pack_propagate(False)
     ui.boxMergOut = Text(frameMergOut)
-    ui.boxMergOut.insert(END, 'Merging\n--------------\n')
-    ui.boxMergOut.insert(END, 'Refer to initial terminal window for intermediate output.\n')
+    ui.boxMergOut.insert(END, 'Merging\n')
+    ui.boxMergOut.insert(END, 'Refer to initial terminal window for intermediate output.\n--------------\n')
     ui.boxMergOut.pack(side=LEFT, fill=BOTH, expand=YES)
 
     # button line
 
-    buttMergLaunch = Button(bottMerg, text='Launch')
-    buttMergLaunch.pack()
-
-
-
+    buttMergLaunch = Button(bottMerg, text='Launch', command=partial(launchMerging, ui))
+    buttMergLaunch.pack(side=LEFT)
+    buttMergConfirm = Button(bottMerg, text='Confirm parameters', command=partial(readMergPars, ui))
+    buttMergConfirm.pack(side=LEFT)
 
     ui.frameOpt1Inp.pack(side=LEFT, fill=X)
     ui.frameOpt2Inp.pack(side=LEFT, fill=X)
@@ -134,6 +134,8 @@ def updateOpt(ui, uid, meth):
     for w in field.winfo_children():
         w.destroy()
 
+    default_opts = _get_algorithm_kwargs()
+
     if meth in ('max', 'min', 'poisson'):
         lab0 = Label(field, text='No options available for the selected method.')
         lab0.pack(side=LEFT)
@@ -141,20 +143,24 @@ def updateOpt(ui, uid, meth):
         lab0 = Label(field, text='Image on the top (1 or 2): ')
         lab0.pack(side=LEFT)
         ui.lstOrder[uid] = Entry(field)
+        ui.lstOrder[uid].insert(0, '2')
         ui.lstOrder[uid].pack(side=LEFT, fill=X)
     elif meth == 'alpha':
         lab0 = Label(field, text='Alpha: ')
         lab0.pack(side=LEFT)
         ui.lstAlpha[uid] = Entry(field)
+        ui.lstAlpha[uid].insert(0, default_opts['alpha'])
         ui.lstAlpha[uid].pack(side=LEFT, fill=X)
     elif meth == 'pyramid':
         lab0 = Label(field, text='Depth: ')
         lab0.pack(side=LEFT)
         ui.lstDepth[uid] = Entry(field)
+        ui.lstDepth[uid].insert(0, default_opts['depth'])
         ui.lstDepth[uid].pack(side=LEFT)
         lab1 = Label(field, text=' Blur: ')
         lab1.pack(side=LEFT)
         ui.lstBlur[uid] = Entry(field)
+        ui.lstBlur[uid].insert(0, default_opts['blur'])
         ui.lstBlur[uid].pack(side=LEFT)
     else:
         lab0 = Label(field, text='No options available for the selected method.')
@@ -183,14 +189,8 @@ def getMergDestFile(ui):
 
 def launchMerging(ui):
 
-    ui.merge_src = ui.entMergSrc.get()
-    ui.merge_dest_fname = os.path.basename(ui.entMergDest.get())
-    ui.merge_dest_folder = ui.entMergDest.get().split(ui.merge_dest_fname)[0]
-    ui.merge_meth1 = ui.varMergMeth1.get()
-    ui.merge_meth2 = ui.varMergMeth2.get()
-    buildMergOpts(ui, ui.merge_meth1, ui.merge_opts1, 0)
-    buildMergOpts(ui, ui.merge_meth2, ui.merge_opts2, 1)
-    ui.merge_mpi_ncore = int(ui.entMergNCore.get())
+    readMergPars(ui)
+    merge_mpi(ui)
 
 
 def buildMergOpts(ui, meth, dict, uid):
@@ -202,3 +202,15 @@ def buildMergOpts(ui, meth, dict, uid):
     elif meth == 'pyramid':
         dict['depth'] = int(ui.lstDepth[uid].get())
         dict['blur'] = float(ui.lstBlur[uid].get())
+
+def readMergPars(ui):
+
+    ui.merge_src = ui.entMergSrc.get()
+    ui.merge_dest_fname = os.path.basename(ui.entMergDest.get())
+    ui.merge_dest_folder = ui.entMergDest.get().split(ui.merge_dest_fname)[0]
+    ui.merge_meth1 = ui.varMergMeth1.get()
+    ui.merge_meth2 = ui.varMergMeth2.get()
+    buildMergOpts(ui, ui.merge_meth1, ui.merge_opts1, 0)
+    buildMergOpts(ui, ui.merge_meth2, ui.merge_opts2, 1)
+    ui.merge_mpi_ncore = int(ui.entMergNCore.get())
+    ui.boxMergOut.insert(END, 'Parameters read.\n')

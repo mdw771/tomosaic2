@@ -91,7 +91,7 @@ class TomosaicUI(Frame):
 
         dict = copy.copy(self.__dict__)
         for key in dict.keys():
-            if key[:3] in ['box', 'ent', 'tab']:
+            if key[:3] in ['box', 'ent', 'tab', 'opt'] or key[:5] in ['frame']:
                 del dict[key]
             elif isinstance(dict[key], Entry) or isinstance(dict[key], Text):
                 del dict[key]
@@ -99,7 +99,7 @@ class TomosaicUI(Frame):
                 del dict[key]
             elif key in ['children', 'widgetName', 'master', 'parent', 'tk']:
                 del dict[key]
-            elif isinstance(dict[key], BooleanVar):
+            elif isinstance(dict[key], BooleanVar) or isinstance(dict[key], StringVar):
                 dict[key] = dict[key].get()
         path = asksaveasfilename()
         if path is not None:

@@ -52,7 +52,21 @@ def write_pars(ui, dict):
     ui.entShiftPath.insert(0, dict['shift_path'])
     ui.entRegiNCore.delete(0, END)
     ui.entRegiNCore.insert(0, dict['mpi_ncore'])
+    ui.entMergSrc.delete(0, END)
+    ui.entMergSrc.insert(0, dict['merge_src'])
+    ui.entMergDest.delete(0, END)
+    ui.entMergDest.insert(0, os.path.join(dict['merge_dest_folder'], dict['merge_dest_fname']))
+    ui.entMergNCore.delete(0, END)
+    ui.entMergNCore.insert(0, dict['merge_mpi_ncore'])
+    ui.entMergSrc.delete(0, END)
+    ui.varMergMeth1.set(ui.merge_meth1)
+    ui.varMergMeth2.set(ui.merge_meth2)
+    ui.entMergNCore.delete(0, END)
+    ui.entMergNCore.insert(0, ui.merge_mpi_ncore)
     if dict['ifmpi']:
         ui.ifmpi.set(True)
     else:
         ui.ifmpi.set(False)
+
+
+

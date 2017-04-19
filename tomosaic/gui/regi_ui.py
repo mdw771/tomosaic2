@@ -54,8 +54,8 @@ def regitab_ui(ui):
     
     frameRegiOut = Frame(frameFindShift)
     ui.boxRegiOut = Text(frameRegiOut)
-    ui.boxRegiOut.insert(END, 'Registration\n--------------\n')
-    ui.boxRegiOut.insert(END, 'Refer to initial terminal window for intermediate output.\n')
+    ui.boxRegiOut.insert(END, 'Registration\n')
+    ui.boxRegiOut.insert(END, 'Refer to initial terminal window for intermediate output.\n--------------\n')
     ui.boxRegiOut.pack()
     
     # button line
@@ -64,7 +64,9 @@ def regitab_ui(ui):
     buttLaunch.pack(side=LEFT)
     buttRegiResave = Button(bottRegi, text='Resave shifts...', command=partial(saveShifts, ui))
     buttRegiResave.pack(side=LEFT)
-    
+    buttRegiConfirm = Button(bottRegi, text='Confirm parameters', command=partial(readRegiPars, ui))
+    buttRegiConfirm.pack(side=LEFT)
+
     frameRegiMPI.pack(fill=X, expand=True)
     frameRegiOut.pack(fill=X, expand=True)
     frameShiftPath.pack(fill=X, expand=True)
@@ -89,7 +91,7 @@ def getDefaultShiftPath(ui):
 
 def launchRegistration(ui):
 
-    ui.mpi_ncore = int(ui.entRegiNCore.get())
+    readRegiPars(ui)
     ui.shiftgrid, ui.relative_shift = find_shifts_mpi(ui)
     ui.boxRegiOut.insert(END, 'Registration done.\n')
 
@@ -104,3 +106,9 @@ def saveShifts(ui):
 
     ui._savepath = asksaveasfilename()
     resave_shifts(ui)
+
+def readRegiPars(ui):
+
+    ui.shift_path = ui.entShiftPath.get()
+    ui.mpi_ncore = int(ui.entRegiNCore.get())
+    ui.boxRegiOut.insert(END, 'Parameters read.\n')
