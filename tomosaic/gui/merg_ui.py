@@ -23,9 +23,9 @@ def mergtab_ui(ui):
     labMergSrc.pack(side=LEFT)
     ui.entMergSrc = Entry(frameMergSrc)
     ui.entMergSrc.pack(side=LEFT, fill=X, expand=True)
-    buttMergSrcBrowse = Button(frameMergSrc, text='Browse...')
+    buttMergSrcBrowse = Button(frameMergSrc, text='Browse...', command=partial(getMergSrcFolder, ui))
     buttMergSrcBrowse.pack(side=LEFT)
-    buttMergSrcDefault = Button(frameMergSrc, text='Same as raw folder')
+    buttMergSrcDefault = Button(frameMergSrc, text='Same as raw folder', command=partial(getRawFolder, ui))
     buttMergSrcDefault.pack(side=LEFT)
 
     # dest line
@@ -35,7 +35,7 @@ def mergtab_ui(ui):
     labMergDest.pack(side=LEFT)
     ui.entMergDest = Entry(frameMergDest)
     ui.entMergDest.pack(side=LEFT, fill=X, expand=True)
-    buttMergDestBrowse = Button(frameMergDest, text='Browse...')
+    buttMergDestBrowse = Button(frameMergDest, text='Browse...', command=partial(getMergDestFile, ui))
     buttMergDestBrowse.pack(side=LEFT)
 
     # method line
@@ -44,15 +44,16 @@ def mergtab_ui(ui):
     labMergMeth1 = Label(frameMergMethod, text='Blending method:')
     labMergMeth1.pack(side=LEFT)
     ui.varMergMeth1 = StringVar()
-    lsMergMeth1 = ('Overlay', 'Max', 'Min', 'Alpha', 'Pyramid', 'Poisson')
-    print type(ui)
-    ui.optMergMeth1 = OptionMenu(frameMergMethod, ui.varMergMeth1, command=partial(updateOpt, ui, 1), *lsMergMeth1)
+    ui.varMergMeth1.set('Max')
+    lsMergMeth1 = ('overlay', 'max', 'min', 'alpha', 'pyramid', 'poisson')
+    ui.optMergMeth1 = OptionMenu(frameMergMethod, ui.varMergMeth1, command=partial(updateOpt, ui, 0), *lsMergMeth1)
     ui.optMergMeth1.pack(side=LEFT, fill=X, expand=True)
     labMergMeth2 = Label(frameMergMethod, text=' Blending method (Y, opt):')
     labMergMeth2.pack(side=LEFT)
     ui.varMergMeth2 = StringVar()
-    lsMergMeth2 = ('Same as X', 'Overlay', 'Max', 'Min', 'Alpha', 'Pyramid', 'Poisson')
-    ui.optMergMeth2 = OptionMenu(frameMergMethod, ui.varMergMeth2, command=partial(updateOpt, ui, 2), *lsMergMeth2)
+    ui.varMergMeth2.set('Same as X')
+    lsMergMeth2 = ('Same as X', 'overlay', 'max', 'min', 'alpha', 'pyramid', 'poisson')
+    ui.optMergMeth2 = OptionMenu(frameMergMethod, ui.varMergMeth2, command=partial(updateOpt, ui, 1), *lsMergMeth2)
     ui.optMergMeth2.pack(side=LEFT, fill=X, expand=True)
 
     # option 1 line
@@ -88,6 +89,19 @@ def mergtab_ui(ui):
     ui.entMergNCore = Entry(frameMergMPI)
     ui.entMergNCore.pack(side=LEFT, fill=X, expand=True)
 
+    # out line
+
+    frameMergOut = Frame(formMerg, height=230)
+    frameMergOut.pack_propagate(False)
+    ui.boxMergOut = Text(frameMergOut)
+    ui.boxMergOut.insert(END, 'Merging\n--------------\n')
+    ui.boxMergOut.insert(END, 'Refer to initial terminal window for intermediate output.\n')
+    ui.boxMergOut.pack(side=LEFT, fill=BOTH, expand=YES)
+
+    # button line
+
+    buttMergLaunch = Button(bottMerg, text='Launch')
+    buttMergLaunch.pack()
 
 
 
@@ -100,42 +114,91 @@ def mergtab_ui(ui):
     ui.frameMergOpt1.pack(fill=X)
     ui.frameMergOpt2.pack(fill=X)
     frameMergMPI.pack(fill=X)
+    frameMergOut.pack(fill=X)
     formMerg.pack(fill=X)
     bottMerg.pack(fill=X)
 
+
 def updateOpt(ui, uid, meth):
 
-    print ui, meth
-
-    if uid == 1:
+    if uid == 0:
         field = ui.frameOpt1Inp
-    elif uid == 2:
+    elif uid == 1:
         field = ui.frameOpt2Inp
+
+    ui.lstAlpha = [None, None]
+    ui.lstDepth = [None, None]
+    ui.lstBlur = [None, None]
+    ui.lstOrder = [None, None]
 
     for w in field.winfo_children():
         w.destroy()
 
-    if meth in ('Max', 'Min', 'Poisson'):
+    if meth in ('max', 'min', 'poisson'):
         lab0 = Label(field, text='No options available for the selected method.')
         lab0.pack(side=LEFT)
-    elif meth == 'Overlay':
-        lab0 = Label(field, text='Image on the top: ')
+    elif meth == 'overlay':
+        lab0 = Label(field, text='Image on the top (1 or 2): ')
         lab0.pack(side=LEFT)
-        ui.entOverlay = Entry(field)
-        ui.entOverlay.pack(side=LEFT, fill=X)
-    elif meth == 'Alpha':
+        ui.lstOrder[uid] = Entry(field)
+        ui.lstOrder[uid].pack(side=LEFT, fill=X)
+    elif meth == 'alpha':
         lab0 = Label(field, text='Alpha: ')
         lab0.pack(side=LEFT)
-        ui.entAlpha = Entry(field)
-        ui.entAlpha.pack(side=LEFT, fill=X)
-    elif meth == 'Pyramid':
+        ui.lstAlpha[uid] = Entry(field)
+        ui.lstAlpha[uid].pack(side=LEFT, fill=X)
+    elif meth == 'pyramid':
         lab0 = Label(field, text='Depth: ')
         lab0.pack(side=LEFT)
-        entDepth = Entry(field)
-        entDepth.pack(side=LEFT)
-        lab1 = Label(field, text='Blur: ')
+        ui.lstDepth[uid] = Entry(field)
+        ui.lstDepth[uid].pack(side=LEFT)
+        lab1 = Label(field, text=' Blur: ')
         lab1.pack(side=LEFT)
-        entPyrBlur = Entry(field)
-        entPyrBlur.pack(side=LEFT)
+        ui.lstBlur[uid] = Entry(field)
+        ui.lstBlur[uid].pack(side=LEFT)
+    else:
+        lab0 = Label(field, text='No options available for the selected method.')
+        lab0.pack(side=LEFT)
 
 
+def getMergSrcFolder(ui):
+
+    src = askdirectory()
+    ui.entMergSrc.insert(0, src)
+
+
+def getRawFolder(ui):
+
+    try:
+        ui.entMergSrc.insert(0, ui.raw_folder)
+    except:
+        showerror(message='Raw folder must be specified in metadata tab.')
+
+
+def getMergDestFile(ui):
+
+    dest = asksaveasfilename()
+    ui.entMergDest.insert(0, dest)
+
+
+def launchMerging(ui):
+
+    ui.merge_src = ui.entMergSrc.get()
+    ui.merge_dest_fname = os.path.basename(ui.entMergDest.get())
+    ui.merge_dest_folder = ui.entMergDest.get().split(ui.merge_dest_fname)[0]
+    ui.merge_meth1 = ui.varMergMeth1.get()
+    ui.merge_meth2 = ui.varMergMeth2.get()
+    buildMergOpts(ui, ui.merge_meth1, ui.merge_opts1, 0)
+    buildMergOpts(ui, ui.merge_meth2, ui.merge_opts2, 1)
+    ui.merge_mpi_ncore = int(ui.entMergNCore.get())
+
+
+def buildMergOpts(ui, meth, dict, uid):
+
+    if meth == 'overlay':
+        dict['order'] = 1 if ui.lstOrder[uid].get() == 2 else 2
+    elif meth == 'alpha':
+        dict['alpha'] = float(ui.lstAlpha[uid].get())
+    elif meth == 'pyramid':
+        dict['depth'] = int(ui.lstDepth[uid].get())
+        dict['blur'] = float(ui.lstBlur[uid].get())

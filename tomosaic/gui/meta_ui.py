@@ -53,7 +53,7 @@ def metatab_ui(ui):
     # outbox line
     ui.boxMetaOut = Text(formMeta)
     ui.boxMetaOut.insert(END, 'Tomosaic GUI (Beta)\n--------------\n')
-    ui.boxMetaOut.grid(row=rowOutbox, column=0, rowspan=4, columnspan=4, sticky=N + S + W + E)
+    ui.boxMetaOut.grid(row=rowOutbox, column=0, columnspan=4, sticky=N+S+W+E)
 
     # confirm button line
     buttMetaSave = Button(bottMeta, text='Save all parameters...', command=ui.saveAllAttr)
@@ -62,7 +62,7 @@ def metatab_ui(ui):
     buttMetaConfirm.grid(row=0, column=1, sticky=W+E)
 
     framePath.grid(row=0, column=0, columnspan=4, sticky=W+E)
-    formMeta.pack()
+    formMeta.pack(fill=BOTH, expand=True)
     bottMeta.pack(side=BOTTOM)
     
     

@@ -41,7 +41,6 @@ def regitab_ui(ui):
     frameRegiMPI = Frame(frameFindShift)
     labRegiMPI = Label(frameRegiMPI, text='Use MPI:')
     labRegiMPI.pack(side=LEFT)
-    ui.ifmpi = BooleanVar()
     radMPIY = Radiobutton(frameRegiMPI, variable=ui.ifmpi, text='Yes', value=True)
     radMPIY.pack(side=LEFT)
     radMPIN = Radiobutton(frameRegiMPI, variable=ui.ifmpi, text='No', value=False)
@@ -70,7 +69,7 @@ def regitab_ui(ui):
     frameRegiOut.pack(fill=X, expand=True)
     frameShiftPath.pack(fill=X, expand=True)
     frameFindShift.pack(fill=X, expand=True)
-    formRegi.pack()
+    formRegi.pack(fill=BOTH, expand=True)
     bottRegi.pack(side=BOTTOM)
 
 

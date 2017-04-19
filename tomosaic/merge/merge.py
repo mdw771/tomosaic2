@@ -118,7 +118,7 @@ def blend(img1, img2, shift, method, margin=50, color_correction=True, **kwargs)
         'poisson': [],
         'pyramid': ['blur', 'margin', 'depth'],
         'pwd': ['margin', 'chunk_size'],
-        'overlay': []
+        'overlay': ['order']
     }
 
     generic_kwargs = []
@@ -198,7 +198,7 @@ def _get_func(method):
 
 
 def _get_algorithm_kwargs():
-    return {'alpha': 1, 'blur': 0.4, 'depth': 4}
+    return {'alpha': 1, 'blur': 0.4, 'depth': 4, 'order': 1}
 
 
 def img_merge_alpha(img1, img2, shift, alpha=0.4):

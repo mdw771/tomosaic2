@@ -30,7 +30,7 @@ def find_shifts_mpi(ui):
     else:
         # ui.boxRegiOut.insert(END, 'Generating temporary script file...\n')
         mpi_script_writer(ui)
-        temp_path = os.path.join(ui.raw_folder, 'temp.py')
+        temp_path = os.path.join(ui.raw_folder, 'register.py')
         # ui.boxRegiOut.insert(END, 'Refining shifts...\n')
         # ui.boxRegiOut.insert(END, 'Refer to initial terminal window for intermediate output.')
         flag = None
@@ -50,7 +50,7 @@ def find_shifts_mpi(ui):
 
 def mpi_script_writer(ui):
 
-    shutil.copyfile('mpi_common_head', os.path.join(ui.raw_folder, 'temp.py'))
+    shutil.copyfile('mpi_common_head', os.path.join(ui.raw_folder, 'register.py'))
     f = open(os.path.join(ui.raw_folder, 'temp.py'), 'a')
     f.writelines(['raw_folder = "' + ui.raw_folder + '"\n',
                   'os.chdir(raw_folder)\n'
