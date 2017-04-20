@@ -50,7 +50,6 @@ def mpi_script_writer_center(ui):
 
     shutil.copyfile('mpi_common_head', os.path.join(ui.raw_folder, 'center.py'))
     f = open(os.path.join(ui.raw_folder, 'merge.py'), 'a')
-    meth2 = '"' + ui.merge_meth2 + '"' if ui.merge_meth2 != 'Same as X' else 'None'
     script = ['raw_folder = "' + ui.raw_folder + '"\n',
               'os.chdir(raw_folder)\n',
               'prefix = "' + ui.prefix + '"\n',
@@ -67,7 +66,7 @@ def mpi_script_writer_center(ui):
               'src = {:s}\n'.format(ui.cent_src),
               'dest = {:s}\n'.format(ui.cent_dest),
               'center_vec = np.zeros(n_rows)\n',
-              'cent_start = {:d}\n'.format(ui.cent_start),
+             'cent_start = {:d}\n'.format(ui.cent_start),
               'cent_end = {:d}\n'.format(ui.cent_end),
               'cent_step = {:d}\n'.format(ui.cent_step),
               'slice = {:d}\n'.format(ui.cent_slice),
