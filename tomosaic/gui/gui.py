@@ -15,6 +15,8 @@ from regi_ui import *
 from regiscripts import *
 from merg_ui import *
 from mergscripts import *
+from cent_ui import *
+from centscripts import *
 
 
 class TomosaicUI(Frame):
@@ -43,6 +45,16 @@ class TomosaicUI(Frame):
         self.merge_opts1 = {}
         self.merge_opts2 = {}
         self.merge_mpi_ncore = 1
+        self.cent_type = None
+        self.cent_src = None
+        self.cent_dest = None
+        self.cent_start = None
+        self.cent_end = None
+        self.cent_step = None
+        self.cent_slice = None
+        self.cent_algo = None
+        self.cent_ds = 1
+        self.cent_mpi_ncore = 1
 
         self.initUI()
 
@@ -83,6 +95,8 @@ class TomosaicUI(Frame):
         metatab_ui(self)
         regitab_ui(self)
         mergtab_ui(self)
+        centtab_ui(self)
+
 
         tabFrame.pack()
         tabs.pack()

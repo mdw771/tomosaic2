@@ -38,7 +38,7 @@ def mpi_script_writer_merge(ui):
 
     shutil.copyfile('mpi_common_head', os.path.join(ui.raw_folder, 'merge.py'))
     f = open(os.path.join(ui.raw_folder, 'merge.py'), 'a')
-    opt2 = '"' + ui.merge_meth2 + '"' if ui.merge_meth2 != 'Same as X' else 'None'
+    meth2 = '"' + ui.merge_meth2 + '"' if ui.merge_meth2 != 'Same as X' else 'None'
     f.writelines(['raw_folder = "' + ui.raw_folder + '"\n',
                   'os.chdir(raw_folder)\n',
                   'prefix = "' + ui.prefix + '"\n',
@@ -53,7 +53,7 @@ def mpi_script_writer_merge(ui):
                   'blend_options2 = ' + str(ui.merge_opts2) + '\n',
                   'tomosaic.total_fusion("{:s}", "{:s}", "{:s}", file_grid, shift_grid, blend_method="{:s}", \
                   blend_method2={:s}, blend_options=blend_options1, blend_options2=blend_options2)\n'\
-                  .format(ui.merge_src, ui.merge_dest_folder, ui.merge_dest_fname, ui.merge_meth1, opt2,
+                  .format(ui.merge_src, ui.merge_dest_folder, ui.merge_dest_fname, ui.merge_meth1, meth2,
                           str(ui.merge_opts1), str(ui.merge_opts2)),
                   '\n'
                   ])
