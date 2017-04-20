@@ -64,6 +64,7 @@ def centtab_ui(ui):
     labelCentStep = Label(frameCentRange, text='Step:')
     labelCentStep.pack(side=LEFT)
     ui.entCentStep = Entry(frameCentRange)
+    ui.entCentStep.insert(0, '1')
     ui.entCentStep.pack(side=LEFT)
 
     # misc line
@@ -71,8 +72,8 @@ def centtab_ui(ui):
     frameCentMisc = Frame(formCent)
     labSliceNo = Label(frameCentMisc, text='Slice position:')
     labSliceNo.pack(side=LEFT)
-    ui.entSliceNo = Entry(frameCentMisc)
-    ui.entSliceNo.pack(side=LEFT, fill=X, expand=True)
+    ui.entCentSlice = Entry(frameCentMisc)
+    ui.entCentSlice.pack(side=LEFT, fill=X, expand=True)
     labCentDs = Label(frameCentMisc, text=' Downsampling:')
     labCentDs.pack(side=LEFT)
     ui.entCentDs = Entry(frameCentMisc)
