@@ -7,6 +7,7 @@ from tkFileDialog import *
 from tkMessageBox import showerror, showwarning, showinfo
 
 from metascripts import *
+from centscripts import *
 
 
 def centtab_ui(ui):
@@ -179,4 +180,6 @@ def readCentPars(ui):
 def launchCenter(ui):
 
     readCentPars(ui)
+    center_mpi(ui)
+    ui.boxCentOut.insert(END, 'Done.\n')
 
