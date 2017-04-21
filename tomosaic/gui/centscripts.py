@@ -75,8 +75,8 @@ def mpi_script_writer_center(ui):
              ]
     if ui.cent_type == 'dis':
         script.append('    tomosaic.recon_block(file_grid, shift_grid/ds, src, dest, \
-        (slice, slice+(n_rows-1)*y_shift+1), y_shift, center_vec, blend_method="pyramid", algorithm="{:s}")')\
-            .format(ui.cent_algo)
+        (slice, slice+(n_rows-1)*y_shift+1), y_shift, center_vec, blend_method="pyramid", algorithm="{:s}")'
+                      .format(ui.cent_algo))
     elif ui.cent_type == 'sin':
         script.append('    tomosaic.recon_hdf5(src, dest, (slice, slice+(n_rows-1)*y_shift+1), y_shift, shift_grid, \
         center_vec=center_vec, algorithm="{:s}")').format(ui.cent_algo)
