@@ -61,10 +61,32 @@ def write_pars(ui, dict):
     ui.entMergNCore.insert(0, dict['merge_mpi_ncore'])
     ui.varMergMeth1.set(ui.merge_meth1)
     ui.varMergMeth2.set(ui.merge_meth2)
+    ui.entCentSrc.delete(0, END)
+    ui.entCentSrc.insert(0, dict['cent_src'])
+    ui.entCentDest.delete(0, END)
+    ui.entCentDest.insert(0, dict['cent_dest'])
+    ui.entCentStart.delete(0, END)
+    ui.entCentStart.insert(0, dict['cent_start'])
+    ui.entCentEnd.delete(0, END)
+    ui.entCentEnd.insert(0, dict['cent_end'])
+    ui.entCentStep.delete(0, END)
+    ui.entCentStep.insert(0, dict['cent_step'])
+    ui.entCentDs.delete(0, END)
+    ui.entCentDs.insert(0, dict['cent_ds'])
+    ui.entCentSlice.delete(0, END)
+    ui.entCentSlice.insert(0, dict['cent_slice'])
+    ui.entCentAlgo.delete(0, END)
+    ui.entCentAlgo.insert(0, dict['cent_algo'])
+    ui.entCentNCore.delete(0, END)
+    ui.entCentNCore.insert(0, dict['cent_mpi_ncore'])
     if dict['ifmpi']:
         ui.ifmpi.set(True)
     else:
         ui.ifmpi.set(False)
+    if dict['cent_type'] == 'dis':
+        ui.varCentType.set('dis')
+    elif dict['cent_type'] == 'sin':
+        ui.varCentType.set('sin')
     updateOpt(ui, 0, ui.varMergMeth1.get())
     updateOpt(ui, 1, ui.varMergMeth2.get())
 
