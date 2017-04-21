@@ -18,6 +18,7 @@ def center_mpi(ui):
 
     ds = int(ui.cent_ds)
     y_shift = int(ui.shiftgrid[:, 0, 0].mean()) / ds
+    y_shift = y_shift if y_shift > 0 else 1
     n_rows = ui.shiftgrid.shape[0]
 
     if ui.ifmpi.get() == False:
@@ -61,7 +62,8 @@ def mpi_script_writer_center(ui):
               'relative_shift = tomosaic.util.file2grid("shifts.txt")\n',
               'shift_grid = tomosaic.absolute_shift_grid(relative_shift, file_grid)\n',
               'ds = {:d}\n'.format(ui.cent_ds),
-              'y_shift = int(shift_grid[:, 0, 0].mean()) / ds\n',
+              'y_shift = int(np.mean(shift_grid[:, 0, 0])) / ds\n',
+              'y_shift = y_shift if y_shift > 0 else 1\n',
               'n_rows = shift_grid.shape[0]\n',
               'src = "{:s}"\n'.format(ui.cent_src),
               'dest = "{:s}"\n'.format(ui.cent_dest),
