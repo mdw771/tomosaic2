@@ -49,7 +49,7 @@ def center_mpi(ui):
 def mpi_script_writer_center(ui):
 
     shutil.copyfile('mpi_common_head', os.path.join(ui.raw_folder, 'center.py'))
-    f = open(os.path.join(ui.raw_folder, 'merge.py'), 'a')
+    f = open(os.path.join(ui.raw_folder, 'center.py'), 'a')
     script = ['raw_folder = "' + ui.raw_folder + '"\n',
               'os.chdir(raw_folder)\n',
               'prefix = "' + ui.prefix + '"\n',
