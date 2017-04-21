@@ -10,13 +10,11 @@ from tkFileDialog import *
 from tkMessageBox import showerror, showwarning, showinfo
 
 from meta_ui import *
-from metascripts import *
 from regi_ui import *
-from regiscripts import *
 from merg_ui import *
-from mergscripts import *
 from cent_ui import *
-from centscripts import *
+from reco_ui import *
+from metascripts import *
 
 
 class TomosaicUI(Frame):
