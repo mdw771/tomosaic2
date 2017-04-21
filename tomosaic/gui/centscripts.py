@@ -66,7 +66,7 @@ def mpi_script_writer_center(ui):
               'src = {:s}\n'.format(ui.cent_src),
               'dest = {:s}\n'.format(ui.cent_dest),
               'center_vec = np.zeros(n_rows)\n',
-             'cent_start = {:d}\n'.format(ui.cent_start),
+              'cent_start = {:d}\n'.format(ui.cent_start),
               'cent_end = {:d}\n'.format(ui.cent_end),
               'cent_step = {:d}\n'.format(ui.cent_step),
               'slice = {:d}\n'.format(ui.cent_slice),
