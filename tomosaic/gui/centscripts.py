@@ -28,10 +28,10 @@ def center_mpi(ui):
                 if ui.cent_type == 'dis':
                     recon_block(ui.file_grid, ui.shiftgrid/ds, ui.cent_src, ui.cent_dest,
                                 (ui.cent_slice, ui.cent_slice+(n_rows-1)*y_shift+1), y_shift, center_vec,
-                                blend_method='pyramid', algorithm=ui.cent_algo)
+                                blend_method='pyramid', algorithm=ui.cent_algo, mode=ui.cent_mode, test_mode=True)
                 elif ui.cent_type == 'sin':
                     recon_hdf5(ui.cent_src, ui.cent_dest, (ui.cent_slice, ui.cent_slice+(n_rows-1)*y_shift+1), y_shift,
-                               ui.shiftgrid, center_vec=center_vec, algorithm=ui.cent_algo)
+                               ui.shiftgrid, center_vec=center_vec, algorithm=ui.cent_algo, mode=ui.cent_mode, test_mode=True)
     else:
         mpi_script_writer_center(ui)
         temp_path = os.path.join(ui.raw_folder, 'center.py')
@@ -77,11 +77,11 @@ def mpi_script_writer_center(ui):
              ]
     if ui.cent_type == 'dis':
         script.append('    tomosaic.recon_block(file_grid, shift_grid/ds, src, dest, \
-        (slice, slice+(n_rows-1)*y_shift+1), y_shift, center_vec, blend_method="pyramid", algorithm="{:s}")'
-                      .format(ui.cent_algo))
+        (slice, slice+(n_rows-1)*y_shift+1), y_shift, center_vec, blend_method="pyramid", algorithm="{:s}", \
+        mode="{:s}", test_mode=True)'.format(ui.cent_algo, ui.cent_mode))
     elif ui.cent_type == 'sin':
         script.append('    tomosaic.recon_hdf5(src, dest, (slice, slice+(n_rows-1)*y_shift+1), y_shift, shift_grid, \
-        center_vec=center_vec, algorithm="{:s}")').format(ui.cent_algo)
+        center_vec=center_vec, algorithm="{:s}", mode="{:s}", test_mode=True)').format(ui.cent_algo, ui.cent_mode)
     script.append('\n')
     f.writelines(script)
     f.close()

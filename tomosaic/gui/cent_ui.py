@@ -88,6 +88,13 @@ def centtab_ui(ui):
     ui.entCentAlgo = Entry(frameCentAlgo)
     ui.entCentAlgo.insert(0, 'gridrec')
     ui.entCentAlgo.pack(side=LEFT, fill=X, expand=True)
+    labCentMode = Label(frameCentAlgo, text='Mode:')
+    labCentMode.pack(side=LEFT)
+    ui.varCentMode = StringVar()
+    ui.varCentMode.set('180')
+    opts = ('180', '360')
+    optCentMode = OptionMenu(frameCentAlgo, ui.varCentMode, *opts)
+    optCentMode.pack(side=LEFT)
 
 
     # mpi line
@@ -108,7 +115,7 @@ def centtab_ui(ui):
 
     # box line
 
-    frameCentOut = Frame(formCent, height=235)
+    frameCentOut = Frame(formCent, height=210)
     frameCentOut.pack_propagate(False)
     ui.boxCentOut = Text(frameCentOut)
     ui.boxCentOut.insert(END, 'Center optimization\n')

@@ -53,6 +53,22 @@ class TomosaicUI(Frame):
         self.cent_algo = None
         self.cent_ds = 1
         self.cent_mpi_ncore = 1
+        self.cent_mode = '180'
+        self.reco_type = None
+        self.reco_src = None
+        self.reco_dest = None
+        self.reco_cent = None
+        self.reco_start = None
+        self.reco_end = None
+        self.reco_step = None
+        self.reco_algo = None
+        self.reco_mode = '180'
+        self.reco_ds = 1
+        self.reco_algo_opts = {}
+        self.reco_pr = None
+        self.reco_pr_opts = {}
+        self.reco_mpi_ncore = 1
+
 
         self.initUI()
 
@@ -94,6 +110,7 @@ class TomosaicUI(Frame):
         regitab_ui(self)
         mergtab_ui(self)
         centtab_ui(self)
+        recotab_ui(self)
 
 
         tabFrame.pack()

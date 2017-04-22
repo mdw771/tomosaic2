@@ -100,7 +100,7 @@ except:
 
 def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center_vec=None, center_eq=None, dtype='float32',
                algorithm='gridrec', tolerance=1, chunk_size=20, save_sino=False, sino_blur=None, flattened_radius=120,
-               mode='180', **kwargs):
+               mode='180', test_mode=False, phase_retrieval=None, **kwargs):
     """
     center_eq: a and b parameters in fitted center position equation center = a*slice + b.
     """
@@ -192,6 +192,9 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
                 for i in range(data.shape[1]):
                     data[:, i, :] = gaussian_filter(data[:, i, :], sino_blur)
             data = tomopy.remove_stripe_ti(data, alpha=4)
+            if phase_retrieval:
+                data = tomopy.retrieve_phase(data, kwargs['pixel_size'], kwargs['dist'], kwargs['energy'],
+                                             kwargs['alpha'])
             rec0 = tomopy.recon(data, theta, center=center, algorithm=algorithm, **kwargs)
             rec = tomopy.remove_ring(np.copy(rec0))
             cent = int((rec.shape[1]-1) / 2)
@@ -206,7 +209,10 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
 
             for i in range(rec.shape[0]):
                 slice = fstart + i*sino_step
-                dxchange.write_tiff(rec[i, :, :], fname=os.path.join(dest_folder, 'recon/recon_{:05d}.tiff').format(slice), dtype=dtype)
+                if test_mode:
+                    dxchange.write_tiff(rec[i, :, :], fname=os.path.join(dest_folder, 'recon/recon_{:05d}_{:d}.tiff').format(slice, center), dtype=dtype)
+                else:
+                    dxchange.write_tiff(rec[i, :, :], fname=os.path.join(dest_folder, 'recon/recon_{:05d}.tiff').format(slice), dtype=dtype)
                 if save_sino:
                     dxchange.write_tiff(data[:, i, :], fname=os.path.join(dest_folder, 'sino/recon_{:05d}_{:d}.tiff').format(slice, center), dtype=dtype)
             print('Block {:d} finished in {:.2f} s.'.format(iblock, time.time()-t0))
@@ -264,7 +270,7 @@ def recon_hdf5_mpi(src_fanme, dest_folder, sino_range, sino_step, center_vec, sh
 def recon_block(grid, shift_grid, src_folder, dest_folder, slice_range, sino_step, center_vec, ds_level=0, blend_method='max',
                 blend_options=None, tolerance=1, sinogram_order=False, algorithm='gridrec', init_recon=None, ncore=None, nchunk=None, dtype='float32',
                 crop=None, save_sino=False, assert_width=None, sino_blur=None, color_correction=False, flattened_radius=120, normalize=True,
-                test_mode=False, **kwargs):
+                test_mode=False, mode='180', phase_retrieval=None, **kwargs):
     """
     Reconstruct dsicrete HDF5 tiles, blending sinograms only.
     """
@@ -307,7 +313,7 @@ def recon_block(grid, shift_grid, src_folder, dest_folder, slice_range, sino_ste
         row_sino, center_pos = prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=ds_level,
                                              method=blend_method, blend_options=blend_options, rot_center=center_pos,
                                              assert_width=assert_width, sino_blur=sino_blur, color_correction=color_correction,
-                                             normalize=normalize)
+                                             normalize=normalize, mode=mode, phase_retrieval=phase_retrieval)
         rec0 = recon_slice(row_sino, center_pos, sinogram_order=sinogram_order, algorithm=algorithm,
                           init_recon=init_recon, ncore=ncore, nchunk=nchunk, **kwargs)
         rec = tomopy.remove_ring(np.copy(rec0))
@@ -349,7 +355,8 @@ def to_rgb2(im):
 
 
 def prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=0, method='max', blend_options=None, pad=None,
-                  rot_center=None, assert_width=None, sino_blur=None, color_correction=False, normalize=True):
+                  rot_center=None, assert_width=None, sino_blur=None, color_correction=False, normalize=True,
+                  mode='180', phase_retrieval=None, **kwargs):
     sinos = [None] * grid.shape[1]
     for col in range(grid.shape[1]):
         try:
@@ -377,6 +384,12 @@ def prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=0, metho
     row_sino = tomosaic.util.preprecess(row_sino)
     if sino_blur is not None:
         row_sino[:, 0, :] = gaussian_filter(row_sino[:, 0, :], sino_blur)
+    if mode == '360':
+        overlap = 2 * (row_sino.shape[2] - rot_center)
+        row_sino = tomosaic.morph.sino_360_to_180(row_sino, overlap=overlap, rotation='right')
+    if phase_retrieval:
+        row_sino = tomopy.retrieve_phase(row_sino, kwargs['pixel_size'], kwargs['dist'], kwargs['energy'],
+                                     kwargs['alpha'])
     return row_sino, rot_center
 
 

@@ -4,7 +4,8 @@ import dxchange
 import tomopy
 from Tkinter import *
 
-from merg_ui import updateOpt
+import merg_ui
+import reco_ui
 from tomosaic.misc import *
 from tomosaic.util import *
 
@@ -79,6 +80,26 @@ def write_pars(ui, dict):
     ui.entCentAlgo.insert(0, dict['cent_algo'])
     ui.entCentNCore.delete(0, END)
     ui.entCentNCore.insert(0, dict['cent_mpi_ncore'])
+    ui.varCentMode.set(ui.cent_mode)
+    ui.entRecoSrc.delete(0, END)
+    ui.entRecoSrc.insert(0, dict['reco_src'])
+    ui.entRecoDest.delete(0, END)
+    ui.entRecoDest.insert(0, dict['reco_dest'])
+    ui.entRecoCent.delete(0, END)
+    ui.entRecoCent.insert(0, dict['reco_cent'])
+    ui.entRecoStart.delete(0, END)
+    ui.entRecoStart.insert(0, dict['reco_start'])
+    ui.entRecoEnd.delete(0, END)
+    ui.entRecoEnd.insert(0, dict['reco_end'])
+    ui.entRecoStep.delete(0, END)
+    ui.entRecoStep.insert(0, dict['reco_step'])
+    ui.varRecoAlgo.set(dict['reco_algo'])
+    ui.varRecoMode.set(dict['reco_mode'])
+    ui.entRecoDs.delete(0, END)
+    ui.entRecoDs.insert(0, dict['reco_ds'])
+    ui.varRecoPr.set(dict['reco_pr'])
+    ui.entRecoNCore.delete(0, END)
+    ui.entRecoNCore.insert(0, dict['reco_mpi_ncore'])
     if dict['ifmpi']:
         ui.ifmpi.set(True)
     else:
@@ -87,8 +108,13 @@ def write_pars(ui, dict):
         ui.varCentType.set('dis')
     elif dict['cent_type'] == 'sin':
         ui.varCentType.set('sin')
-    updateOpt(ui, 0, ui.varMergMeth1.get())
-    updateOpt(ui, 1, ui.varMergMeth2.get())
-
+    if dict['reco_type'] == 'dis':
+        ui.varRecoType.set('dis')
+    elif dict['reco_type'] == 'sin':
+        ui.varRecoType.set('sin')
+    merg_ui.updateOpt(ui, 0, ui.varMergMeth1.get())
+    merg_ui.updateOpt(ui, 1, ui.varMergMeth2.get())
+    reco_ui.updateAlgoOpts(ui, ui.varRecoAlgo.get())
+    reco_ui.updatePrOpts(ui, ui.varRecoPr.get())
 
 
