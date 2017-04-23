@@ -161,6 +161,7 @@ def recotab_ui(ui):
     labChunk = Label(frameRecoChunk, text='Chunk size (set small if MPI used for sin type):')
     labChunk.pack(side=LEFT)
     ui.entRecoChunk = Entry(frameRecoChunk)
+    ui.entRecoChunk.insert(0, '10')
     ui.entRecoChunk.pack(side=LEFT, fill=X, expand=True)
 
     # mpi line
