@@ -74,7 +74,7 @@ def mpi_script_writer_recon(ui):
         mode="{:s}", phase_retrieval="{:s}", **pr_opts)\n'.format(ui.reco_blend, ui.reco_blend_opts, ui.reco_algo,
                                                                 ui.reco_mode, ui.reco_pr))
     elif ui.reco_type == 'sin':
-        script.append('    tomosaic.recon_hdf5(src, dest, (reco_start, reco_end), reco_step, shift_grid, \
+        script.append('tomosaic.recon_hdf5(src, dest, (reco_start, reco_end), reco_step, shift_grid, \
         center_vec=center_vec, algorithm="{:s}", mode="{:s}", phase_retrieval="{:s}", **pr_opts)\n')\
             .format(ui.reco_algo, ui.reco_mode, ui.reco_pr)
     script.append('\n')
