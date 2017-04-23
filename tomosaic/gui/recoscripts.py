@@ -20,11 +20,11 @@ def recon_mpi(ui):
     center_vec = np.loadtxt(ui.reco_cent, 'float32')
 
     if ui.ifmpi.get() == False:
-            if ui.cent_type == 'dis':
+            if ui.reco_type == 'dis':
                 recon_block(ui.file_grid, ui.shiftgrid/ds, ui.reco_src, ui.reco_dest, (ui.reco_start, ui.reco_end),
                             ui.reco_step, center_vec, blend_method=ui.reco_blend, blend_options=ui.recon_blend_opts,
                             algorithm=ui.reco_algo, mode=ui.reco_mode, phase_retrieval=ui.reco_pr, **ui.reco_pr_opts)
-            elif ui.cent_type == 'sin':
+            elif ui.reco_type == 'sin':
                 recon_hdf5(ui.reco_src, ui.reco_dest, (ui.reco_start, ui.reo_end), ui.reco_step, ui.shiftgrid/ds,
                            center_vec=center_vec, algorithm=ui.reco_algo, mode=ui.reco_mode, phase_retrieval=ui.reco_pr,
                            **ui.reco_pr_opts)
@@ -57,7 +57,7 @@ def mpi_script_writer_recon(ui):
               '\n',
               'relative_shift = tomosaic.util.file2grid("shifts.txt")\n',
               'shift_grid = tomosaic.absolute_shift_grid(relative_shift, file_grid)\n',
-              'ds = {:d}\n'.format(ui.cent_ds),
+              'ds = {:d}\n'.format(ui.reco_ds),
               'center_vec = np.loadtxt(ui.reco_cent, "float32")'
               'src = "{:s}"\n'.format(ui.reco_src),
               'dest = "{:s}"\n'.format(ui.reco_dest),
@@ -66,12 +66,12 @@ def mpi_script_writer_recon(ui):
               'reco_step = {:d}\n'.format(ui.reco_step),
               'pr_opts = {:s}'.format(ui.reco_pr_opts)
              ]
-    if ui.cent_type == 'dis':
+    if ui.reco_type == 'dis':
         script.append('    tomosaic.recon_block(file_grid, shift_grid/ds, src, dest, \
         (reco_start, reco_end), reco_step, center_vec, blend_method="{:s}", blend_options={:s}, algorithm="{:s}", \
         mode="{:s}", phase_retrieval="{:s}", **pr_opts)'.format(ui.reco_blend, ui.reco_blend_opts, ui.reco_algo,
                                                                 ui.reco_mode, ui.reco_pr))
-    elif ui.cent_type == 'sin':
+    elif ui.reco_type == 'sin':
         script.append('    tomosaic.recon_hdf5(src, dest, (reco_start, reco_end), reco_step, shift_grid, \
         center_vec=center_vec, algorithm="{:s}", mode="{:s}", phase_retrieval="{:s}", **pr_opts)')\
             .format(ui.reco_algo, ui.reco_mode, ui.reco_pr)
