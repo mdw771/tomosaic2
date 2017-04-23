@@ -100,7 +100,9 @@ def write_pars(ui, dict):
     ui.varRecoPr.set(dict['reco_pr'])
     ui.entRecoNCore.delete(0, END)
     ui.entRecoNCore.insert(0, dict['reco_mpi_ncore'])
-    ui.varBlendMath.set(dict['reco_blend'])
+    ui.varBlendMeth.set(dict['reco_blend'])
+    ui.entRecoChunk.delete(0, END)
+    ui.entRecoChunk.insert(0, dict['reco_chunk'])
     if dict['ifmpi']:
         ui.ifmpi.set(True)
     else:

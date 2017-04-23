@@ -155,6 +155,14 @@ def recotab_ui(ui):
     labPrOpts = Label(ui.frameRecoPrOpts, text='Phase retrieval options will be shown here if a method is selected.')
     labPrOpts.pack(side=LEFT)
 
+    # chunk line
+
+    frameRecoChunk = Frame(formReco)
+    labChunk = Label(frameRecoChunk, text='Chunk size (set small if MPI used for sin type):')
+    labChunk.pack(side=LEFT)
+    ui.entRecoChunk = Entry(frameRecoChunk)
+    ui.entRecoChunk.pack(side=LEFT, fill=X, expand=True)
+
     # mpi line
 
     frameRecoMPI = Frame(formReco)
@@ -198,6 +206,7 @@ def recotab_ui(ui):
     frameRecoAlgoOpts.pack(fill=X)
     frameRecoPr.pack(fill=X)
     ui.frameRecoPrOpts.pack(fill=X)
+    frameRecoChunk.pack(fill=X)
     frameRecoMPI.pack(fill=X)
     frameRecoOut.pack(fill=X)
 
@@ -360,7 +369,7 @@ def readRecoPars(ui):
     ui.reco_type = ui.varRecoType.get()
     ui.reco_src = ui.entRecoSrc.get()
     ui.reco_dest = ui.entRecoDest.get()
-    ui.reco_blend = ui.varRecoBlend.get()
+    ui.reco_blend = ui.varBlendMeth.get()
     ui.reco_start = ui.entRecoStart.get()
     ui.reco_end = ui.entRecoEnd.get()
     ui.reco_step = ui.entRecoStep.get()
@@ -368,6 +377,7 @@ def readRecoPars(ui):
     ui.reco_mode = ui.varRecoMode.get()
     ui.reco_ds = ui.entRecoDs.get()
     ui.reco_pr = ui.varRecoPr.get()
+    ui.reco_chunk = ui.entRecoChunk.get()
     if ui.reco_pr == 'None':
         ui.reco_pr = None
     ui.reco_mpi_ncore = ui.entRecoNCore.get()

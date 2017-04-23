@@ -67,6 +67,7 @@ class TomosaicUI(Frame):
         self.reco_algo_opts = {}
         self.reco_pr = None
         self.reco_pr_opts = {}
+        self.reco_chunk = 10
         self.reco_mpi_ncore = 1
         self.reco_blend = None
         self.reco_blend_opts = {}
