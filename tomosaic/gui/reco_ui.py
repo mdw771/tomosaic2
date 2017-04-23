@@ -169,7 +169,6 @@ def recotab_ui(ui):
     frameRecoMPI = Frame(formReco)
     labRecoMPI = Label(frameRecoMPI, text='Use MPI:')
     labRecoMPI.pack(side=LEFT)
-    ui.ifmpi = BooleanVar()
     radMPIY = Radiobutton(frameRecoMPI, variable=ui.ifmpi, text='Yes', value=True)
     radMPIY.pack(side=LEFT)
     radMPIN = Radiobutton(frameRecoMPI, variable=ui.ifmpi, text='No', value=False)
