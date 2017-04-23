@@ -19,6 +19,7 @@ def recon_mpi(ui):
     ds = int(ui.cent_ds)
     center_vec = np.loadtxt(ui.reco_cent, 'float32')
     center_vec = center_vec.reshape([1, center_vec.size])
+    nchunk = int(ui.reco_chunk)
 
     if ui.ifmpi.get() == False:
             if ui.reco_type == 'dis':
@@ -28,7 +29,7 @@ def recon_mpi(ui):
             elif ui.reco_type == 'sin':
                 recon_hdf5(ui.reco_src, ui.reco_dest, (ui.reco_start, ui.reco_end), ui.reco_step, ui.shiftgrid/ds,
                            center_vec=center_vec, algorithm=ui.reco_algo, mode=ui.reco_mode, phase_retrieval=ui.reco_pr,
-                           **ui.reco_pr_opts)
+                           chunk_size=nchunk, **ui.reco_pr_opts)
     else:
         mpi_script_writer_recon(ui)
         temp_path = os.path.join(ui.raw_folder, 'recon.py')
@@ -68,6 +69,7 @@ def mpi_script_writer_recon(ui):
               'reco_step = {:d}\n'.format(ui.reco_step),
               'pr_opts = {:s}\n'.format(ui.reco_pr_opts)
              ]
+    pr = 'None' if ui.reco_pr is None else '"' + ui.reco_pr + '"'
     if ui.reco_type == 'dis':
         script.append('tomosaic.recon_block(file_grid, shift_grid/ds, src, dest, \
         (reco_start, reco_end), reco_step, center_vec, blend_method="{:s}", blend_options={:s}, algorithm="{:s}", \
@@ -75,8 +77,8 @@ def mpi_script_writer_recon(ui):
                                                                 ui.reco_mode, ui.reco_pr))
     elif ui.reco_type == 'sin':
         script.append('tomosaic.recon_hdf5(src, dest, (reco_start, reco_end), reco_step, shift_grid, \
-        center_vec=center_vec, algorithm="{:s}", mode="{:s}", phase_retrieval="{:s}", **pr_opts)\n')\
-            .format(ui.reco_algo, ui.reco_mode, ui.reco_pr)
+        center_vec=center_vec, algorithm="{:s}", mode="{:s}", phase_retrieval={:s}, chunk_size={:d}, **pr_opts)\n')\
+            .format(ui.reco_algo, ui.reco_mode, ui.reco_pr, int(ui.reco_chunk))
     script.append('\n')
     f.writelines(script)
     f.close()
