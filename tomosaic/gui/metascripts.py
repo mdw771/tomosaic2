@@ -97,7 +97,7 @@ def write_pars(ui, dict):
     ui.varRecoMode.set(dict['reco_mode'])
     ui.entRecoDs.delete(0, END)
     ui.entRecoDs.insert(0, dict['reco_ds'])
-    ui.varRecoPr.set(dict['reco_pr'])
+    ui.varRecoPr.set(str(dict['reco_pr']))
     ui.entRecoNCore.delete(0, END)
     ui.entRecoNCore.insert(0, dict['reco_mpi_ncore'])
     ui.varBlendMeth.set(dict['reco_blend'])
