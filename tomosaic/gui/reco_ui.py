@@ -373,6 +373,7 @@ def readRecoPars(ui):
     ui.reco_src = ui.entRecoSrc.get()
     ui.reco_dest = ui.entRecoDest.get()
     ui.reco_blend = ui.varBlendMeth.get()
+    ui.reco_cent = ui.entRecoCent.get()
     ui.reco_start = ui.entRecoStart.get()
     ui.reco_end = ui.entRecoEnd.get()
     ui.reco_step = ui.entRecoStep.get()
