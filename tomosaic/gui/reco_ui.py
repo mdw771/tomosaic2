@@ -173,7 +173,7 @@ def recotab_ui(ui):
 
     # out box line
 
-    frameRecoOut = Frame(formReco, height=145)
+    frameRecoOut = Frame(formReco, height=100)
     frameRecoOut.pack_propagate(False)
     ui.boxRecoOut = Text(frameRecoOut)
     ui.boxRecoOut.insert(END, 'Reconstruction\n')
@@ -335,6 +335,17 @@ def launchRecon(ui):
     readRecoPars(ui)
 
 
+def buildBlendOpts(ui, meth, dict):
+
+    if meth == 'overlay':
+        dict['order'] = 1 if ui.entOrder.get() == 2 else 2
+    elif meth == 'alpha':
+        dict['alpha'] = float(ui.entAlpha.get())
+    elif meth == 'pyramid':
+        dict['depth'] = int(ui.entDepth.get())
+        dict['blur'] = float(ui.entBlur.get())
+
+
 def buildPrOpts(ui, meth, dict):
 
     if meth == 'paganin':
@@ -349,6 +360,7 @@ def readRecoPars(ui):
     ui.reco_type = ui.varRecoType.get()
     ui.reco_src = ui.entRecoSrc.get()
     ui.reco_dest = ui.entRecoDest.get()
+    ui.reco_blend = ui.varRecoBlend.get()
     ui.reco_start = ui.entRecoStart.get()
     ui.reco_end = ui.entRecoEnd.get()
     ui.reco_step = ui.entRecoStep.get()
@@ -356,6 +368,9 @@ def readRecoPars(ui):
     ui.reco_mode = ui.varRecoMode.get()
     ui.reco_ds = ui.entRecoDs.get()
     ui.reco_pr = ui.varRecoPr.get()
+    if ui.reco_pr == 'None':
+        ui.reco_pr = None
     ui.reco_mpi_ncore = ui.entRecoNCore.get()
     buildPrOpts(ui, ui.reco_pr, ui.reco_pr_opts)
+    buildBlendOpts(ui, ui.reco_blend, ui.reco_blend_opts)
     ui.boxRecoOut.insert(END, 'Parameters read.\n')

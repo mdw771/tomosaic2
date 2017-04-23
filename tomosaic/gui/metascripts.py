@@ -100,6 +100,7 @@ def write_pars(ui, dict):
     ui.varRecoPr.set(dict['reco_pr'])
     ui.entRecoNCore.delete(0, END)
     ui.entRecoNCore.insert(0, dict['reco_mpi_ncore'])
+    ui.varBlendMath.set(dict['reco_blend'])
     if dict['ifmpi']:
         ui.ifmpi.set(True)
     else:
@@ -116,5 +117,5 @@ def write_pars(ui, dict):
     merg_ui.updateOpt(ui, 1, ui.varMergMeth2.get())
     reco_ui.updateAlgoOpts(ui, ui.varRecoAlgo.get())
     reco_ui.updatePrOpts(ui, ui.varRecoPr.get())
-
+    reco_ui.updateBlendOpt(ui, ui.varBlendMeth.get())
 

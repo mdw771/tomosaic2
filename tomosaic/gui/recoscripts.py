@@ -17,22 +17,22 @@ from tomosaic.recon import *
 def recon_mpi(ui):
 
     ds = int(ui.cent_ds)
-    n_rows = ui.shiftgrid.shape[0]
     center_vec = np.loadtxt(ui.reco_cent, 'float32')
 
     if ui.ifmpi.get() == False:
             if ui.cent_type == 'dis':
-                recon_block(ui.file_grid, ui.shiftgrid/ds, ui.reco_src, ui.reco_dest,
-                            (ui.reco_start, ui.reco_end), ui.reco_step, center_vec,
-                            blend_method='pyramid', algorithm=ui.cent_algo, mode=ui.cent_mode, test_mode=True)
+                recon_block(ui.file_grid, ui.shiftgrid/ds, ui.reco_src, ui.reco_dest, (ui.reco_start, ui.reco_end),
+                            ui.reco_step, center_vec, blend_method=ui.reco_blend, blend_options=ui.recon_blend_opts,
+                            algorithm=ui.reco_algo, mode=ui.reco_mode, phase_retrieval=ui.reco_pr, **ui.reco_pr_opts)
             elif ui.cent_type == 'sin':
-                recon_hdf5(ui.cent_src, ui.cent_dest, (ui.cent_slice, ui.cent_slice+(n_rows-1)*y_shift+1), y_shift,
-                           ui.shiftgrid, center_vec=center_vec, algorithm=ui.cent_algo, mode=ui.cent_mode, test_mode=True)
+                recon_hdf5(ui.reco_src, ui.reco_dest, (ui.reco_start, ui.reo_end), ui.reco_step, ui.shiftgrid/ds,
+                           center_vec=center_vec, algorithm=ui.reco_algo, mode=ui.reco_mode, phase_retrieval=ui.reco_pr,
+                           **ui.reco_pr_opts)
     else:
-        mpi_script_writer_center(ui)
-        temp_path = os.path.join(ui.raw_folder, 'center.py')
+        mpi_script_writer_recon(ui)
+        temp_path = os.path.join(ui.raw_folder, 'recon.py')
         flag = None
-        flag = os.system('mpirun -n ' + str(ui.merge_mpi_ncore) + ' python ' + temp_path)
+        flag = os.system('mpirun -n ' + str(ui.reco_mpi_ncore) + ' python ' + temp_path)
         while True:
             if flag is not None:
                 # os.remove(temp_path)
@@ -43,10 +43,10 @@ def recon_mpi(ui):
     return
 
 
-def mpi_script_writer_center(ui):
+def mpi_script_writer_recon(ui):
 
-    shutil.copyfile('mpi_common_head', os.path.join(ui.raw_folder, 'center.py'))
-    f = open(os.path.join(ui.raw_folder, 'center.py'), 'a')
+    shutil.copyfile('mpi_common_head', os.path.join(ui.raw_folder, 'recon.py'))
+    f = open(os.path.join(ui.raw_folder, 'recon.py'), 'a')
     script = ['raw_folder = "' + ui.raw_folder + '"\n',
               'os.chdir(raw_folder)\n',
               'prefix = "' + ui.prefix + '"\n',
@@ -58,26 +58,23 @@ def mpi_script_writer_center(ui):
               'relative_shift = tomosaic.util.file2grid("shifts.txt")\n',
               'shift_grid = tomosaic.absolute_shift_grid(relative_shift, file_grid)\n',
               'ds = {:d}\n'.format(ui.cent_ds),
-              'y_shift = int(np.mean(shift_grid[:, 0, 0])) / ds\n',
-              'y_shift = y_shift if y_shift > 0 else 1\n',
-              'n_rows = shift_grid.shape[0]\n',
-              'src = "{:s}"\n'.format(ui.cent_src),
-              'dest = "{:s}"\n'.format(ui.cent_dest),
-              'center_vec = np.zeros(n_rows)\n',
-              'cent_start = {:d}\n'.format(ui.cent_start),
-              'cent_end = {:d}\n'.format(ui.cent_end),
-              'cent_step = {:d}\n'.format(ui.cent_step),
-              'slice = {:d}\n'.format(ui.cent_slice),
-              'for center in range(cent_start, cent_end, cent_step):\n',
-              '    center_vec[:] = center\n'
+              'center_vec = np.loadtxt(ui.reco_cent, "float32")'
+              'src = "{:s}"\n'.format(ui.reco_src),
+              'dest = "{:s}"\n'.format(ui.reco_dest),
+              'reco_start = {:d}\n'.format(ui.reco_start),
+              'reco_end = {:d}\n'.format(ui.reco_end),
+              'reco_step = {:d}\n'.format(ui.reco_step),
+              'pr_opts = {:s}'.format(ui.reco_pr_opts)
              ]
     if ui.cent_type == 'dis':
         script.append('    tomosaic.recon_block(file_grid, shift_grid/ds, src, dest, \
-        (slice, slice+(n_rows-1)*y_shift+1), y_shift, center_vec, blend_method="pyramid", algorithm="{:s}", \
-        mode="{:s}", test_mode=True)'.format(ui.cent_algo, ui.cent_mode))
+        (reco_start, reco_end), reco_step, center_vec, blend_method="{:s}", blend_options={:s}, algorithm="{:s}", \
+        mode="{:s}", phase_retrieval="{:s}", **pr_opts)'.format(ui.reco_blend, ui.reco_blend_opts, ui.reco_algo,
+                                                                ui.reco_mode, ui.reco_pr))
     elif ui.cent_type == 'sin':
-        script.append('    tomosaic.recon_hdf5(src, dest, (slice, slice+(n_rows-1)*y_shift+1), y_shift, shift_grid, \
-        center_vec=center_vec, algorithm="{:s}", mode="{:s}", test_mode=True)').format(ui.cent_algo, ui.cent_mode)
+        script.append('    tomosaic.recon_hdf5(src, dest, (reco_start, reco_end), reco_step, shift_grid, \
+        center_vec=center_vec, algorithm="{:s}", mode="{:s}", phase_retrieval="{:s}", **pr_opts)')\
+            .format(ui.reco_algo, ui.reco_mode, ui.reco_pr)
     script.append('\n')
     f.writelines(script)
     f.close()
