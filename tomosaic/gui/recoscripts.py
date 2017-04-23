@@ -69,7 +69,7 @@ def mpi_script_writer_recon(ui):
               'pr_opts = {:s}\n'.format(ui.reco_pr_opts)
              ]
     if ui.reco_type == 'dis':
-        script.append('    tomosaic.recon_block(file_grid, shift_grid/ds, src, dest, \
+        script.append('tomosaic.recon_block(file_grid, shift_grid/ds, src, dest, \
         (reco_start, reco_end), reco_step, center_vec, blend_method="{:s}", blend_options={:s}, algorithm="{:s}", \
         mode="{:s}", phase_retrieval="{:s}", **pr_opts)\n'.format(ui.reco_blend, ui.reco_blend_opts, ui.reco_algo,
                                                                 ui.reco_mode, ui.reco_pr))
