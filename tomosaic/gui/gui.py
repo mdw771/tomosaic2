@@ -72,7 +72,6 @@ class TomosaicUI(Frame):
         self.reco_blend = None
         self.reco_blend_opts = {}
 
-
         self.initUI()
 
     def initUI(self):
@@ -123,7 +122,7 @@ class TomosaicUI(Frame):
 
         dict = copy.copy(self.__dict__)
         for key in dict.keys():
-            if key[:3] in ['box', 'ent', 'tab', 'opt', 'lst'] or key[:5] in ['frame']:
+            if key[:3] in ['box', 'ent', 'tab', 'opt', 'lst', 'lab'] or key[:5] in ['frame']:
                 del dict[key]
             elif isinstance(dict[key], Entry) or isinstance(dict[key], Text):
                 del dict[key]

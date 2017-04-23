@@ -7,7 +7,7 @@ from tkFileDialog import *
 from tkMessageBox import showerror, showwarning, showinfo
 
 from metascripts import *
-from centscripts import *
+from recoscripts import *
 from tomosaic.merge.merge import _get_algorithm_kwargs
 
 
@@ -342,6 +342,8 @@ def updateBlendOpt(ui, meth):
 def launchRecon(ui):
 
     readRecoPars(ui)
+    recon_mpi(ui)
+    ui.boxRecoOut.insert(END, 'Done.\n')
 
 
 def buildBlendOpts(ui, meth, dict):
