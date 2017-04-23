@@ -59,7 +59,7 @@ def mpi_script_writer_recon(ui):
               'relative_shift = tomosaic.util.file2grid("shifts.txt")\n',
               'shift_grid = tomosaic.absolute_shift_grid(relative_shift, file_grid)\n',
               'ds = {:s}\n'.format(ui.reco_ds),
-              'center_vec = np.loadtxt({:s}, "float32")\n'.format(ui.reco_cent),
+              'center_vec = np.loadtxt("{:s}", "float32")\n'.format(ui.reco_cent),
               'center_vec = center_vec.reshape([1, center_vec.size])\n'
               'src = "{:s}"\n'.format(ui.reco_src),
               'dest = "{:s}"\n'.format(ui.reco_dest),
