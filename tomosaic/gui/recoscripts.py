@@ -22,7 +22,7 @@ def recon_mpi(ui):
     if ui.ifmpi.get() == False:
             if ui.reco_type == 'dis':
                 recon_block(ui.filegrid, ui.shiftgrid/ds, ui.reco_src, ui.reco_dest, (ui.reco_start, ui.reco_end),
-                            ui.reco_step, center_vec, blend_method=ui.reco_blend, blend_options=ui.recon_blend_opts,
+                            ui.reco_step, center_vec, blend_method=ui.reco_blend, blend_options=ui.reco_blend_opts,
                             algorithm=ui.reco_algo, mode=ui.reco_mode, phase_retrieval=ui.reco_pr, **ui.reco_pr_opts)
             elif ui.reco_type == 'sin':
                 recon_hdf5(ui.reco_src, ui.reco_dest, (ui.reco_start, ui.reo_end), ui.reco_step, ui.shiftgrid/ds,
