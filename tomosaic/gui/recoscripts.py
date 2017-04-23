@@ -18,6 +18,7 @@ def recon_mpi(ui):
 
     ds = int(ui.cent_ds)
     center_vec = np.loadtxt(ui.reco_cent, 'float32')
+    center_vec = center_vec.reshape([1, center_vec.size])
 
     if ui.ifmpi.get() == False:
             if ui.reco_type == 'dis':
@@ -58,22 +59,23 @@ def mpi_script_writer_recon(ui):
               'relative_shift = tomosaic.util.file2grid("shifts.txt")\n',
               'shift_grid = tomosaic.absolute_shift_grid(relative_shift, file_grid)\n',
               'ds = {:d}\n'.format(ui.reco_ds),
-              'center_vec = np.loadtxt(ui.reco_cent, "float32")'
+              'center_vec = np.loadtxt(ui.reco_cent, "float32")\n',
+              'center_vec = center_vec.reshape([1, center_vec.size])\n'
               'src = "{:s}"\n'.format(ui.reco_src),
               'dest = "{:s}"\n'.format(ui.reco_dest),
               'reco_start = {:d}\n'.format(ui.reco_start),
               'reco_end = {:d}\n'.format(ui.reco_end),
               'reco_step = {:d}\n'.format(ui.reco_step),
-              'pr_opts = {:s}'.format(ui.reco_pr_opts)
+              'pr_opts = {:s}\n'.format(ui.reco_pr_opts)
              ]
     if ui.reco_type == 'dis':
         script.append('    tomosaic.recon_block(file_grid, shift_grid/ds, src, dest, \
         (reco_start, reco_end), reco_step, center_vec, blend_method="{:s}", blend_options={:s}, algorithm="{:s}", \
-        mode="{:s}", phase_retrieval="{:s}", **pr_opts)'.format(ui.reco_blend, ui.reco_blend_opts, ui.reco_algo,
+        mode="{:s}", phase_retrieval="{:s}", **pr_opts)\n'.format(ui.reco_blend, ui.reco_blend_opts, ui.reco_algo,
                                                                 ui.reco_mode, ui.reco_pr))
     elif ui.reco_type == 'sin':
         script.append('    tomosaic.recon_hdf5(src, dest, (reco_start, reco_end), reco_step, shift_grid, \
-        center_vec=center_vec, algorithm="{:s}", mode="{:s}", phase_retrieval="{:s}", **pr_opts)')\
+        center_vec=center_vec, algorithm="{:s}", mode="{:s}", phase_retrieval="{:s}", **pr_opts)\n')\
             .format(ui.reco_algo, ui.reco_mode, ui.reco_pr)
     script.append('\n')
     f.writelines(script)

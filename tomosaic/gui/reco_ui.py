@@ -110,7 +110,7 @@ def recotab_ui(ui):
     labBlendMeth = Label(frameRecoBlendMethod, text='Blending method (dis. type only):')
     labBlendMeth.pack(side=LEFT)
     ui.varBlendMeth = StringVar()
-    ui.varBlendMeth.set('Max')
+    ui.varBlendMeth.set('max')
     lsBlendMeth = ('overlay', 'max', 'min', 'alpha', 'pyramid', 'poisson')
     ui.optBlendMeth = OptionMenu(frameRecoBlendMethod, ui.varBlendMeth, command=partial(updateBlendOpt, ui), *lsBlendMeth)
     ui.optBlendMeth.pack(side=LEFT, fill=X, expand=True)
