@@ -66,7 +66,9 @@ __all__ = ['get_files',
            'save_partial_frames',
            'save_partial_raw',
            'build_panorama',
-           'total_fusion']
+           'total_fusion',
+           'file2grid',
+           'hdf5_retrieve_phase']
 
 import os, glob, re
 import h5py
@@ -74,7 +76,7 @@ import numpy as np
 import tomopy
 import dxchange
 from tomosaic.util.phase import retrieve_phase
-from tomosaic.util.misc import allocate_mpi_subsets, read_aps_32id_adaptive
+from tomosaic.misc.misc import allocate_mpi_subsets, read_aps_32id_adaptive
 from tomosaic.merge.merge import blend
 from tomosaic.register.morph import arrange_image
 import shutil
@@ -82,16 +84,24 @@ from scipy.ndimage import gaussian_filter
 from scipy.misc import imread, imsave
 import matplotlib.pyplot as plt
 from tomopy import downsample
-from scipy.misc import imresize
-from mpi4py import MPI
 import time
-import gc, sys
+import gc
+
+try:
+    from mpi4py import MPI
+except:
+    from tomosaic.util.pseudo import pseudo_comm
 
 
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-name = MPI.Get_processor_name()
+try:
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+    name = MPI.Get_processor_name()
+except:
+    comm = pseudo_comm()
+    rank = 0
+    size = 1
 
 
 def get_files(folder, prefix, type='.h5'):
@@ -123,15 +133,13 @@ def save_partial_frames(file_grid, save_folder, prefix, frame=0):
             dxchange.write_tiff(np.squeeze(prj), fname=os.path.join(save_folder, 'partial_frames', fname))
 
 
-def save_partial_raw(file_grid, save_folder, prefix):
-    for (y, x), value in np.ndenumerate(file_grid):
+def save_partial_raw(file_list, save_folder):
+    for value in file_list:
         if (value != None):
             prj, flt, drk = read_aps_32id_adaptive(value, proj=(0, 1))
             fname = value
-            flt = flt.mean(axis=0).astype('float32')
-            dxchange.write_tiff(np.squeeze(flt), fname=os.path.join(save_folder, 'partial_flats', fname))
-            drk = drk.mean(axis=0).astype('float16')
-            dxchange.write_tiff(np.squeeze(drk), fname=os.path.join(save_folder, 'partial_darks', fname))
+            dxchange.write_tiff_stack(np.squeeze(flt), fname=os.path.join(save_folder, 'partial_flats', fname))
+            dxchange.write_tiff_stack(np.squeeze(drk), fname=os.path.join(save_folder, 'partial_darks', fname))
             prj = prj.astype('float32')
             dxchange.write_tiff(np.squeeze(prj), fname=os.path.join(save_folder, 'partial_frames_raw', fname))
 
@@ -224,6 +232,7 @@ def grid2file(grid, file_name):
 
 
 def file2grid(file_name):
+
     with file(file_name, 'r') as infile:
         grid0 = np.loadtxt(file_name)
         grid_shape = [grid0[-1, 0] + 1, grid0[-1, 1] + 1]
@@ -237,6 +246,7 @@ def file2grid(file_name):
 
 
 def normalize(img):
+
     img = (img - img.min()) / (img.max() - img.min())
     return img
 

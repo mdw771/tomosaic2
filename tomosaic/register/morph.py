@@ -219,3 +219,42 @@ def test_out(img, save_folder):
     img = -np.log(img)
     img[np.where(np.isnan(img) == True)] = 0
     dxchange.write_tiff(np.squeeze(img), fname=save_folder + 'test')
+
+
+def sino_360_to_180(data, overlap=0, rotation='left'):
+    """
+    Converts 0-360 degrees sinogram to a 0-180 sinogram.
+    If the number of projections in the input data is odd, the last projection
+    will be discarded.
+    Parameters
+    ----------
+    data : ndarray
+        Input 3D data.
+    overlap : scalar, optional
+        Overlapping number of pixels.
+    rotation : string, optional
+        Left if rotation center is close to the left of the
+        field-of-view, right otherwise.
+    Returns
+    -------
+    ndarray
+        Output 3D data.
+    """
+    dx, dy, dz = data.shape
+
+    overlap = int(np.round(overlap))
+
+    lo = overlap//2
+    ro = overlap - lo
+    n = dx//2
+
+    out = np.zeros((n, dy, 2*dz-overlap), dtype=data.dtype)
+
+    if rotation == 'left':
+        out[:, :, -(dz-lo):] = data[:n, :, lo:]
+        out[:, :, :-(dz-lo)] = data[n:2*n, :, ro:][:, :, ::-1]
+    elif rotation == 'right':
+        out[:, :, :dz-lo] = data[:n, :, :-lo]
+        out[:, :, dz-lo:] = data[n:2*n, :, :-ro][:, :, ::-1]
+
+    return out

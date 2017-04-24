@@ -124,3 +124,8 @@ def paganin(input, pixel=1e-4, distance=50, energy=25, alpha=1e-4):
     res = tomopy.retrieve_phase(input, pixel_size=pixel, dist=distance, energy=energy, alpha=alpha)
     res = np.squeeze(res)
     return res
+
+
+def _get_pr_kwargs():
+
+    return {'pixel': 1e-4, 'distance': 50, 'energy': 25, 'alpha_paganin':1e-4}

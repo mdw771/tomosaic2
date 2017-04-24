@@ -65,27 +65,35 @@ __all__ = ['start_file_grid',
            'start_shift_grid',
            'shift2center_grid',
            'refine_shift_grid',
+           'create_stitch_shift',
            'absolute_shift_grid']
 
 import numpy as np
 import h5py
 import tomopy
-import dxchange
 from tomosaic.register.morph import *
-from tomosaic.register.register import *
 from tomosaic.register.register_translation import register_translation
 from tomosaic.util.util import *
-from tomosaic.util.misc import read_aps_32id_adaptive
-from scipy import ndimage
-from mpi4py import MPI
+from tomosaic.misc.misc import read_aps_32id_adaptive
 import warnings
+import os
+import time
+try:
+    from mpi4py import MPI
+except:
+    from tomosaic.util.pseudo import pseudo_comm
 
 warnings.filterwarnings('ignore')
 
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-name = MPI.Get_processor_name()
+try:
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+    name = MPI.Get_processor_name()
+except:
+    comm = pseudo_comm()
+    rank = 0
+    size = 1
 
 
 def start_file_grid(file_list, ver_dir=0, hor_dir=0, pattern=0):
@@ -168,9 +176,8 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', savefolder='.', step=200
     if remainder:
         if rank == 0:
             print('You will have {:d} files that cannot be processed in parallel. Consider optimizing number of ranks. '
-                  'Press anykey to continue.'
                   .format(remainder))
-            anykey = raw_input()
+            time.sleep(3)
     comm.Barrier()
 
     for stage in [0, 1]:
