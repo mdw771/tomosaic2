@@ -47,7 +47,7 @@ def phastab_ui(ui):
     pr_opts = ('paganin',)
     ui.varPhasMeth = StringVar()
     ui.varPhasMeth.set('paganin')
-    optPhasPr = OptionMenu(framePhasPr, variable=ui.varPhasMeth, value=pr_opts, command=partial(updatePrOpts, ui))
+    optPhasPr = OptionMenu(framePhasPr, ui.varPhasMeth, command=partial(updatePrOpts, ui), *pr_opts)
     optPhasPr.pack(side=LEFT)
     labUnit = Label(framePhasPr, text='Dimensions: length (cm), energy (keV)')
     labUnit.pack(side=LEFT)
