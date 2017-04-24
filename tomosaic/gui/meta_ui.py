@@ -78,8 +78,11 @@ def metatab_ui(ui):
 def getRawDirectory(ui):
 
     ui.raw_folder = askdirectory()
-    ui.entRawPath.delete(0, END)
-    ui.entRawPath.insert(0, ui.raw_folder)
+    try:
+        ui.entRawPath.delete(0, END)
+        ui.entRawPath.insert(0, ui.raw_folder)
+    except:
+        pass
     
 
 def writeFirstFrames(ui):

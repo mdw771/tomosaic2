@@ -25,7 +25,7 @@ def phastab_ui(ui):
     ui.entPhasSrc.pack(side=LEFT, fill=X, expand=True)
     buttPhasSrcBrowse = Button(framePhasSrc, text='Browse...', command=partial(getPhasSrc, ui))
     buttPhasSrcBrowse.pack(side=LEFT)
-    buttPhasSrcDefault = Button(framePhasSrc, text='Same as raw folder', command=partial(getRawFolder, ui))
+    buttPhasSrcDefault = Button(framePhasSrc, text='Fill in raw folder', command=partial(getRawFolder, ui))
     buttPhasSrcDefault.pack(side=LEFT)
 
     # dest line
@@ -139,6 +139,7 @@ def buildPhasOpts(ui, meth, dict, uid):
 
 def readPhasPars(ui):
 
+    print ui.entPhasSrc.get()
     ui.phase_src_fanme = os.path.basename(ui.entPhasSrc.get())
     ui.phase_src_folder = ui.entPhasSrc.get().split(ui.phas_src_fname)[0]
     ui.phase_dest_fname = os.path.basename(ui.entPhasDest.get())
@@ -147,6 +148,7 @@ def readPhasPars(ui):
     buildPhasOpts(ui, ui.phas_meth, ui.phas_opts, 0)
     ui.phase_mpi_ncore = int(ui.entPhasNCore.get())
     ui.boxPhasOut.insert(END, 'Parameters read.\n')
+    print ui.ifmpi.get()
 
 
 def updatePrOpts(ui, meth):
