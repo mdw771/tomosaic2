@@ -131,13 +131,12 @@ def launchPhasing(ui):
 
 
 def buildPhasOpts(ui, meth, dict, uid):
-    if meth == 'overlay':
-        dict['order'] = 1 if ui.lstOrder[uid].get() == 2 else 2
-    elif meth == 'alpha':
-        dict['alpha'] = float(ui.lstAlpha[uid].get())
-    elif meth == 'pyramid':
-        dict['depth'] = int(ui.lstDepth[uid].get())
-        dict['blur'] = float(ui.lstBlur[uid].get())
+    if meth == 'paganin':
+        dict['pixel'] =float(ui.ent1.get())
+        dict['distance'] =float(ui.ent2.get())
+        dict['energy'] =float(ui.ent3.get())
+        dict['alpha'] =float(ui.ent4.get())
+
 
 
 def readPhasPars(ui):
