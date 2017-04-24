@@ -1,5 +1,6 @@
 from functools import partial
 import copy
+import os
 
 from Tkinter import *
 from ttk import Notebook
@@ -103,12 +104,14 @@ def phastab_ui(ui):
 def getPhasSrc(ui):
 
     src = askopenfilename()
+    ui.entPhasSrc.delete(0, END)
     ui.entPhasSrc.insert(0, src)
 
 
 def getRawFolder(ui):
 
     try:
+        ui.entPhasSrc.delete(0, END)
         ui.entPhasSrc.insert(0, ui.raw_folder)
     except:
         showerror(message='Raw folder must be specified in metadata tab.')
@@ -139,7 +142,7 @@ def buildPhasOpts(ui, meth, dict, uid):
 
 def readPhasPars(ui):
 
-    ui.phas_src_fanme = os.path.basename(ui.entPhasSrc.get())
+    ui.phas_src_fname = os.path.basename(str(ui.entPhasSrc.get()))
     ui.phas_src_folder = ui.entPhasSrc.get().split(ui.phas_src_fname)[0]
     ui.phas_dest_fname = os.path.basename(ui.entPhasDest.get())
     ui.phas_dest_folder = ui.entPhasDest.get().split(ui.phas_dest_fname)[0]

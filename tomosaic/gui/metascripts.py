@@ -68,6 +68,7 @@ def write_pars(ui, dict):
     ui.entPhasDest.insert(0, os.path.join(dict['phas_dest_folder'], dict['phas_dest_fname']))
     ui.varPhasMeth.set(dict['phas_meth'])
     ui.entPhasNCore.delete(0, END)
+    ui.entPhasNCore.insert(0, dict['phas_mpi_ncore'])
     ui.entCentSrc.delete(0, END)
     ui.entCentSrc.insert(0, dict['cent_src'])
     ui.entCentDest.delete(0, END)
