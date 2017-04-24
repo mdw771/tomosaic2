@@ -151,25 +151,25 @@ def readPhasPars(ui):
 
 def updatePrOpts(ui, meth):
 
-    for w in ui.frameRecoPrOpts.winfo_children():
+    for w in ui.framePhasPrOpts.winfo_children():
         w.destroy()
     if meth == 'paganin':
         width = 10
-        ui.lab1 = Label(ui.frameRecoPrOpts, text='Px size:')
+        ui.lab1 = Label(ui.framePhasPrOpts, text='Px size:')
         ui.lab1.grid(row=0, column=0)
-        ui.ent1 = Entry(ui.frameRecoPrOpts)
+        ui.ent1 = Entry(ui.framePhasPrOpts)
         ui.ent1.grid(row=0, column=1)
-        ui.lab2 = Label(ui.frameRecoPrOpts, text='Dist:')
+        ui.lab2 = Label(ui.framePhasPrOpts, text='Dist:')
         ui.lab2.grid(row=0, column=2)
-        ui.ent2 = Entry(ui.frameRecoPrOpts)
+        ui.ent2 = Entry(ui.framePhasPrOpts)
         ui.ent2.grid(row=0, column=3)
-        ui.lab3 = Label(ui.frameRecoPrOpts, text='E:')
+        ui.lab3 = Label(ui.framePhasPrOpts, text='E:')
         ui.lab3.grid(row=0, column=4)
-        ui.ent3 = Entry(ui.frameRecoPrOpts)
+        ui.ent3 = Entry(ui.framePhasPrOpts)
         ui.ent3.grid(row=0, column=5)
-        ui.lab4 = Label(ui.frameRecoPrOpts, text='Alpha:')
+        ui.lab4 = Label(ui.framePhasPrOpts, text='Alpha:')
         ui.lab4.grid(row=0, column=6)
-        ui.ent4 = Entry(ui.frameRecoPrOpts)
+        ui.ent4 = Entry(ui.framePhasPrOpts)
         ui.ent4.grid(row=0, column=7)
         ui.ent1['width'] = width
         ui.ent2['width'] = width
@@ -177,5 +177,5 @@ def updatePrOpts(ui, meth):
         ui.ent4['width'] = width
 
     else:
-        ui.labNone = Label(ui.frameRecoPrOpts, text='No options available.')
+        ui.labNone = Label(ui.framePhasPrOpts, text='No options available.')
         ui.labNone.pack(side=LEFT)
