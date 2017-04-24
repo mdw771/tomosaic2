@@ -140,11 +140,11 @@ def buildPhasOpts(ui, meth, dict, uid):
 def readPhasPars(ui):
 
     ui.phase_src_fanme = os.path.basename(ui.entPhasSrc.get())
-    ui.phase_src_folder = ui.entPhasSrc.get().split(ui.phase_src_fname)[0]
+    ui.phase_src_folder = ui.entPhasSrc.get().split(ui.phas_src_fname)[0]
     ui.phase_dest_fname = os.path.basename(ui.entPhasDest.get())
-    ui.phase_dest_folder = ui.entPhasDest.get().split(ui.phase_dest_fname)[0]
+    ui.phase_dest_folder = ui.entPhasDest.get().split(ui.phas_dest_fname)[0]
     ui.phase_meth = ui.varPhasMeth.get()
-    buildPhasOpts(ui, ui.phase_meth, ui.phase_opts, 0)
+    buildPhasOpts(ui, ui.phas_meth, ui.phas_opts, 0)
     ui.phase_mpi_ncore = int(ui.entPhasNCore.get())
     ui.boxPhasOut.insert(END, 'Parameters read.\n')
 
