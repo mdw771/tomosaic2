@@ -46,7 +46,7 @@ def phastab_ui(ui):
     pr_opts = ('paganin',)
     ui.varPhasMeth = StringVar()
     ui.varPhasMeth.set('paganin')
-    optPhasPr = OptionMenu(framePhasPr, ui.varPhasMeth, command=partial(updatePrOpts, ui), *pr_opts)
+    optPhasPr = OptionMenu(framePhasPr, variable=ui.varPhasMeth, value=pr_opts, command=partial(updatePrOpts, ui))
     optPhasPr.pack(side=LEFT)
     labUnit = Label(framePhasPr, text='Dimensions: length (cm), energy (keV)')
     labUnit.pack(side=LEFT)
@@ -123,7 +123,7 @@ def getPhasDestFile(ui):
 def launchPhasing(ui):
 
     readPhasPars(ui)
-    phas_mpi(ui)
+    phase_mpi(ui)
     ui.boxPhasOut.insert(END, 'Done.\n')
 
 
