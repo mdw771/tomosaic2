@@ -63,10 +63,10 @@ def phastab_ui(ui):
     framePhasMPI = Frame(formPhas)
     labPhasMPI = Label(framePhasMPI, text='Use MPI:')
     labPhasMPI.pack(side=LEFT)
-    ui.ifmpi = BooleanVar()
-    radMPIY = Radiobutton(framePhasMPI, variable=ui.ifmpi, text='Yes', value=True)
+    ui.phas_ifmpi = BooleanVar()
+    radMPIY = Radiobutton(framePhasMPI, variable=ui.phas_ifmpi, text='Yes', value=True)
     radMPIY.pack(side=LEFT)
-    radMPIN = Radiobutton(framePhasMPI, variable=ui.ifmpi, text='No', value=False)
+    radMPIN = Radiobutton(framePhasMPI, variable=ui.phas_ifmpi, text='No', value=False)
     radMPIN.pack(side=LEFT, padx=10)
     labPhasNCore = Label(framePhasMPI, text='Number of processes to initiate:')
     labPhasNCore.pack(side=LEFT)
@@ -123,7 +123,7 @@ def getPhasDestFile(ui):
 def launchPhasing(ui):
 
     readPhasPars(ui)
-    phase_mpi(ui)
+    phas_mpi(ui)
     ui.boxPhasOut.insert(END, 'Done.\n')
 
 
@@ -139,16 +139,14 @@ def buildPhasOpts(ui, meth, dict, uid):
 
 def readPhasPars(ui):
 
-    print ui.entPhasSrc.get()
-    ui.phase_src_fanme = os.path.basename(ui.entPhasSrc.get())
-    ui.phase_src_folder = ui.entPhasSrc.get().split(ui.phas_src_fname)[0]
-    ui.phase_dest_fname = os.path.basename(ui.entPhasDest.get())
-    ui.phase_dest_folder = ui.entPhasDest.get().split(ui.phas_dest_fname)[0]
-    ui.phase_meth = ui.varPhasMeth.get()
+    ui.phas_src_fanme = os.path.basename(ui.entPhasSrc.get())
+    ui.phas_src_folder = ui.entPhasSrc.get().split(ui.phas_src_fname)[0]
+    ui.phas_dest_fname = os.path.basename(ui.entPhasDest.get())
+    ui.phas_dest_folder = ui.entPhasDest.get().split(ui.phas_dest_fname)[0]
+    ui.phas_meth = ui.varPhasMeth.get()
     buildPhasOpts(ui, ui.phas_meth, ui.phas_opts, 0)
-    ui.phase_mpi_ncore = int(ui.entPhasNCore.get())
+    ui.phas_mpi_ncore = int(ui.entPhasNCore.get())
     ui.boxPhasOut.insert(END, 'Parameters read.\n')
-    print ui.ifmpi.get()
 
 
 def updatePrOpts(ui, meth):

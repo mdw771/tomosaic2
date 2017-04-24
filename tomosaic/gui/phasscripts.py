@@ -30,7 +30,7 @@ from tomosaic.util import *
 
 def phase_mpi(ui):
 
-    if ui.ifmpi.get() == False:
+    if ui.phas_ifmpi.get() == False:
             hdf5_retrieve_phase(ui.phas_src_folder, ui.phas_src_fname, ui.phas_dest_folder, ui.phas_dest_fname,
                                      method=ui.phas_meth)
     else:

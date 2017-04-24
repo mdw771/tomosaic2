@@ -181,6 +181,7 @@ def readCentPars(ui):
     ui.cent_algo = ui.entCentAlgo.get()
     ui.cent_mpi_ncore = ui.entCentNCore.get()
     ui.cent_ds = int(ui.entCentDs.get())
+    print ui.ifmpi.get()
     ui.boxCentOut.insert(END, 'Parameters read.\n')
 
 
