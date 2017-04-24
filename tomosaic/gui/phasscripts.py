@@ -66,7 +66,7 @@ def mpi_script_writer_phase(ui):
               'dest_folder = "{:s}"\n'.format(ui.phas_dest_folder),
               'dest_fname = "{:s}"\n'.format(ui.phas_dest_fname),
               'method = "{:s}"\n'.format(ui.phas_meth),
-              'pr_opts = {:s}\n'.format(ui.phas_pr_opts),
+              'pr_opts = {:s}\n'.format(ui.phas_opts),
               'hdf5_retrieve_phase(src_folder, src_fname, dest_folder, dest_fname, method=method)\n',
              ]
     f.writelines(script)
