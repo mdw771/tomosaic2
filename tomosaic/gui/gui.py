@@ -12,6 +12,7 @@ from tkMessageBox import showerror, showwarning, showinfo
 from meta_ui import *
 from regi_ui import *
 from merg_ui import *
+from phas_ui import *
 from cent_ui import *
 from reco_ui import *
 from metascripts import *
@@ -43,6 +44,13 @@ class TomosaicUI(Frame):
         self.merge_opts1 = {}
         self.merge_opts2 = {}
         self.merge_mpi_ncore = 1
+        self.phas_src_folder = None
+        self.phas_src_fname = None
+        self.phas_dest_folder = None
+        self.phas_dest_fname = None
+        self.phas_meth = None
+        self.phas_opts = {}
+        self.phas_mpi_ncore = 1
         self.cent_type = None
         self.cent_src = None
         self.cent_dest = None
@@ -99,21 +107,23 @@ class TomosaicUI(Frame):
         self.tabMeta = Frame(tabs)
         self.tabRegi = Frame(tabs)
         self.tabMerg = Frame(tabs)
+        self.tabPhas = Frame(tabs)
         self.tabCent = Frame(tabs)
         self.tabReco = Frame(tabs)
 
         tabs.add(self.tabMeta, text='Metadata')
         tabs.add(self.tabRegi, text='Registration')
         tabs.add(self.tabMerg, text='Merging')
+        tabs.add(self.tabPhas, text='Phase')
         tabs.add(self.tabCent, text='Center optimization')
         tabs.add(self.tabReco, text='Reconstruction')
 
         metatab_ui(self)
         regitab_ui(self)
         mergtab_ui(self)
+        phastab_ui(self)
         centtab_ui(self)
         recotab_ui(self)
-
 
         tabFrame.pack()
         tabs.pack()

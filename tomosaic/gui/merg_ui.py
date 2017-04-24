@@ -93,7 +93,7 @@ def mergtab_ui(ui):
 
     # out line
 
-    frameMergOut = Frame(formMerg, height=230)
+    frameMergOut = Frame(formMerg, height=245)
     frameMergOut.pack_propagate(False)
     ui.boxMergOut = Text(frameMergOut)
     ui.boxMergOut.insert(END, 'Merging\n')

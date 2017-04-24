@@ -30,30 +30,35 @@ def metatab_ui(ui):
     buttRawBrowse.pack(side=LEFT)
 
     # prefix line
-    labPrefix = Label(formMeta, text='Prefix:')
-    labPrefix.grid(row=rowPrefix, column=0, sticky=W)
-    ui.entPrefix = Entry(formMeta)
-    ui.entPrefix.grid(row=rowPrefix, column=1, columnspan=3, sticky=W+E)
+    framePrefix = Frame(formMeta)
+    labPrefix = Label(framePrefix, text='Prefix:')
+    labPrefix.pack(side=LEFT)
+    ui.entPrefix = Entry(framePrefix)
+    ui.entPrefix.pack(side=LEFT, fill=X, expand=True)
 
     # writer line
-    buttFirstFrame = Button(formMeta, text='Write first projection frame for all files',
+    frameWriter = Frame(formMeta)
+    buttFirstFrame = Button(frameWriter, text='Write first projection frame for all files',
                             command=partial(writeFirstFrames, ui))
-    buttFirstFrame.grid(row=rowFirstFrame, columnspan=4)
+    buttFirstFrame.pack(side=LEFT, fill=X, expand=True)
 
     # shift line
-    labRoughY = Label(formMeta, text='Estimated shift Y:')
-    labRoughY.grid(row=rowShift, column=0, sticky=W)
-    ui.entRoughY = Entry(formMeta)
-    ui.entRoughY.grid(row=rowShift, column=1)
-    labRoughX = Label(formMeta, text='X:')
-    labRoughX.grid(row=rowShift, column=2, sticky=W)
-    ui.entRoughX = Entry(formMeta)
-    ui.entRoughX.grid(row=rowShift, column=3)
+    frameShift = Frame(formMeta)
+    labRoughY = Label(frameShift, text='Estimated shift Y:')
+    labRoughY.pack(side=LEFT)
+    ui.entRoughY = Entry(frameShift)
+    ui.entRoughY.pack(side=LEFT, fill=X, expand=True)
+    labRoughX = Label(frameShift, text='X:')
+    labRoughX.pack(side=LEFT)
+    ui.entRoughX = Entry(frameShift)
+    ui.entRoughX.pack(side=LEFT, fill=X, expand=True)
 
     # outbox line
-    ui.boxMetaOut = Text(formMeta)
+    frameOutMeta = Frame(formMeta, height=285)
+    frameOutMeta.pack_propagate(False)
+    ui.boxMetaOut = Text(frameOutMeta)
     ui.boxMetaOut.insert(END, 'Tomosaic GUI (Beta)\n--------------\n')
-    ui.boxMetaOut.grid(row=rowOutbox, column=0, columnspan=4, sticky=N+S+W+E)
+    ui.boxMetaOut.pack(side=LEFT, fill=BOTH, expand=True)
 
     # confirm button line
     buttMetaSave = Button(bottMeta, text='Save all parameters...', command=ui.saveAllAttr)
@@ -61,7 +66,11 @@ def metatab_ui(ui):
     buttMetaConfirm = Button(bottMeta, text='Confirm', command=partial(readMeta, ui))
     buttMetaConfirm.grid(row=0, column=1, sticky=W+E)
 
-    framePath.grid(row=0, column=0, columnspan=4, sticky=W+E)
+    framePath.pack(fill=X)
+    framePrefix.pack(fill=X)
+    frameWriter.pack(fill=X)
+    frameShift.pack(fill=X)
+    frameOutMeta.pack(fill=X)
     formMeta.pack(fill=BOTH, expand=True)
     bottMeta.pack(side=BOTTOM)
     

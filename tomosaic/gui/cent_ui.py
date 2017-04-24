@@ -115,7 +115,7 @@ def centtab_ui(ui):
 
     # box line
 
-    frameCentOut = Frame(formCent, height=210)
+    frameCentOut = Frame(formCent, height=225)
     frameCentOut.pack_propagate(False)
     ui.boxCentOut = Text(frameCentOut)
     ui.boxCentOut.insert(END, 'Center optimization\n')

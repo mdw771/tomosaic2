@@ -51,7 +51,7 @@ def find_shifts_mpi(ui):
 def mpi_script_writer(ui):
 
     shutil.copyfile('mpi_common_head', os.path.join(ui.raw_folder, 'register.py'))
-    f = open(os.path.join(ui.raw_folder, 'temp.py'), 'a')
+    f = open(os.path.join(ui.raw_folder, 'register.py'), 'a')
     f.writelines(['raw_folder = "' + ui.raw_folder + '"\n',
                   'os.chdir(raw_folder)\n'
                   'prefix = "' + ui.prefix + '"\n',

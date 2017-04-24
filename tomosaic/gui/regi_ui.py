@@ -53,11 +53,12 @@ def regitab_ui(ui):
     
     # out box line
     
-    frameRegiOut = Frame(frameFindShift)
+    frameRegiOut = Frame(frameFindShift, height=290)
+    frameRegiOut.pack_propagate(False)
     ui.boxRegiOut = Text(frameRegiOut)
     ui.boxRegiOut.insert(END, 'Registration\n')
     ui.boxRegiOut.insert(END, 'Refer to initial terminal window for intermediate output.\n--------------\n')
-    ui.boxRegiOut.pack()
+    ui.boxRegiOut.pack(fill=BOTH, expand=True)
     
     # button line
     
