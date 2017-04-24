@@ -8,6 +8,7 @@ from tkMessageBox import showerror, showwarning, showinfo
 
 from metascripts import *
 from phasscripts import *
+from tomosaic.util.phase import _get_pr_kwargs
 
 
 def phastab_ui(ui):
@@ -55,6 +56,7 @@ def phastab_ui(ui):
     ui.framePhasPrOpts = Frame(formPhas)
     labPrOpts = Label(ui.framePhasPrOpts, text='Phase retrieval options will be shown here if a method is selected.')
     labPrOpts.pack(side=LEFT)
+    updatePrOpts(ui, ui.varPhasMeth.get())
 
     # mpi line
 
@@ -96,8 +98,6 @@ def phastab_ui(ui):
     framePhasOut.pack(fill=X)
     formPhas.pack(fill=X)
     bottPhas.pack(side=BOTTOM)
-
-
 
 
 def getPhasSrc(ui):
@@ -153,24 +153,31 @@ def updatePrOpts(ui, meth):
 
     for w in ui.framePhasPrOpts.winfo_children():
         w.destroy()
+
+    default_opts = _get_pr_kwargs()
+
     if meth == 'paganin':
         width = 10
         ui.lab1 = Label(ui.framePhasPrOpts, text='Px size:')
         ui.lab1.grid(row=0, column=0)
         ui.ent1 = Entry(ui.framePhasPrOpts)
         ui.ent1.grid(row=0, column=1)
+        ui.ent1.insert(0, default_opts['pixel'])
         ui.lab2 = Label(ui.framePhasPrOpts, text='Dist:')
         ui.lab2.grid(row=0, column=2)
         ui.ent2 = Entry(ui.framePhasPrOpts)
         ui.ent2.grid(row=0, column=3)
+        ui.ent2.insert(0, default_opts['distance'])
         ui.lab3 = Label(ui.framePhasPrOpts, text='E:')
         ui.lab3.grid(row=0, column=4)
         ui.ent3 = Entry(ui.framePhasPrOpts)
         ui.ent3.grid(row=0, column=5)
+        ui.ent3.insert(0, default_opts['energy'])
         ui.lab4 = Label(ui.framePhasPrOpts, text='Alpha:')
         ui.lab4.grid(row=0, column=6)
         ui.ent4 = Entry(ui.framePhasPrOpts)
         ui.ent4.grid(row=0, column=7)
+        ui.ent4.insert(0, default_opts['alpha_paganin'])
         ui.ent1['width'] = width
         ui.ent2['width'] = width
         ui.ent3['width'] = width
