@@ -35,7 +35,8 @@ class TomosaicUI(Frame):
         self.shift_path = None
         self.relative_shift = None
         self.ifmpi = BooleanVar()
-        self.mpi_ncore = 1
+        self.ifmpi.set(True)
+        self.mpi_ncore = 5
         self.merge_src = None
         self.merge_dest_folder = None
         self.merge_dest_fname = None

@@ -81,6 +81,7 @@ def mergtab_ui(ui):
     labMergMPI = Label(frameMergMPI, text='Use MPI:')
     labMergMPI.pack(side=LEFT)
     ui.ifmpi = BooleanVar()
+    ui.ifmpi.set(True)
     radMPIY = Radiobutton(frameMergMPI, variable=ui.ifmpi, text='Yes', value=True)
     radMPIY.pack(side=LEFT)
     radMPIN = Radiobutton(frameMergMPI, variable=ui.ifmpi, text='No', value=False)

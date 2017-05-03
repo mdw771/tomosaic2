@@ -134,8 +134,6 @@ def minimum_entropy(folder, pattern='*.tiff', range=(-0.002, 0.002)):
     return a[np.argmin(s)]
 
 
-
-
 def read_aps_32id_adaptive(fname, proj=None, sino=None):
     """
     Adaptive data reading function that works with dxchange both below and beyond version 0.0.11.

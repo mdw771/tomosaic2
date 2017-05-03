@@ -103,6 +103,7 @@ def centtab_ui(ui):
     labCentMPI = Label(frameCentMPI, text='Use MPI:')
     labCentMPI.pack(side=LEFT)
     ui.ifmpi = BooleanVar()
+    ui.ifmpi.set(True)
     radMPIY = Radiobutton(frameCentMPI, variable=ui.ifmpi, text='Yes', value=True)
     radMPIY.pack(side=LEFT)
     radMPIN = Radiobutton(frameCentMPI, variable=ui.ifmpi, text='No', value=False)
