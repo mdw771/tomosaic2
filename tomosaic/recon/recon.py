@@ -100,7 +100,7 @@ except:
 
 def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center_vec=None, center_eq=None, dtype='float32',
                algorithm='gridrec', tolerance=1, chunk_size=20, save_sino=False, sino_blur=None, flattened_radius=120,
-               mode='180', test_mode=False, phase_retrieval=None, **kwargs):
+               mode='180', test_mode=False, phase_retrieval=None, ring_removal=True, **kwargs):
     """
     center_eq: a and b parameters in fitted center position equation center = a*slice + b.
     """
@@ -185,24 +185,28 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
             if mode == '360':
                 overlap = 2 * (dset.shape[2] - center)
                 data = tomosaic.morph.sino_360_to_180(data, overlap=overlap, rotation='right')
+                theta = tomopy.angles(data.shape[0])
             data[np.isnan(data)] = 0
             data = data.astype('float32')
             if sino_blur is not None:
                 for i in range(data.shape[1]):
                     data[:, i, :] = gaussian_filter(data[:, i, :], sino_blur)
-            data = tomopy.remove_stripe_ti(data, alpha=4)
-            if phase_retrieval:
-                data = tomopy.retrieve_phase(data, kwargs['pixel_size'], kwargs['dist'], kwargs['energy'],
-                                             kwargs['alpha'])
-            rec0 = tomopy.recon(data, theta, center=center, algorithm=algorithm, **kwargs)
-            rec = tomopy.remove_ring(np.copy(rec0))
-            cent = int((rec.shape[1]-1) / 2)
-            xx, yy = np.meshgrid(np.arange(rec.shape[2]), np.arange(rec.shape[1]))
-            mask0 = ((xx-cent)**2+(yy-cent)**2 <= flattened_radius**2)
-            mask = np.zeros(rec.shape, dtype='bool')
-            for i in range(mask.shape[0]):
-                mask[i, :, :] = mask0
-            rec[mask] = (rec[mask] + rec0[mask])/2
+            if ring_removal:
+                data = tomopy.remove_stripe_ti(data, alpha=4)
+                if phase_retrieval:
+                    data = tomopy.retrieve_phase(data, kwargs['pixel_size'], kwargs['dist'], kwargs['energy'],
+                                                 kwargs['alpha'])
+                rec0 = tomopy.recon(data, theta, center=center, algorithm=algorithm, **kwargs)
+                rec = tomopy.remove_ring(np.copy(rec0))
+                cent = int((rec.shape[1]-1) / 2)
+                xx, yy = np.meshgrid(np.arange(rec.shape[2]), np.arange(rec.shape[1]))
+                mask0 = ((xx-cent)**2+(yy-cent)**2 <= flattened_radius**2)
+                mask = np.zeros(rec.shape, dtype='bool')
+                for i in range(mask.shape[0]):
+                    mask[i, :, :] = mask0
+                rec[mask] = (rec[mask] + rec0[mask])/2
+            else:
+                rec = tomopy.recon(data, theta, center=center, algorithm=algorithm, **kwargs)
             rec = tomopy.remove_outlier(rec, tolerance)
             rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
 
