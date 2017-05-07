@@ -183,7 +183,7 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
             print('Reading data...')
             data = dset[:, fstart:fend+1:sino_step, :]
             if mode == '360':
-                overlap =  2 * (dset.shape[2] - center)
+                overlap = 2 * (dset.shape[2] - center)
                 data = tomosaic.morph.sino_360_to_180(data, overlap=overlap, rotation='right')
             data[np.isnan(data)] = 0
             data = data.astype('float32')
@@ -380,7 +380,7 @@ def prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=0, metho
     # row_sino = tomopy.remove_stripe_fw(row_sino, 2)
     # print('strip removal:           ' + str(time.time() - t))
     # Minus Log
-    row_sino = tomosaic.util.preprecess(row_sino)
+    row_sino = tomosaic.util.preprocess(row_sino)
     if sino_blur is not None:
         row_sino[:, 0, :] = gaussian_filter(row_sino[:, 0, :], sino_blur)
     if mode == '360':

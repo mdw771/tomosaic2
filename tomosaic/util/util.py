@@ -128,7 +128,7 @@ def save_partial_frames(file_grid, save_folder, prefix, frame=0):
         if (value != None):
             prj, flt, drk = read_aps_32id_adaptive(value, proj=(frame, frame + 1))
             prj = tomopy.normalize(prj, flt, drk)
-            prj = preprecess(prj)
+            prj = preprocess(prj)
             fname = prefix + 'Y' + str(y).zfill(2) + '_X' + str(x).zfill(2)
             dxchange.write_tiff(np.squeeze(prj), fname=os.path.join(save_folder, 'partial_frames', fname))
 
@@ -163,7 +163,7 @@ def build_panorama(src_folder, file_grid, shift_grid, frame=0, method='max', met
             if (value != None and frame < g_shapes(value)[0]):
                 prj, flt, drk = read_aps_32id_adaptive(value, proj=(frame, frame + 1))
                 prj = tomopy.normalize(prj, flt, drk)
-                prj = preprecess(prj, blur=blur)
+                prj = preprocess(prj, blur=blur)
                 t0 = time.time()
                 buff = blend(buff, np.squeeze(prj), shift_grid[y, x, :], method=method, color_correction=color_correction, **blend_options)
                 print('Rank: {:d}; Frame: {:d}; Pos: ({:d}, {:d}); Method: {:s}; Color Corr.:{:b}; Tile stitched in '
@@ -182,14 +182,14 @@ def build_panorama(src_folder, file_grid, shift_grid, frame=0, method='max', met
             row_buff = np.zeros([1, 1])
             prj, flt, drk = read_aps_32id_adaptive(temp_grid[0, 0], proj=(frame, frame + 1))
             prj = tomopy.normalize(prj, flt, drk)
-            prj = preprecess(prj, blur=blur)
+            prj = preprocess(prj, blur=blur)
             row_buff, _ = arrange_image(row_buff, np.squeeze(prj), temp_shift[0, 0, :], order=1)
             for x in range(1, temp_grid.shape[1]):
                 value = temp_grid[0, x]
                 if (value != None and frame < g_shapes(value)[0]):
                     prj, flt, drk = read_aps_32id_adaptive(value, proj=(frame, frame + 1))
                     prj = tomopy.normalize(prj, flt, drk)
-                    prj = preprecess(prj, blur=blur)
+                    prj = preprocess(prj, blur=blur)
                     t0 = time.time()
                     row_buff = blend(row_buff, np.squeeze(prj), temp_shift[0, x, :], method=method, color_correction=color_correction, **blend_options)
                     print('Rank: {:d}; Frame: {:d}; Pos: ({:d}, {:d}); Method: {:s}; Color Corr.:{:b}; Tile stitched in '
@@ -571,7 +571,7 @@ def hdf5_retrieve_phase(src_folder, src_fname, dest_folder, dest_fname, method='
         if corr_flat:
             temp = temp.reshape([1, temp.shape[0], temp.shape[1]])
             temp = tomopy.normalize(temp, flt, drk)
-            temp = preprecess(temp)
+            temp = preprocess(temp)
             temp = np.squeeze(temp)
         temp = retrieve_phase(temp, method=method, **kwargs)
         dset_dest[frame, :, :] = temp.astype(dtype)
@@ -694,7 +694,7 @@ def partial_center_alignment(file_grid, shift_grid, center_vec, src_folder, rang
         fname = file_grid[y, x]
         sino, flt, drk = read_aps_32id_adaptive(fname, sino=(slice, slice+1))
         sino = np.squeeze(tomopy.normalize(sino, flt, drk))
-        sino = preprecess(sino)
+        sino = preprocess(sino)
         s_opt = np.inf
         for delta in range(range_0, range_1+1):
             sino_pad = np.zeros([n_angles, width])
@@ -719,7 +719,7 @@ def partial_center_alignment(file_grid, shift_grid, center_vec, src_folder, rang
     return
 
 
-def preprecess(dat, blur=None):
+def preprocess(dat, blur=None):
 
     dat[np.abs(dat) < 2e-3] = 2e-3
     dat[dat > 1] = 1
