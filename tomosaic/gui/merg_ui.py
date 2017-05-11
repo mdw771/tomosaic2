@@ -80,8 +80,6 @@ def mergtab_ui(ui):
     frameMergMPI = Frame(formMerg)
     labMergMPI = Label(frameMergMPI, text='Use MPI:')
     labMergMPI.pack(side=LEFT)
-    ui.ifmpi = BooleanVar()
-    ui.ifmpi.set(True)
     radMPIY = Radiobutton(frameMergMPI, variable=ui.ifmpi, text='Yes', value=True)
     radMPIY.pack(side=LEFT)
     radMPIN = Radiobutton(frameMergMPI, variable=ui.ifmpi, text='No', value=False)
@@ -204,6 +202,7 @@ def buildMergOpts(ui, meth, dict, uid):
     elif meth == 'pyramid':
         dict['depth'] = int(ui.lstDepth[uid].get())
         dict['blur'] = float(ui.lstBlur[uid].get())
+
 
 def readMergPars(ui):
 
