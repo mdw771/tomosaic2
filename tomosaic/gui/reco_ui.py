@@ -304,11 +304,6 @@ def updateBlendOpt(ui, meth):
 
     field = ui.frameBlendOptsInp
 
-    ui.lstAlpha = [None, None]
-    ui.lstDepth = [None, None]
-    ui.lstBlur = [None, None]
-    ui.lstOrder = [None, None]
-
     for w in field.winfo_children():
         w.destroy()
 
