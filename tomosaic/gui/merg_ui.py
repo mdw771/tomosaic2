@@ -57,8 +57,13 @@ def mergtab_ui(ui):
     ui.optMergMeth2 = OptionMenu(frameMergMethod, ui.varMergMeth2, command=partial(updateOpt, ui, 1), *lsMergMeth2)
     ui.optMergMeth2.pack(side=LEFT, fill=X, expand=True)
 
+
     # option 1 line
 
+    ui.lstAlpha = [None, None]
+    ui.lstDepth = [None, None]
+    ui.lstBlur = [None, None]
+    ui.lstOrder = [None, None]
     ui.frameMergOpt1 = Frame(formMerg)
     labMergOpt1 = Label(ui.frameMergOpt1, text='Options: ')
     labMergOpt1.pack(side=LEFT)
@@ -125,11 +130,6 @@ def updateOpt(ui, uid, meth):
         field = ui.frameOpt1Inp
     elif uid == 1:
         field = ui.frameOpt2Inp
-
-    ui.lstAlpha = [None, None]
-    ui.lstDepth = [None, None]
-    ui.lstBlur = [None, None]
-    ui.lstOrder = [None, None]
 
     for w in field.winfo_children():
         w.destroy()
