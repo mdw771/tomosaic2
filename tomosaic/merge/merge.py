@@ -201,7 +201,7 @@ def _get_algorithm_kwargs():
     return {'alpha': 0.5, 'blur': 0.4, 'depth': 7, 'order': 1}
 
 
-def img_merge_alpha(img1, img2, shift, alpha=0.4):
+def img_merge_alpha(img1, img2, shift, alpha=0.4, margin=100):
     """
     Change dynamic range of values in an array.
 
@@ -217,11 +217,19 @@ def img_merge_alpha(img1, img2, shift, alpha=0.4):
     -------
     ndarray
     """
-    print('Alpha Blend = ' + str(alpha))
-    newimg1, _ = morph.arrange_image(img1, img2, shift, order=1)
-    newimg2, _ = morph.arrange_image(img1, img2, shift, order=2)
-    final_img = alpha * newimg1 + (1 - alpha) * newimg2
-    return final_img
+    newimg, img2 = morph.arrange_image(img1, img2, shift)
+    case, rough_shift, corner, buffer1, buffer2, wid_hor, wid_ver = find_overlap(img1, img2, shift, margin=margin)
+    buffer = np.dstack((buffer1, buffer2))
+    final_img = buffer[:, :, 0] * alpha + buffer[:, :, 1] * (1 - alpha)
+    if abs(rough_shift[1]) > margin and abs(rough_shift[0]) > margin:
+        newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + mask2.shape[1]] = \
+            final_img[:wid_ver, :]
+        newimg[corner[0, 0] + wid_ver:corner[0, 0] + mask2.shape[0], corner[0, 1]:corner[0, 1] + wid_hor] = \
+            final_img[wid_ver:, :wid_hor]
+    else:
+        newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + wid_hor] = final_img
+
+    return newimg
 
 
 def img_merge_overlay(img1, img2, shift):
@@ -232,7 +240,7 @@ def img_merge_overlay(img1, img2, shift):
     return newimg
 
 
-def img_merge_max(img1, img2, shift):
+def img_merge_max(img1, img2, shift, margin=100):
     """
     Change dynamic range of values in an array.
 
@@ -247,16 +255,22 @@ def img_merge_max(img1, img2, shift):
     ndarray
         Output array.
     """
-    print('Max Blend')
-    newimg1, _ = morph.arrange_image(img1, img2, shift, order=1)
-    newimg2, _ = morph.arrange_image(img1, img2, shift, order=2)
-    buff = np.dstack((newimg1, newimg2))
-    final_img = buff.max(2)
+    newimg, img2 = morph.arrange_image(img1, img2, shift)
+    case, rough_shift, corner, buffer1, buffer2, wid_hor, wid_ver = find_overlap(img1, img2, shift, margin=margin)
+    buffer = np.dstack((buffer1, buffer2))
+    final_img = buffer.max(-1)
+    if abs(rough_shift[1]) > margin and abs(rough_shift[0]) > margin:
+        newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + mask2.shape[1]] = \
+            final_img[:wid_ver, :]
+        newimg[corner[0, 0] + wid_ver:corner[0, 0] + mask2.shape[0], corner[0, 1]:corner[0, 1] + wid_hor] = \
+            final_img[wid_ver:, :wid_hor]
+    else:
+        newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + wid_hor] = final_img
 
-    return final_img
+    return newimg
 
 
-def img_merge_min(img1, img2, shift):
+def img_merge_min(img1, img2, shift, margin=100):
     """
     Change dynamic range of values in an array.
 
@@ -271,12 +285,19 @@ def img_merge_min(img1, img2, shift):
     ndarray
         Output array.
     """
-    newimg1, _ = morph.arrange_image(img1, img2, shift, order=1)
-    newimg2, _ = morph.arrange_image(img1, img2, shift, order=2)
-    buff = np.dstack((newimg1, newimg2))
-    final_img = buff.min(2)
+    newimg, img2 = morph.arrange_image(img1, img2, shift)
+    case, rough_shift, corner, buffer1, buffer2, wid_hor, wid_ver = find_overlap(img1, img2, shift, margin=margin)
+    buffer = np.dstack((buffer1, buffer2))
+    final_img = buffer.min(-1)
+    if abs(rough_shift[1]) > margin and abs(rough_shift[0]) > margin:
+        newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + mask2.shape[1]] = \
+            final_img[:wid_ver, :]
+        newimg[corner[0, 0] + wid_ver:corner[0, 0] + mask2.shape[0], corner[0, 1]:corner[0, 1] + wid_hor] = \
+            final_img[wid_ver:, :wid_hor]
+    else:
+        newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + wid_hor] = final_img
 
-    return final_img
+    return newimg
 
 
 # Modified for subpixel fourier shift.
@@ -443,9 +464,6 @@ def _circ_neighbor(mat):
     return np.roll(mat, 1, axis=0) + np.roll(mat, -1, axis=0) + np.roll(mat, 1, axis=1) + np.roll(mat, -1, axis=1)
 
 
-# Pyramid blend.
-# Codes are adapted from Computer Vision Lab, Image blending using pyramid, https://compvisionlab.wordpress.com/2013/
-# 05/13/image-blending-using-pyramid/.
 def img_merge_pyramid(img1, img2, shift, margin=100, blur=0.4, depth=5):
     """
     Perform pyramid blending. Codes are adapted from Computer Vision Lab, Image blending using pyramid,

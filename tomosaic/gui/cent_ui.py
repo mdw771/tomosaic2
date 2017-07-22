@@ -102,7 +102,6 @@ def centtab_ui(ui):
     frameCentMPI = Frame(formCent)
     labCentMPI = Label(frameCentMPI, text='Use MPI:')
     labCentMPI.pack(side=LEFT)
-    ui.ifmpi = BooleanVar()
     radMPIY = Radiobutton(frameCentMPI, variable=ui.ifmpi, text='Yes', value=True)
     radMPIY.pack(side=LEFT)
     radMPIN = Radiobutton(frameCentMPI, variable=ui.ifmpi, text='No', value=False)
@@ -181,7 +180,6 @@ def readCentPars(ui):
     ui.cent_algo = ui.entCentAlgo.get()
     ui.cent_mpi_ncore = ui.entCentNCore.get()
     ui.cent_ds = int(ui.entCentDs.get())
-    print ui.ifmpi.get()
     ui.boxCentOut.insert(END, 'Parameters read.\n')
 
 

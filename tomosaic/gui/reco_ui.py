@@ -9,6 +9,7 @@ from tkMessageBox import showerror, showwarning, showinfo
 from metascripts import *
 from recoscripts import *
 from tomosaic.merge.merge import _get_algorithm_kwargs
+from tomosaic.util.phase import _get_pr_kwargs
 
 
 def recotab_ui(ui):
@@ -266,23 +267,28 @@ def updatePrOpts(ui, meth):
 
     for w in ui.frameRecoPrOpts.winfo_children():
         w.destroy()
+    default_opts = _get_pr_kwargs()
     if meth == 'paganin':
         width = 10
         ui.lab1 = Label(ui.frameRecoPrOpts, text='Px size:')
         ui.lab1.grid(row=0, column=0)
         ui.ent1 = Entry(ui.frameRecoPrOpts)
+        ui.ent1.insert(0, default_opts['pixel'])
         ui.ent1.grid(row=0, column=1)
         ui.lab2 = Label(ui.frameRecoPrOpts, text='Dist:')
         ui.lab2.grid(row=0, column=2)
         ui.ent2 = Entry(ui.frameRecoPrOpts)
+        ui.ent2.insert(0, default_opts['distance'])
         ui.ent2.grid(row=0, column=3)
         ui.lab3 = Label(ui.frameRecoPrOpts, text='E:')
         ui.lab3.grid(row=0, column=4)
         ui.ent3 = Entry(ui.frameRecoPrOpts)
+        ui.ent3.insert(0, default_opts['energy'])
         ui.ent3.grid(row=0, column=5)
         ui.lab4 = Label(ui.frameRecoPrOpts, text='Alpha:')
         ui.lab4.grid(row=0, column=6)
         ui.ent4 = Entry(ui.frameRecoPrOpts)
+        ui.ent4.insert(0, default_opts['alpha_paganin'])
         ui.ent4.grid(row=0, column=7)
         ui.ent1['width'] = width
         ui.ent2['width'] = width
@@ -297,11 +303,6 @@ def updatePrOpts(ui, meth):
 def updateBlendOpt(ui, meth):
 
     field = ui.frameBlendOptsInp
-
-    ui.lstAlpha = [None, None]
-    ui.lstDepth = [None, None]
-    ui.lstBlur = [None, None]
-    ui.lstOrder = [None, None]
 
     for w in field.winfo_children():
         w.destroy()

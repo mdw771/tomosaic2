@@ -72,8 +72,9 @@ __all__ = ['allocate_mpi_subsets',
            'read_aps_32id_adaptive']
 
 
-def allocate_mpi_subsets(n_task, size, task_list=None):
+def allocate_mpi_subsets_cont_chunk(n_task, size, task_list=None):
 
+    # TODO: chunk from beginning, not across the entire set
     if task_list is None:
         task_list = range(n_task)
     sets = []
@@ -87,6 +88,17 @@ def allocate_mpi_subsets(n_task, size, task_list=None):
             remainder -= 1
         sets.append(task_list[start:start+length])
         start = start + length
+    return sets
+
+
+def allocate_mpi_subsets(n_task, size, task_list=None):
+
+    if task_list is None:
+        task_list = range(n_task)
+    sets = []
+    for i in range(size):
+        selection = range(i, n_task, size)
+        sets.append(np.take(task_list, selection).tolist())
     return sets
 
 
@@ -132,8 +144,6 @@ def minimum_entropy(folder, pattern='*.tiff', range=(-0.002, 0.002)):
         s.append(entropy(img, range=range))
         a.append(fname)
     return a[np.argmin(s)]
-
-
 
 
 def read_aps_32id_adaptive(fname, proj=None, sino=None):
