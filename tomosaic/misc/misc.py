@@ -98,7 +98,7 @@ def allocate_mpi_subsets(n_task, size, task_list=None):
     sets = []
     for i in range(size):
         selection = range(i, n_task, size)
-        sets.append(np.take(task_list, selection).tolist())
+        sets.append(np.array(np.take(task_list, selection).tolist()))
     return sets
 
 
