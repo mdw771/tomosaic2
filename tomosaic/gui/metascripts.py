@@ -36,6 +36,7 @@ def write_first_frames(ui):
         ui.boxMetaOut.insert(END, i + '\n')
         prj, flt, drk = dxchange.read_aps_32id(i, proj=(0, 1))
         prj = tomopy.normalize(prj, flt, drk)
+	prj = preprocess(prj)
         dxchange.write_tiff(prj, os.path.join('first_frames', os.path.splitext(i)[0]))
 
 def write_pars(ui, dict):

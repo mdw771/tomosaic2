@@ -256,16 +256,19 @@ def img_merge_max(img1, img2, shift, margin=100):
         Output array.
     """
     newimg, img2 = morph.arrange_image(img1, img2, shift)
-    case, rough_shift, corner, buffer1, buffer2, wid_hor, wid_ver = find_overlap(img1, img2, shift, margin=margin)
-    buffer = np.dstack((buffer1, buffer2))
-    final_img = buffer.max(-1)
-    if abs(rough_shift[1]) > margin and abs(rough_shift[0]) > margin:
-        newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + mask2.shape[1]] = \
-            final_img[:wid_ver, :]
-        newimg[corner[0, 0] + wid_ver:corner[0, 0] + mask2.shape[0], corner[0, 1]:corner[0, 1] + wid_hor] = \
-            final_img[wid_ver:, :wid_hor]
-    else:
-        newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + wid_hor] = final_img
+    try:
+        case, rough_shift, corner, buffer1, buffer2, wid_hor, wid_ver = find_overlap(img1, img2, shift, margin=margin)
+        buffer = np.dstack((buffer1, buffer2))
+        final_img = buffer.max(-1)
+        if abs(rough_shift[1]) > margin and abs(rough_shift[0]) > margin:
+            newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + mask2.shape[1]] = \
+                final_img[:wid_ver, :]
+            newimg[corner[0, 0] + wid_ver:corner[0, 0] + mask2.shape[0], corner[0, 1]:corner[0, 1] + wid_hor] = \
+                final_img[wid_ver:, :wid_hor]
+        else:
+            newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + wid_hor] = final_img
+    except:
+        newimg = img2
 
     return newimg
 
