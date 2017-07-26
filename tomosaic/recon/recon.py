@@ -130,10 +130,9 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
             t0 = time.time()
             istart = iblock*chunk_size
             iend = np.min([(iblock+1)*chunk_size, sino_ls.size])
-            fstart = sino_ls[istart]
-            fend = sino_ls[iend]
-            center = center_ls[istart:iend]
-            data = dset[:, fstart:fend:sino_step, :]
+            sub_sino_ls = sino_ls[istart:iend-1]
+            center = np.take(center_ls, sub_sino_ls)
+            data = np.take(dset, sub_sino_ls, 1)
             data[np.isnan(data)] = 0
             data = data.astype('float32')
             data = tomopy.remove_stripe_ti(data, alpha=4)
@@ -159,11 +158,11 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
         istart = 0
         counter = 0
         # irow should be 0 for slice 0
-        irow = np.searchsorted(grid_bins, sino_ls[0], side='right')-1
+        irow = np.searchsorted(grid_bins, sino_ls[0], side='right') - 1
 
         for i in range(sino_ls.size):
             counter += 1
-            sino_next = i+1 if i != sino_ls.size-1 else i
+            sino_next = i + 1 if i != sino_ls.size - 1 else i
             if counter >= chunk_size or sino_ls[sino_next] >= grid_bins[irow+1] or sino_next == i:
                 iend = i+1
                 chunks.append((istart, iend))
@@ -178,10 +177,9 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
         for (istart, iend), center in izip(chunks, center_ls):
             print('Beginning block {:d}.'.format(iblock))
             t0 = time.time()
-            fstart = sino_ls[istart]
-            fend = sino_ls[iend-1]
             print('Reading data...')
-            data = dset[:, fstart:fend+1:sino_step, :]
+            sub_sino_ls = sino_ls[istart:iend-1]
+            data = np.take(dset, sub_sino_ls, 1)
             if mode == '360':
                 overlap = 2 * (dset.shape[2] - center)
                 data = tomosaic.morph.sino_360_to_180(data, overlap=overlap, rotation='right')
