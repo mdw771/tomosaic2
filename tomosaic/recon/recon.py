@@ -132,7 +132,9 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
             iend = np.min([(iblock+1)*chunk_size, sino_ls.size])
             sub_sino_ls = sino_ls[istart:iend-1]
             center = np.take(center_ls, sub_sino_ls)
-            data = np.take(dset, sub_sino_ls, 1)
+            data = np.zeros([dset.shape[0], len(sub_sino_ls), dset.shape[2]])
+            for ind, i in enumerate(sub_sino_ls):
+                data[:, ind, :] = dset[:, i, :]
             data[np.isnan(data)] = 0
             data = data.astype('float32')
             data = tomopy.remove_stripe_ti(data, alpha=4)
@@ -178,8 +180,10 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
             print('Beginning block {:d}.'.format(iblock))
             t0 = time.time()
             print('Reading data...')
-            sub_sino_ls = sino_ls[istart:iend-1]
-            data = np.take(dset, sub_sino_ls, 1)
+            sub_sino_ls = sino_ls[istart:iend]
+            data = np.zeros([dset.shape[0], len(sub_sino_ls), dset.shape[2]])
+            for ind, i in enumerate(sub_sino_ls):
+                data[:, ind, :] = dset[:, i, :]
             if mode == '360':
                 overlap = 2 * (dset.shape[2] - center)
                 data = tomosaic.morph.sino_360_to_180(data, overlap=overlap, rotation='right')
