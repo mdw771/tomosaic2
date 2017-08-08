@@ -500,8 +500,10 @@ def img_merge_pyramid(img1, img2, shift, margin=100, blur=0.4, depth=5):
     if abs(rough_shift[0]) > margin:
         mask2[:int(wid_ver / 2), :] = 0
     ##
-    buffer1[np.isnan(buffer1)] = 0
+    buffer1[np.isnan(buffer2)] = 0
     mask2[np.isnan(mask2)] = 1
+    plt.imshow(buffer1)
+    plt.show()
     t0 = time.time()
     gauss_mask = _gauss_pyramid(mask2.astype('float'), depth, blur, mask=True)
     gauss1 = _gauss_pyramid(buffer1, depth, blur)
