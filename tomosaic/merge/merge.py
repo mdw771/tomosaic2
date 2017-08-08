@@ -217,9 +217,10 @@ def img_merge_alpha(img1, img2, shift, alpha=0.4, margin=100):
     -------
     ndarray
     """
-    try:
-        newimg, img2 = morph.arrange_image(img1, img2, shift)
-        case, rough_shift, corner, buffer1, buffer2, wid_hor, wid_ver = find_overlap(img1, img2, shift, margin=margin)
+    newimg, img2 = morph.arrange_image(img1, img2, shift)
+  
+    case, rough_shift, corner, buffer1, buffer2, wid_hor, wid_ver = find_overlap(img1, img2, shift, margin=margin)
+    if case != 'skip':
         buffer = np.dstack((buffer1, buffer2))
         final_img = buffer[:, :, 0] * alpha + buffer[:, :, 1] * (1 - alpha)
         if abs(rough_shift[1]) > margin and abs(rough_shift[0]) > margin:
@@ -229,7 +230,7 @@ def img_merge_alpha(img1, img2, shift, alpha=0.4, margin=100):
                 final_img[wid_ver:, :wid_hor]
         else:
             newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + wid_hor] = final_img
-    except:
+    else:
         newimg = img2
 
     return newimg
@@ -292,9 +293,10 @@ def img_merge_min(img1, img2, shift, margin=100):
     ndarray
         Output array.
     """
-    try:
-        newimg, img2 = morph.arrange_image(img1, img2, shift)
-        case, rough_shift, corner, buffer1, buffer2, wid_hor, wid_ver = find_overlap(img1, img2, shift, margin=margin)
+    newimg, img2 = morph.arrange_image(img1, img2, shift)
+  
+    case, rough_shift, corner, buffer1, buffer2, wid_hor, wid_ver = find_overlap(img1, img2, shift, margin=margin)
+    if case != 'skip':
         buffer = np.dstack((buffer1, buffer2))
         final_img = buffer.min(-1)
         if abs(rough_shift[1]) > margin and abs(rough_shift[0]) > margin:
@@ -304,7 +306,7 @@ def img_merge_min(img1, img2, shift, margin=100):
                 final_img[wid_ver:, :wid_hor]
         else:
             newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + wid_hor] = final_img
-    except:
+    else:
         newimg = img2
 
     return newimg
@@ -500,10 +502,8 @@ def img_merge_pyramid(img1, img2, shift, margin=100, blur=0.4, depth=5):
     if abs(rough_shift[0]) > margin:
         mask2[:int(wid_ver / 2), :] = 0
     ##
-    buffer1[np.isnan(buffer2)] = 0
+    buffer1[np.isnan(buffer1)] = 0
     mask2[np.isnan(mask2)] = 1
-    plt.imshow(buffer1)
-    plt.show()
     t0 = time.time()
     gauss_mask = _gauss_pyramid(mask2.astype('float'), depth, blur, mask=True)
     gauss1 = _gauss_pyramid(buffer1, depth, blur)
@@ -511,6 +511,8 @@ def img_merge_pyramid(img1, img2, shift, margin=100, blur=0.4, depth=5):
     lapl1 = _lapl_pyramid(gauss1, blur)
     lapl2 = _lapl_pyramid(gauss2, blur)
     ovlp_blended = _collapse(_blend(lapl2, lapl1, gauss_mask), blur)
+    plt.imshow(ovlp_blended)
+    plt.show()
     # print('    Blend: Blending done in', str(time.time() - t0), 'sec.')
 
     if abs(rough_shift[1]) > margin and abs(rough_shift[0]) > margin:
@@ -941,8 +943,8 @@ def find_overlap(img1, img2, shift, margin=50):
         mask[:, :wid_hor] = True
         buffer1 = img1[corner[0, 0]:corner[0, 0] + mask.shape[0], corner[0, 1]:corner[0, 1] + mask.shape[1]]
         buffer2 = img2[:mask.shape[0], :mask.shape[1]]
-        buffer1[np.invert(mask)] = np.nan
-        buffer2[np.invert(mask)] = np.nan
+        #buffer1[np.invert(mask)] = np.nan
+        #buffer2[np.invert(mask)] = np.nan
         case = 'tl'
         if abs_width < corner[0, 1]:
             case = 'skip'
