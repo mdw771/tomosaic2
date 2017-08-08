@@ -85,7 +85,7 @@ __all__ = ['blend',
            'img_merge_pwd']
 
 
-def blend(img1, img2, shift, method, margin=50, color_correction=True, **kwargs):
+def blend(img1, img2, shift, method, margin=50, color_correction=False, **kwargs):
     """
     Blend images.
     Parameters
@@ -223,9 +223,9 @@ def img_merge_alpha(img1, img2, shift, alpha=0.4, margin=100):
         buffer = np.dstack((buffer1, buffer2))
         final_img = buffer[:, :, 0] * alpha + buffer[:, :, 1] * (1 - alpha)
         if abs(rough_shift[1]) > margin and abs(rough_shift[0]) > margin:
-            newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + mask2.shape[1]] = \
+            newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + buffer2.shape[1]] = \
                 final_img[:wid_ver, :]
-            newimg[corner[0, 0] + wid_ver:corner[0, 0] + mask2.shape[0], corner[0, 1]:corner[0, 1] + wid_hor] = \
+            newimg[corner[0, 0] + wid_ver:corner[0, 0] + buffer2.shape[0], corner[0, 1]:corner[0, 1] + wid_hor] = \
                 final_img[wid_ver:, :wid_hor]
         else:
             newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + wid_hor] = final_img
@@ -259,18 +259,19 @@ def img_merge_max(img1, img2, shift, margin=100):
         Output array.
     """
     newimg, img2 = morph.arrange_image(img1, img2, shift)
-    try:
-        case, rough_shift, corner, buffer1, buffer2, wid_hor, wid_ver = find_overlap(img1, img2, shift, margin=margin)
+  
+    case, rough_shift, corner, buffer1, buffer2, wid_hor, wid_ver = find_overlap(img1, img2, shift, margin=margin)
+    if case != 'skip':
         buffer = np.dstack((buffer1, buffer2))
         final_img = buffer.max(-1)
         if abs(rough_shift[1]) > margin and abs(rough_shift[0]) > margin:
-            newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + mask2.shape[1]] = \
+            newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + buffer2.shape[1]] = \
                 final_img[:wid_ver, :]
-            newimg[corner[0, 0] + wid_ver:corner[0, 0] + mask2.shape[0], corner[0, 1]:corner[0, 1] + wid_hor] = \
+            newimg[corner[0, 0] + wid_ver:corner[0, 0] + buffer2.shape[0], corner[0, 1]:corner[0, 1] + wid_hor] = \
                 final_img[wid_ver:, :wid_hor]
         else:
             newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + wid_hor] = final_img
-    except:
+    else:
         newimg = img2
 
     return newimg
@@ -297,9 +298,9 @@ def img_merge_min(img1, img2, shift, margin=100):
         buffer = np.dstack((buffer1, buffer2))
         final_img = buffer.min(-1)
         if abs(rough_shift[1]) > margin and abs(rough_shift[0]) > margin:
-            newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + mask2.shape[1]] = \
+            newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + buffer2.shape[1]] = \
                 final_img[:wid_ver, :]
-            newimg[corner[0, 0] + wid_ver:corner[0, 0] + mask2.shape[0], corner[0, 1]:corner[0, 1] + wid_hor] = \
+            newimg[corner[0, 0] + wid_ver:corner[0, 0] + buffer2.shape[0], corner[0, 1]:corner[0, 1] + wid_hor] = \
                 final_img[wid_ver:, :wid_hor]
         else:
             newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + wid_hor] = final_img
@@ -922,6 +923,8 @@ def find_overlap(img1, img2, shift, margin=50):
 
     rough_shift = morph.get_roughshift(shift)
     corner = _get_corner(rough_shift, img2.shape)
+    if min(img1.shape) < margin or min(img2.shape) < margin:
+        return 'skip', rough_shift, corner, None, None, None, None
     if abs(rough_shift[1]) > margin and abs(rough_shift[0]) > margin:
         abs_width = np.count_nonzero(np.isfinite(img1[-margin, :]))
         abs_height = np.count_nonzero(np.isfinite(img1[:, abs_width - margin]))
@@ -936,8 +939,8 @@ def find_overlap(img1, img2, shift, margin=50):
         mask[:, :wid_hor] = True
         buffer1 = img1[corner[0, 0]:corner[0, 0] + mask.shape[0], corner[0, 1]:corner[0, 1] + mask.shape[1]]
         buffer2 = img2[:mask.shape[0], :mask.shape[1]]
-        buffer1[1 - mask] = np.nan
-        buffer2[1 - mask] = np.nan
+        buffer1[np.invert(mask)] = np.nan
+        buffer2[np.invert(mask)] = np.nan
         case = 'tl'
         if abs_width < corner[0, 1]:
             case = 'skip'
