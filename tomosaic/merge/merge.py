@@ -511,8 +511,6 @@ def img_merge_pyramid(img1, img2, shift, margin=100, blur=0.4, depth=5):
     lapl1 = _lapl_pyramid(gauss1, blur)
     lapl2 = _lapl_pyramid(gauss2, blur)
     ovlp_blended = _collapse(_blend(lapl2, lapl1, gauss_mask), blur)
-    plt.imshow(ovlp_blended)
-    plt.show()
     # print('    Blend: Blending done in', str(time.time() - t0), 'sec.')
 
     if abs(rough_shift[1]) > margin and abs(rough_shift[0]) > margin:
