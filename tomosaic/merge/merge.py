@@ -881,44 +881,27 @@ def _norm(arr):
     return res
 
 
-def correct_luminance(img1, img2, shift, margin=100, threshold=0.5, max_intercept=1):
+def correct_luminance(img1, img2, shift, margin=50):
 
-    _, _, _, buffer1, buffer2, _, _ = find_overlap(img1, img2, shift, margin=margin)
-
-    mean1 = buffer1[np.isfinite(buffer1)].mean()
-    if mean1 < threshold:
-        return img2
-    mean2 = buffer2[np.isfinite(buffer2)].mean()
-    fin1 = np.isfinite(buffer1)
-    fin2 = np.isfinite(buffer2)
-
-    # remove singularities
-    buffer1[(buffer1 > 10 * mean1) * fin1] = mean1
-    buffer2[(buffer2 > 10 * mean2) * fin2] = mean2
-    judge = fin1 * fin2 * (buffer1/buffer2 < 1.5) * (buffer2/buffer1 < 1.5)
-
-    # if the number of above average pixels is too small, do nothing and return
-    if np.count_nonzero(judge) < 0.3 * buffer1.size:
+    case, _, _, buffer1, buffer2, _, _ = find_overlap(img1, img2, shift, margin=margin)
+    if case == 'skip':
         return img2
 
-    # build color correction dataset
-    orig = buffer2[judge].flatten()
-    targ = buffer1[judge].flatten()
+    fin_mask1 = np.isfinite(buffer1)
+    mean1 = buffer1[fin_mask1].mean()
+    fin_mask1 *= np.abs(buffer1 - mean1) < 2 * np.std(buffer1)
+    fin_mask2 = np.isfinite(buffer2)
+    mean2 = buffer2[fin_mask2].mean()
+    fin_mask2 *= np.abs(buffer2 - mean2) < 2 * np.std(buffer2)
 
-    # least square fit
-    A = np.vstack([orig, np.ones(len(orig))]).T
-    a, b = np.linalg.lstsq(A, targ)[0]
+    fin_mask = fin_mask1 * fin_mask2
+    mean1 = buffer1[fin_mask].mean()
+    mean2 = buffer2[fin_mask].mean()
 
-    # reject abnormal mismatch
-    if a < 0.5:
-        a = 0.5
-    elif a > 2:
-        a = 2
-    if b > max_intercept:
-        b = max_intercept
-    elif b < -max_intercept:
-        b = -max_intercept
-    return a * img2 + b
+    if 0.9 < (mean1 / mean2) < 1.1:
+        return img2
+    else:
+        return img2 * (mean1 / mean2)
 
 
 def find_overlap(img1, img2, shift, margin=50):
