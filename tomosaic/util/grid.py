@@ -74,7 +74,7 @@ import tomopy
 from tomosaic.register.morph import *
 from tomosaic.register.register_translation import register_translation
 from tomosaic.util.util import *
-from tomosaic.misc.misc import read_aps_32id_adaptive
+from tomosaic.misc.misc import *
 import warnings
 import os
 import time
@@ -135,7 +135,6 @@ def shift2center_grid(shift_grid,center):
     return center_grid
 
 
-
 def find_pairs(file_grid):
     size_y, size_x = file_grid.shape
     pairs = np.empty((size_y * size_x, 4), dtype=object)
@@ -171,87 +170,71 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', savefolder='.', step=200
 
     pairs_shift = np.zeros([n_pairs, 6])
 
-    file_per_rank = int(n_pairs / size)
-    remainder = n_pairs % size
-    if remainder:
-        if rank == 0:
-            print('You will have {:d} files that cannot be processed in parallel. Consider optimizing number of ranks. '
-                  .format(remainder))
-            time.sleep(3)
-    comm.Barrier()
+    sets = allocate_mpi_subsets(n_pairs, size)
 
-    for stage in [0, 1]:
-        if stage == 1 and rank != 0:
-            pass
+    for line in sets[rank]:
+        if (grid[pairs[line, 0]] == None):
+            print ("###Block Inexistent")
+            continue
+        print('###Line ' + str(line))
+        main_pos = pairs[line, 0]
+        main_shape = g_shapes(grid[main_pos])
+        right_pos = pairs[line, 1]
+        if (right_pos != None):
+            right_shape = g_shapes(grid[right_pos])
         else:
-            fstart = rank * file_per_rank
-            fend = (rank+1) * file_per_rank
-            if stage == 1:
-                fstart = size * file_per_rank
-                fend = n_pairs
-            for line in range(fstart, fend):
-                if (grid[pairs[line, 0]] == None):
-                    print ("###Block Inexistent")
-                    continue
-                print('###Line ' + str(line))
-                main_pos = pairs[line, 0]
-                main_shape = g_shapes(grid[main_pos])
-                right_pos = pairs[line, 1]
-                if (right_pos != None):
-                    right_shape = g_shapes(grid[right_pos])
-                else:
-                    right_shape = [0,0,0]
-                bottom_pos = pairs[line, 2]
-                if (bottom_pos != None):
-                    bottom_shape = g_shapes(grid[bottom_pos])
-                else:
-                    bottom_shape = [0,0,0]
-                size_max = max(main_shape[0],right_shape[0],bottom_shape[0])
-                prj, flt, drk = read_aps_32id_adaptive(grid[main_pos], proj=(0,size_max,step))
-                prj = tomopy.normalize(prj, flt, drk)
-                prj[np.abs(prj) < 2e-3] = 2e-3
-                prj[prj > 1] = 1
-                prj = -np.log(prj)
-                prj[np.where(np.isnan(prj) == True)] = 0
-                main_prj = vig_image(prj)
-                pairs_shift[line, 0:2] = main_pos
+            right_shape = [0,0,0]
+        bottom_pos = pairs[line, 2]
+        if (bottom_pos != None):
+            bottom_shape = g_shapes(grid[bottom_pos])
+        else:
+            bottom_shape = [0,0,0]
+        size_max = max(main_shape[0],right_shape[0],bottom_shape[0])
+        prj, flt, drk = read_aps_32id_adaptive(grid[main_pos], proj=(0,size_max,step))
+        prj = tomopy.normalize(prj, flt, drk)
+        prj[np.abs(prj) < 2e-3] = 2e-3
+        prj[prj > 1] = 1
+        prj = -np.log(prj)
+        prj[np.where(np.isnan(prj) == True)] = 0
+        main_prj = vig_image(prj)
+        pairs_shift[line, 0:2] = main_pos
 
-                if (right_pos != None):
-                    prj, flt, drk = read_aps_32id_adaptive(grid[right_pos], proj=(0, size_max, step))
-                    prj = tomopy.normalize(prj, flt, drk)
-                    prj[np.abs(prj) < 2e-3] = 2e-3
-                    prj[prj > 1] = 1
-                    prj = -np.log(prj)
-                    prj[np.where(np.isnan(prj) == True)] = 0
-                    right_prj = vig_image(prj)
-                    shift_ini = shift_grid[right_pos] - shift_grid[main_pos]
-                    rangeX = shift_ini[1] + x_mask
-                    rangeY = shift_ini[0] + y_mask
-                    right_vec = create_stitch_shift(main_prj, right_prj, rangeX, rangeY, down=0, upsample=upsample)
-                    # if the computed shift drifts out of the mask, use motor readout instead
-                    if right_vec[0] <= rangeY[0] or right_vec[0] >= rangeY[1]:
-                        right_vec[0] = motor_readout[0]
-                    if right_vec[1] <= rangeX[0] or right_vec[1] >= rangeX[1]:
-                        right_vec[1] = motor_readout[1]
-                    pairs_shift[line, 2:4] = right_vec
+        if (right_pos != None):
+            prj, flt, drk = read_aps_32id_adaptive(grid[right_pos], proj=(0, size_max, step))
+            prj = tomopy.normalize(prj, flt, drk)
+            prj[np.abs(prj) < 2e-3] = 2e-3
+            prj[prj > 1] = 1
+            prj = -np.log(prj)
+            prj[np.where(np.isnan(prj) == True)] = 0
+            right_prj = vig_image(prj)
+            shift_ini = shift_grid[right_pos] - shift_grid[main_pos]
+            rangeX = shift_ini[1] + x_mask
+            rangeY = shift_ini[0] + y_mask
+            right_vec = create_stitch_shift(main_prj, right_prj, rangeX, rangeY, down=0, upsample=upsample)
+            # if the computed shift drifts out of the mask, use motor readout instead
+            if right_vec[0] <= rangeY[0] or right_vec[0] >= rangeY[1]:
+                right_vec[0] = motor_readout[0]
+            if right_vec[1] <= rangeX[0] or right_vec[1] >= rangeX[1]:
+                right_vec[1] = motor_readout[1]
+            pairs_shift[line, 2:4] = right_vec
 
-                if (bottom_pos != None):
-                    prj, flt, drk = read_aps_32id_adaptive(grid[bottom_pos], proj=(0,size_max,step))
-                    prj = tomopy.normalize(prj, flt, drk)
-                    prj[np.abs(prj) < 2e-3] = 2e-3
-                    prj[prj > 1] = 1
-                    prj = -np.log(prj)
-                    prj[np.where(np.isnan(prj) == True)] = 0
-                    bottom_prj = vig_image(prj)
-                    shift_ini = shift_grid[bottom_pos] - shift_grid[main_pos]
-                    rangeX = shift_ini[1] + x_mask
-                    rangeY = shift_ini[0] + y_mask
-                    right_vec = create_stitch_shift(main_prj, bottom_prj, rangeX, rangeY, down=1, upsample=upsample)
-                    if right_vec[0] <= rangeY[0] or right_vec[0] >= rangeY[1]:
-                        right_vec[0] = motor_readout[0]
-                    if right_vec[1] <= rangeX[0] or right_vec[1] >= rangeX[1]:
-                        right_vec[1] = motor_readout[1]
-                    pairs_shift[line, 4:6] = right_vec
+        if (bottom_pos != None):
+            prj, flt, drk = read_aps_32id_adaptive(grid[bottom_pos], proj=(0,size_max,step))
+            prj = tomopy.normalize(prj, flt, drk)
+            prj[np.abs(prj) < 2e-3] = 2e-3
+            prj[prj > 1] = 1
+            prj = -np.log(prj)
+            prj[np.where(np.isnan(prj) == True)] = 0
+            bottom_prj = vig_image(prj)
+            shift_ini = shift_grid[bottom_pos] - shift_grid[main_pos]
+            rangeX = shift_ini[1] + x_mask
+            rangeY = shift_ini[0] + y_mask
+            right_vec = create_stitch_shift(main_prj, bottom_prj, rangeX, rangeY, down=1, upsample=upsample)
+            if right_vec[0] <= rangeY[0] or right_vec[0] >= rangeY[1]:
+                right_vec[0] = motor_readout[0]
+            if right_vec[1] <= rangeX[0] or right_vec[1] >= rangeX[1]:
+                right_vec[1] = motor_readout[1]
+            pairs_shift[line, 4:6] = right_vec
 
     print('Rank: '+str(rank), pairs_shift)
 
@@ -265,7 +248,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', savefolder='.', step=200
             pairs_shift = pairs_shift + temp
     os.chdir(root)
     try:
-        np.savetxt(savefolder+'/shifts.txt', pairs_shift)
+        np.savetxt(os.path.join(savefolder, 'shifts.txt'), pairs_shift)
     except:
         print('Warning: failed to save files. Please save pair shifts as shifts.txt manually:')
         print(pairs_shift)
