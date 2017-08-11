@@ -285,11 +285,13 @@ def reorganize_dir(file_list, raw_ds=(2,4), dtype='float16', **kwargs):
     comm.Barrier()
 
     for fname in file_list:
+        comm.Barrier()
         print('Now processing '+str(fname))
         # make downsampled subdirectories
         for ds in raw_ds:
             # create downsample folder if not existing
             folder_name = 'data_raw_'+str(ds)+'x'
+            comm.Barrier()
             if rank == 0:
                 if not os.path.exists(folder_name):
                     os.mkdir(folder_name)
@@ -316,7 +318,7 @@ def reorganize_dir(file_list, raw_ds=(2,4), dtype='float16', **kwargs):
                         print('Warning: File already exists. Continue anyway? (y/n) ')
                         cont = raw_input()
                         if cont in ['n', 'N']:
-                            exit()
+                            continue
                         else:
                             print('Old file will be overwritten. '+folder_name+'/' + fname)
                             os.remove(folder_name+'/' + fname)
@@ -324,6 +326,7 @@ def reorganize_dir(file_list, raw_ds=(2,4), dtype='float16', **kwargs):
                 comm.Barrier()
                 if rank != 0:
                     f = h5py.File(folder_name+'/'+fname)
+                comm.Barrier()
                 dat_grp = f.create_group('exchange')
                 dat = dat_grp.create_dataset('data', (full_shape[0], np.floor(full_shape[1]/ds),
                                                           np.floor(full_shape[2]/ds)), dtype=dtype)
