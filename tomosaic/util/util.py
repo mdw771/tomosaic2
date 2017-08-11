@@ -350,6 +350,7 @@ def reorganize_dir(file_list, raw_ds=(2,4), dtype='float16', **kwargs):
                     temp = raw[frame:frame+1, :, :]
                     temp = image_downsample(temp, ds)
                     dat[frame:frame+1, :, :] = temp
+                    print('\r    Rank: {:d}, DS: {:d}, at frame {:d}'.format(rank, ds, frame))
 
                 raw = o['exchange/data_dark']
                 aux_shape = raw.shape
@@ -358,10 +359,11 @@ def reorganize_dir(file_list, raw_ds=(2,4), dtype='float16', **kwargs):
                 comm.Barrier()
                 n_darks = raw.shape[0]
                 alloc_sets = allocate_mpi_subsets(n_darks, size)
-                for frame in range(aux_shape[0]):
+                for frame in alloc_sets[rank]:
                     temp = raw[frame:frame+1, :, :]
                     temp = image_downsample(temp, ds)
                     dat[frame:frame+1, :, :] = temp
+                    print('\r    Rank: {:d}, DS: {:d}, at frame {:d}'.format(rank, ds, frame))
                 comm.Barrier()
                 f.close()
                 comm.Barrier()
