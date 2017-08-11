@@ -421,9 +421,8 @@ def img_cast(image, display_min, display_max, dtype='uint16'):
 
 
 def image_downsample(img, ds):
-    temp = downsample(downsample(img, level=ds-1, axis=1), level=ds-1, axis=2)
+    temp = downsample(downsample(img, level=int(np.log2(ds)), axis=1), level=int(np.log2(ds)), axis=2)
     return temp
-
 
 def check_fname_ext(fname, ext):
     ext_len = len(ext)
