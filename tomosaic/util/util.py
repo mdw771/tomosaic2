@@ -344,15 +344,20 @@ def reorganize_dir(file_list, raw_ds=(2,4), dtype='float16', **kwargs):
                                                                   np.floor(aux_shape[2]/ds)), dtype=dtype)
                 comm.Barrier()
                 print('    Downsampling whites and darks')
-                for frame in range(aux_shape[0]):
+                n_whites = raw.shape[0]
+                alloc_sets = allocate_mpi_subsets(n_whites, size)
+                for frame in alloc_sets[rank]:
                     temp = raw[frame:frame+1, :, :]
                     temp = image_downsample(temp, ds)
                     dat[frame:frame+1, :, :] = temp
+
                 raw = o['exchange/data_dark']
                 aux_shape = raw.shape
                 dat = dat_grp.create_dataset('data_dark', (aux_shape[0], np.floor(aux_shape[1]/ds),
                                                            np.floor(aux_shape[2]/ds)), dtype=dtype)
                 comm.Barrier()
+                n_darks = raw.shape[0]
+                alloc_sets = allocate_mpi_subsets(n_darks, size)
                 for frame in range(aux_shape[0]):
                     temp = raw[frame:frame+1, :, :]
                     temp = image_downsample(temp, ds)
@@ -360,6 +365,7 @@ def reorganize_dir(file_list, raw_ds=(2,4), dtype='float16', **kwargs):
                 comm.Barrier()
                 f.close()
                 comm.Barrier()
+                print('Done file: {:s} DS: {:d}'.format(fname, ds))
         # delete file after all done
         try:
             os.remove(fname)
