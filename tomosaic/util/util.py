@@ -372,10 +372,10 @@ def reorganize_dir(file_list, raw_ds=(2,4), dtype='float16', **kwargs):
                 comm.Barrier()
                 print('Done file: {:s} DS: {:d}'.format(fname, ds))
         # delete file after all done
-        try:
-            os.remove(fname)
-        except:
-            pass
+        # try:
+        #     os.remove(fname)
+        # except:
+        #     pass
 
 
 def reorganize_tiffs():
