@@ -160,14 +160,18 @@ def read_aps_32id_adaptive(fname, proj=None, sino=None):
             dat, flt, drk = dxchange.read_aps_32id(fname, proj=proj, sino=sino)
     except:
         f = h5py.File(fname)
-        flt = f['exchange/data_white'].value
-        drk = f['exchange/data_dark'].value
         d = f['exchange/data']
         if proj is None:
             dat = d[:, sino[0]:sino[1], :]
+            flt = f['exchange/data_white'][:, sino[0]:sino[1], :]
+            drk = f['exchange/data_dark'][:, sino[0]:sino[1], :]
         elif sino is None:
             dat = d[proj[0]:proj[1], :, :]
+            flt = f['exchange/data_white'].value
+            drk = f['exchange/data_dark'].value
         else:
             dat = None
+            flt = None
+            drk = None
             print('ERROR: Sino and Proj cannot be specifed simultaneously. ')
     return dat, flt, drk
