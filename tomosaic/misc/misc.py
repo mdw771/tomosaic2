@@ -153,9 +153,21 @@ def read_aps_32id_adaptive(fname, proj=None, sino=None):
     m = re.search(r'(\d+)\.(\d+)\.(\d+)', dxver)
     ver = m.group(1, 2, 3)
     ver = map(int, ver)
-    if ver[0] > 0 or ver[1] > 1 or ver[2] > 1:
-        dat, flt, drk, _ = dxchange.read_aps_32id(fname, proj=proj, sino=sino)
-    else:
-        dat, flt, drk = dxchange.read_aps_32id(fname, proj=proj, sino=sino)
-
+    try:
+        if ver[0] > 0 or ver[1] > 1 or ver[2] > 1:
+            dat, flt, drk, _ = dxchange.read_aps_32id(fname, proj=proj, sino=sino)
+        else:
+            dat, flt, drk = dxchange.read_aps_32id(fname, proj=proj, sino=sino)
+    except:
+        f = h5py.File(fname)
+        flt = f['exchange/data_white'].value
+        drk = f['exchange/data_dark'].value
+        d = f['exchange/data']
+        if proj is None:
+            dat = d[:, sino[0]:sino[1], :]
+        elif sino is None:
+            dat = d[proj[0]:proj[1], :, :]
+        else:
+            dat = None
+            print('ERROR: Sino and Proj cannot be specifed simultaneously. ')
     return dat, flt, drk
