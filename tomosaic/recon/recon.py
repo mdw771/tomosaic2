@@ -364,9 +364,9 @@ def prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=0, metho
                   mode='180', phase_retrieval=None, **kwargs):
     sinos = [None] * grid.shape[1]
     for col in range(grid.shape[1]):
-        try:
+        if os.path.exists(grid[grid_lines[col], col]):
             sinos[col] = load_sino(grid[grid_lines[col], col], slice_in_tile[col], normalize=normalize)
-        except:
+        else:
             pass
     t = time.time()
     row_sino = register_recon(grid, grid_lines, shift_grid, sinos, method=method, blend_options=blend_options,
