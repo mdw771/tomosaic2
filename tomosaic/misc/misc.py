@@ -164,11 +164,19 @@ def read_aps_32id_adaptive(fname, proj=None, sino=None):
         if proj is None:
             dat = d[:, sino[0]:sino[1], :]
             flt = f['exchange/data_white'][:, sino[0]:sino[1], :]
-            drk = f['exchange/data_dark'][:, sino[0]:sino[1], :]
+            try:
+                drk = f['exchange/data_dark'][:, sino[0]:sino[1], :]
+            except:
+                print('WARNING: Failed to read dark field. Using zero array instead.')
+                drk = np.zeros([flt.shape[0], 1, flt.shape[2]])
         elif sino is None:
             dat = d[proj[0]:proj[1], :, :]
             flt = f['exchange/data_white'].value
-            drk = f['exchange/data_dark'].value
+            try:
+                drk = f['exchange/data_dark'].value
+            except:
+                print('WARNING: Failed to read dark field. Using zero array instead.')
+                drk = np.zeros([1, flt.shape[1], flt.shape[2]])
         else:
             dat = None
             flt = None
