@@ -100,7 +100,7 @@ except:
 
 def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center_vec=None, center_eq=None, dtype='float32',
                algorithm='gridrec', tolerance=1, chunk_size=20, save_sino=False, sino_blur=None, flattened_radius=120,
-               mode='180', test_mode=False, phase_retrieval=None, ring_removal=True, **kwargs):
+               mode='180', test_mode=False, phase_retrieval=None, ring_removal=True, crop=None, **kwargs):
     """
     center_eq: a and b parameters in fitted center position equation center = a*slice + b.
     """
