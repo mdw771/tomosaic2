@@ -145,6 +145,10 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
             rec = tomopy.remove_ring(rec)
             rec = tomopy.remove_outlier(rec, tolerance)
             rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
+            if crop is not None:
+                crop = np.asarray(crop)
+                rec = rec[:, crop[0, 0]:crop[1, 0], crop[0, 1]:crop[1, 1]]
+
             for i in range(rec.shape[0]):
                 slice = sub_sino_ls[i]
                 dxchange.write_tiff(rec[i, :, :], fname=os.path.join(dest_folder, 'recon/recon_{:05d}_{:05d}.tiff').format(slice, sino_ini))
@@ -211,6 +215,9 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
                 rec = tomopy.recon(data, theta, center=center, algorithm=algorithm, **kwargs)
             rec = tomopy.remove_outlier(rec, tolerance)
             rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
+            if crop is not None:
+                crop = np.asarray(crop)
+                rec = rec[:, crop[0, 0]:crop[1, 0], crop[0, 1]:crop[1, 1]]
 
             for i in range(rec.shape[0]):
                 slice = sub_sino_ls[i]
