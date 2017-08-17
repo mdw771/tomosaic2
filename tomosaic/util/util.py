@@ -631,8 +631,8 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
     n_frames, y_cam, x_cam = o['exchange/data'].shape
     frames_per_rank = int(n_frames/size)
     grp = f.create_group('exchange')
-    full_width = np.max(shift_grid[:, -1, 1]) + x_cam + 10
-    full_height = np.max(shift_grid[-1, :, 0]) + y_cam + 10
+    full_width = int(np.max(shift_grid[:, -1, 1]) + x_cam + 10)
+    full_height = int(np.max(shift_grid[-1, :, 0]) + y_cam + 10)
     full_shape = (n_frames, full_height, full_width)
     dset_data = grp.create_dataset('data', full_shape, dtype=dtype)
     dset_flat = grp.create_dataset('data_white', (1, full_height, full_width), dtype=dtype)
