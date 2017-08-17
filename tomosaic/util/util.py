@@ -618,11 +618,11 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
             else:
                 print('Old file will be overwritten.')
                 os.remove(dest_folder + '/' + dest_fname)
-        f = h5py.File(dest_folder + '/' + dest_fname)
+        f = h5py.File(os.path.join(dest_folder, dest_fname))
     comm.Barrier()
     if rank != 0:
-        assert os.path.exists(dest_folder + '/' + dest_fname)
-        f = h5py.File(dest_folder + '/' + dest_fname)
+        assert os.path.exists(os.path.join(dest_folder, dest_fname))
+        f = h5py.File(os.path.join(dest_folder, dest_fname))
 
     origin_dir = os.getcwd()
     os.chdir(src_folder)
@@ -630,6 +630,7 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
     o = h5py.File(file_grid[0, 0])
     n_frames, y_cam, x_cam = o['exchange/data'].shape
     frames_per_rank = int(n_frames/size)
+
     grp = f.create_group('exchange')
     full_width = int(np.max(shift_grid[:, -1, 1]) + x_cam + 10)
     full_height = int(np.max(shift_grid[-1, :, 0]) + y_cam + 10)
@@ -650,7 +651,7 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
         pano = np.zeros((full_height, full_width), dtype=dtype)
         # save_stdout = sys.stdout
         # sys.stdout = open('log', 'w')
-        temp = build_panorama(src_folder, file_grid, shift_grid, frame=frame, method=blend_method, method2=blend_method2,
+        temp = build_panorama('.', file_grid, shift_grid, frame=frame, method=blend_method, method2=blend_method2,
                               blend_options=blend_options, blend_options2=blend_options2, blur=blur, color_correction=color_correction)
         temp[np.isnan(temp)] = 0
         # sys.stdout = save_stdout
