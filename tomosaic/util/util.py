@@ -203,7 +203,7 @@ def build_panorama(src_folder, file_grid, shift_grid, frame=0, method='max', met
             t0 = time.time()
             buff = blend(buff, row_buff, [offset, 0], method=method2, color_correction=False, **blend_options2)
             print('Rank: {:d}; Frame: {:d}; Row: {:d}; Row stitched in {:.2f} s; Max: {}.'.format(rank, frame, y, time.time()-t0, buff[np.isfinite(buff)].max()))
-    print('Rank: {:d}; Frame: {:d}; Panorama built in {:.2f} s, Max: {}.'.format(rank, frame, time.time()-t00), buff[np.isfinite(buff)].max())
+    print('Rank: {:d}; Frame: {:d}; Panorama built in {:.2f} s, Max: {}.'.format(rank, frame, time.time()-t00, buff[np.isfinite(buff)].max()))
     os.chdir(root)
     return buff
 
