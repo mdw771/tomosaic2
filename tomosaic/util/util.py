@@ -194,7 +194,7 @@ def build_panorama(src_folder, file_grid, shift_grid, frame=0, method='max', met
                     t0 = time.time()
                     row_buff = blend(row_buff, np.squeeze(prj), temp_shift[0, x, :], method=method, color_correction=color_correction, **blend_options)
                     print('Rank: {:d}; Frame: {:d}; Pos: ({:d}, {:d}); Method: {:s}; Color Corr.:{:b}; Tile stitched in '
-                          '{:.2f} s.'.format(rank, frame, y, x, method, color_correction, time.time() - t0))
+                          '{:.2f} s; Max: {}.'.format(rank, frame, y, x, method, color_correction, time.time() - t0, row_buff[np.isfinite(row_buff)].max()))
                     if last_none:
                         row_buff[margin:, margin:-margin][np.isnan(row_buff[margin:, margin:-margin])] = 0
                         last_none = False
@@ -202,8 +202,8 @@ def build_panorama(src_folder, file_grid, shift_grid, frame=0, method='max', met
                     last_none = True
             t0 = time.time()
             buff = blend(buff, row_buff, [offset, 0], method=method2, color_correction=False, **blend_options2)
-            print('Rank: {:d}; Frame: {:d}; Row: {:d}; Row stitched in {:.2f} s.'.format(rank, frame, y, time.time()-t0))
-    print('Rank: {:d}; Frame: {:d}; Panorama built in {:.2f} s.'.format(rank, frame, time.time()-t00))
+            print('Rank: {:d}; Frame: {:d}; Row: {:d}; Row stitched in {:.2f} s; Max: {}.'.format(rank, frame, y, time.time()-t0, buff[np.isfinite(buff)].max()))
+    print('Rank: {:d}; Frame: {:d}; Panorama built in {:.2f} s, Max: {}.'.format(rank, frame, time.time()-t00), buff[np.isfinite(buff)].max())
     os.chdir(root)
     return buff
 
@@ -657,6 +657,7 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
         # sys.stdout = save_stdout
         pano[:temp.shape[0], :temp.shape[1]] = temp.astype(dtype)
         dset_data[frame, :, :] = pano
+        dxchange.write_tiff(dset_data[frame, :, :], 'test', dtype='float32')
         print('    Frame {:d} done in {:.3f} s.'.format(frame, time.time() - t00))
     print('Data built and written in {:.3f} s.'.format(time.time() - t0))
     # try:

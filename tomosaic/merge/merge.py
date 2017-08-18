@@ -522,7 +522,7 @@ def img_merge_pyramid(img1, img2, shift, margin=100, blur=0.4, depth=5):
         newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + wid_hor] = ovlp_blended
     # print('    Blend: Done with this tile in', str(time.time() - t00), 'sec.')
     gc.collect()
-
+    
     return newimg
 
 
