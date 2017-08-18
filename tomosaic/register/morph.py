@@ -99,7 +99,12 @@ def arrange_image(img1, img2, shift, order=1, trim=True):
     """
     rough_shift = get_roughshift(shift).astype('int')
     adj_shift = shift - rough_shift.astype('float')
-    img2 = realign_image(img2, adj_shift)
+    if np.count_nonzero(np.isnan(img2)) > 0:
+        logger.debug('Skipping subpixel because of nan presence.')
+        int_shift = np.round(adj_shift).astype('int')
+        img2 = np.roll(np.roll(img2, int_shift[0], axis=0), int_shift[1], axis=1)
+    else:
+        img2 = realign_image(img2, adj_shift)
     if trim:
         temp = np.zeros(img2.shape-np.ceil(np.abs(adj_shift)).astype('int'))
         temp[:, :] = img2[:temp.shape[0], :temp.shape[1]]
@@ -110,12 +115,12 @@ def arrange_image(img1, img2, shift, order=1, trim=True):
     newimg[:, :] = np.NaN
     if order == 1:
         newimg[0:img1.shape[0], 0:img1.shape[1]] = img1
-        notnan = img2 != np.NaN
+        notnan = np.isfinite(img2)
         newimg[rough_shift[0]:rough_shift[0] + img2.shape[0], rough_shift[1]:rough_shift[1] + img2.shape[1]][notnan] \
             = img2[notnan]
     elif order == 2:
         newimg[rough_shift[0]:rough_shift[0] + img2.shape[0], rough_shift[1]:rough_shift[1] + img2.shape[1]] = img2
-        notnan = img1 != np.NaN
+        notnan = np.isfinite(img1)
         newimg[0:img1.shape[0], 0:img1.shape[1]][notnan] = img1[notnan]
     else:
         print('Warning: images are not arranged due to misspecified order.')
