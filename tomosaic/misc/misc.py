@@ -189,8 +189,8 @@ def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', **kw
             f = cdf.Dataset(fname)
             dat = f['array_data'][proj[0]:proj[1], :, :]
             basename = os.path.splitext(fname)[0]
-            flt1 = cdf.Dataset(basename + '_flat1.nc')[...]
-            flt2 = cdf.Dataset(basename + '_flat2.nc')[...]
+            flt1 = cdf.Dataset(basename + '_flat1.nc')['array_data'][...]
+            flt2 = cdf.Dataset(basename + '_flat2.nc')['array_data'][...]
             flt = np.vstack([flt1, flt2])
             drk = np.zeros([1, flt.shape[1], flt.shape[2]])
             drk[...] = 64
@@ -198,8 +198,8 @@ def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', **kw
             f = cdf.Dataset(fname)
             dat = f['array_data'][:, sino[0]:sino[1], :]
             basename = os.path.splitext(fname)[0]
-            flt1 = cdf.Dataset(basename + '_flat1.nc')[:, sino[0]:sino[1], :]
-            flt2 = cdf.Dataset(basename + '_flat2.nc')[:, sino[0]:sino[1], :]
+            flt1 = cdf.Dataset(basename + '_flat1.nc')['array_data'][:, sino[0]:sino[1], :]
+            flt2 = cdf.Dataset(basename + '_flat2.nc')['array_data'][:, sino[0]:sino[1], :]
             flt = np.vstack([flt1, flt2])
             drk = np.zeros([1, flt.shape[1], flt.shape[2]])
             drk[...] = 64
