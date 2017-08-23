@@ -70,6 +70,7 @@ __all__ = ['start_file_grid',
 
 import numpy as np
 import h5py
+import netCDF4 as cdf
 import tomopy
 from tomosaic.register.morph import *
 from tomosaic.register.register_translation import register_translation
@@ -152,10 +153,8 @@ def find_pairs(file_grid):
     return pairs
 
 
-g_shapes = lambda fname: h5py.File(fname, "r")['exchange/data'].shape
-
-
-def refine_shift_grid(grid, shift_grid, src_folder='.', savefolder='.', step=200, upsample=100, y_mask=[-5,5], x_mask=[-5,5], motor_readout=None):
+def refine_shift_grid(grid, shift_grid, src_folder='.', savefolder='.', step=200, upsample=100,
+                      y_mask=[-5,5], x_mask=[-5,5], motor_readout=None, data_format='aps_32id'):
 
     root = os.getcwd()
     os.chdir(src_folder)
@@ -190,7 +189,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', savefolder='.', step=200
         else:
             bottom_shape = [0,0,0]
         size_max = max(main_shape[0],right_shape[0],bottom_shape[0])
-        prj, flt, drk = read_aps_32id_adaptive(grid[main_pos], proj=(0,size_max,step))
+        prj, flt, drk = read_data_adaptive(grid[main_pos], proj=(0, size_max, step), data_format=data_format)
         prj = tomopy.normalize(prj, flt, drk)
         prj[np.abs(prj) < 2e-3] = 2e-3
         prj[prj > 1] = 1
@@ -200,7 +199,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', savefolder='.', step=200
         pairs_shift[line, 0:2] = main_pos
 
         if (right_pos != None):
-            prj, flt, drk = read_aps_32id_adaptive(grid[right_pos], proj=(0, size_max, step))
+            prj, flt, drk = read_data_adaptive(grid[right_pos], proj=(0, size_max, step), data_format=data_format)
             prj = tomopy.normalize(prj, flt, drk)
             prj[np.abs(prj) < 2e-3] = 2e-3
             prj[prj > 1] = 1
@@ -219,7 +218,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', savefolder='.', step=200
             pairs_shift[line, 2:4] = right_vec
 
         if (bottom_pos != None):
-            prj, flt, drk = read_aps_32id_adaptive(grid[bottom_pos], proj=(0,size_max,step))
+            prj, flt, drk = read_data_adaptive(grid[bottom_pos], proj=(0, size_max, step), data_format=data_format)
             prj = tomopy.normalize(prj, flt, drk)
             prj[np.abs(prj) < 2e-3] = 2e-3
             prj[prj > 1] = 1

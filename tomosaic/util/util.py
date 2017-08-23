@@ -69,15 +69,17 @@ __all__ = ['get_files',
            'total_fusion',
            'file2grid',
            'hdf5_retrieve_phase',
-	       'preprocess']
+	       'preprocess',
+           'g_shapes']
 
 import os, glob, re
 import h5py
+import netCDF4 as cdf
 import numpy as np
 import tomopy
 import dxchange
 from tomosaic.util.phase import retrieve_phase
-from tomosaic.misc.misc import allocate_mpi_subsets, read_aps_32id_adaptive
+from tomosaic.misc.misc import allocate_mpi_subsets, read_data_adaptive
 from tomosaic.merge.merge import blend
 from tomosaic.register.morph import arrange_image
 import shutil
@@ -114,6 +116,13 @@ def get_files(folder, prefix, type='.h5'):
 
 
 def get_index(file_list, pattern=0):
+    '''
+    Get tile indices.
+    :param file_list: list of files.
+    :param pattern: pattern of naming. For files named with x_*_y_*, use
+                    pattern=0. For files named with y_*_x_*, use pattern=1.
+    :return: 
+    '''
     if pattern == 0:
         regex = re.compile(r".+_x(\d+)_y(\d+).+")
         ind_buff = [m.group(1, 2) for l in file_list for m in [regex.search(l)] if m]
@@ -123,21 +132,21 @@ def get_index(file_list, pattern=0):
     return np.asarray(ind_buff).astype('int')
 
 
-def save_partial_frames(file_grid, save_folder, prefix, frame=0):
+def save_partial_frames(file_grid, save_folder, prefix, frame=0, data_format='aps_32id'):
     for (y, x), value in np.ndenumerate(file_grid):
         print(value)
         if (value != None):
-            prj, flt, drk = read_aps_32id_adaptive(value, proj=(frame, frame + 1))
+            prj, flt, drk = read_data_adaptive(value, proj=(frame, frame + 1), data_format=data_format)
             prj = tomopy.normalize(prj, flt, drk)
             prj = preprocess(prj)
             fname = prefix + 'Y' + str(y).zfill(2) + '_X' + str(x).zfill(2)
             dxchange.write_tiff(np.squeeze(prj), fname=os.path.join(save_folder, 'partial_frames', fname))
 
 
-def save_partial_raw(file_list, save_folder):
+def save_partial_raw(file_list, save_folder, data_format='aps_32id'):
     for value in file_list:
         if (value != None):
-            prj, flt, drk = read_aps_32id_adaptive(value, proj=(0, 1))
+            prj, flt, drk = read_data_adaptive(value, proj=(0, 1), data_format=data_format)
             fname = value
             dxchange.write_tiff_stack(np.squeeze(flt), fname=os.path.join(save_folder, 'partial_flats', fname))
             dxchange.write_tiff_stack(np.squeeze(drk), fname=os.path.join(save_folder, 'partial_darks', fname))
@@ -145,11 +154,8 @@ def save_partial_raw(file_list, save_folder):
             dxchange.write_tiff(np.squeeze(prj), fname=os.path.join(save_folder, 'partial_frames_raw', fname))
 
 
-g_shapes = lambda fname: h5py.File(fname, "r")['exchange/data'].shape
-
-
 def build_panorama(src_folder, file_grid, shift_grid, frame=0, method='max', method2=None, blend_options={}, blend_options2={},
-                   blur=None, color_correction=False, margin=100):
+                   blur=None, color_correction=False, margin=100, data_format='aps_32id'):
 
     t00 = time.time()
     root = os.getcwd()
@@ -162,7 +168,7 @@ def build_panorama(src_folder, file_grid, shift_grid, frame=0, method='max', met
     if method2 is None:
         for (y, x), value in np.ndenumerate(file_grid):
             if (value != None and frame < g_shapes(value)[0]):
-                prj, flt, drk = read_aps_32id_adaptive(value, proj=(frame, frame + 1))
+                prj, flt, drk = read_data_adaptive(value, proj=(frame, frame + 1), data_format=data_format)
                 prj = tomopy.normalize(prj, flt, drk)
                 prj = preprocess(prj, blur=blur)
                 t0 = time.time()
@@ -181,14 +187,14 @@ def build_panorama(src_folder, file_grid, shift_grid, frame=0, method='max', met
             offset = np.min(temp_shift[:, :, 0])
             temp_shift[:, :, 0] = temp_shift[:, :, 0] - offset
             row_buff = np.zeros([1, 1])
-            prj, flt, drk = read_aps_32id_adaptive(temp_grid[0, 0], proj=(frame, frame + 1))
+            prj, flt, drk = read_data_adaptive(temp_grid[0, 0], proj=(frame, frame + 1), data_format=data_format)
             prj = tomopy.normalize(prj, flt, drk)
             prj = preprocess(prj, blur=blur)
             row_buff, _ = arrange_image(row_buff, np.squeeze(prj), temp_shift[0, 0, :], order=1)
             for x in range(1, temp_grid.shape[1]):
                 value = temp_grid[0, x]
                 if (value != None and frame < g_shapes(value)[0]):
-                    prj, flt, drk = read_aps_32id_adaptive(value, proj=(frame, frame + 1))
+                    prj, flt, drk = read_data_adaptive(value, proj=(frame, frame + 1), data_format=data_format)
                     prj = tomopy.normalize(prj, flt, drk)
                     prj = preprocess(prj, blur=blur)
                     t0 = time.time()
@@ -275,6 +281,7 @@ def reorganize_dir(file_list, raw_ds=(2,4), dtype='float16', **kwargs):
         Bit of integer the data are to be converted into.
     """
 
+    # TODO: add cdf support
     # downsample
     try:
         f = h5py.File(file_list[0], 'r')
@@ -421,6 +428,13 @@ def img_cast(image, display_min, display_max, dtype='uint16'):
     image -= display_min
     image = image / (display_max - display_min + 1) * float(divider)
     return image.astype(dtype)
+
+
+def g_shapes(fname):
+    try:
+        return h5py.File(fname, "r")['exchange/data'].shape
+    except:
+        return cdf.Dataset(fname)['array_data'].shape
 
 
 def image_downsample(img, ds):
@@ -668,7 +682,7 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
     os.chdir(origin_dir)
 
 
-def partial_center_alignment(file_grid, shift_grid, center_vec, src_folder, range_0=-5, range_1=5):
+def partial_center_alignment(file_grid, shift_grid, center_vec, src_folder, range_0=-5, range_1=5, data_format='aps_32id'):
     """
     Further refine shift to optimize reconstruction in case of tilted rotation center, using entropy minimization as
     metric.
@@ -705,7 +719,7 @@ def partial_center_alignment(file_grid, shift_grid, center_vec, src_folder, rang
         y, x = tile_ls[i]
         center = center_vec[y]
         fname = file_grid[y, x]
-        sino, flt, drk = read_aps_32id_adaptive(fname, sino=(slice, slice+1))
+        sino, flt, drk = read_data_adaptive(fname, sino=(slice, slice + 1), data_format=data_format)
         sino = np.squeeze(tomopy.normalize(sino, flt, drk))
         sino = preprocess(sino)
         s_opt = np.inf

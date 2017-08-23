@@ -66,7 +66,7 @@ from scipy.ndimage import gaussian_filter
 
 import tomosaic
 from tomosaic import blend
-from tomosaic.misc.misc import allocate_mpi_subsets, read_aps_32id_adaptive
+from tomosaic.misc.misc import allocate_mpi_subsets, read_data_adaptive
 
 try:
     from mpi4py import MPI
@@ -282,7 +282,7 @@ def recon_hdf5_mpi(src_fanme, dest_folder, sino_range, sino_step, center_vec, sh
 def recon_block(grid, shift_grid, src_folder, dest_folder, slice_range, sino_step, center_vec, ds_level=0, blend_method='max',
                 blend_options=None, tolerance=1, sinogram_order=False, algorithm='gridrec', init_recon=None, ncore=None, nchunk=None, dtype='float32',
                 crop=None, save_sino=False, assert_width=None, sino_blur=None, color_correction=False, flattened_radius=120, normalize=True,
-                test_mode=False, mode='180', phase_retrieval=None, **kwargs):
+                test_mode=False, mode='180', phase_retrieval=None, data_format='aps_32id', **kwargs):
     """
     Reconstruct dsicrete HDF5 tiles, blending sinograms only.
     """
@@ -325,7 +325,8 @@ def recon_block(grid, shift_grid, src_folder, dest_folder, slice_range, sino_ste
         row_sino, center_pos = prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=ds_level,
                                              method=blend_method, blend_options=blend_options, rot_center=center_pos,
                                              assert_width=assert_width, sino_blur=sino_blur, color_correction=color_correction,
-                                             normalize=normalize, mode=mode, phase_retrieval=phase_retrieval)
+                                             normalize=normalize, mode=mode, phase_retrieval=phase_retrieval,
+                                             data_format=data_format)
         rec0 = recon_slice(row_sino, center_pos, sinogram_order=sinogram_order, algorithm=algorithm,
                           init_recon=init_recon, ncore=ncore, nchunk=nchunk, **kwargs)
         rec = tomopy.remove_ring(np.copy(rec0))
@@ -368,11 +369,11 @@ def to_rgb2(im):
 
 def prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=0, method='max', blend_options=None, pad=None,
                   rot_center=None, assert_width=None, sino_blur=None, color_correction=False, normalize=True,
-                  mode='180', phase_retrieval=None, **kwargs):
+                  mode='180', phase_retrieval=None, data_format='aps_32id', **kwargs):
     sinos = [None] * grid.shape[1]
     for col in range(grid.shape[1]):
         if os.path.exists(grid[grid_lines[col], col]):
-            sinos[col] = load_sino(grid[grid_lines[col], col], slice_in_tile[col], normalize=normalize)
+            sinos[col] = load_sino(grid[grid_lines[col], col], slice_in_tile[col], normalize=normalize, data_format=data_format)
         else:
             pass
     t = time.time()
@@ -440,10 +441,10 @@ def recon_slice(row_sino, center_pos, sinogram_order=False, algorithm=None,
     return rec
 
 
-def load_sino(filename, sino_n, normalize=True):
+def load_sino(filename, sino_n, normalize=True, data_format='aps_32id'):
     print('Loading {:s}, slice {:d}'.format(filename, sino_n))
     sino_n = int(sino_n)
-    sino, flt, drk = read_aps_32id_adaptive(filename, sino=(sino_n, sino_n + 1))
+    sino, flt, drk = read_data_adaptive(filename, sino=(sino_n, sino_n + 1), data_format=data_format)
     if not normalize:
         flt[:, :, :] = flt.max()
         drk[:, :, :] = 0

@@ -55,6 +55,7 @@ from __future__ import (absolute_import, division, print_function,
 
 import logging
 import h5py
+import netCDF4 as cdf
 import numpy as np
 import dxchange
 import re
@@ -69,7 +70,7 @@ __credits__ = "Doga Gursoy"
 __copyright__ = "Copyright (c) 2015, UChicago Argonne, LLC."
 __docformat__ = 'restructuredtext en'
 __all__ = ['allocate_mpi_subsets',
-           'read_aps_32id_adaptive']
+           'read_data_adaptive']
 
 
 def allocate_mpi_subsets_cont_chunk(n_task, size, task_list=None):
@@ -145,7 +146,7 @@ def minimum_entropy(folder, pattern='*.tiff', range=(-0.002, 0.002)):
     return a[np.argmin(s)]
 
 
-def read_aps_32id_adaptive(fname, proj=None, sino=None):
+def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', **kwargs):
     """
     Adaptive data reading function that works with dxchange both below and beyond version 0.0.11.
     """
@@ -153,33 +154,54 @@ def read_aps_32id_adaptive(fname, proj=None, sino=None):
     m = re.search(r'(\d+)\.(\d+)\.(\d+)', dxver)
     ver = m.group(1, 2, 3)
     ver = map(int, ver)
-    try:
-        if ver[0] > 0 or ver[1] > 1 or ver[2] > 1:
-            dat, flt, drk, _ = dxchange.read_aps_32id(fname, proj=proj, sino=sino)
-        else:
-            dat, flt, drk = dxchange.read_aps_32id(fname, proj=proj, sino=sino)
-    except:
-        f = h5py.File(fname)
-        d = f['exchange/data']
-        if proj is None:
-            dat = d[:, sino[0]:sino[1], :]
-            flt = f['exchange/data_white'][:, sino[0]:sino[1], :]
-            try:
-                drk = f['exchange/data_dark'][:, sino[0]:sino[1], :]
-            except:
-                print('WARNING: Failed to read dark field. Using zero array instead.')
-                drk = np.zeros([flt.shape[0], 1, flt.shape[2]])
-        elif sino is None:
-            dat = d[proj[0]:proj[1], :, :]
-            flt = f['exchange/data_white'].value
-            try:
-                drk = f['exchange/data_dark'].value
-            except:
-                print('WARNING: Failed to read dark field. Using zero array instead.')
-                drk = np.zeros([1, flt.shape[1], flt.shape[2]])
-        else:
-            dat = None
-            flt = None
-            drk = None
-            print('ERROR: Sino and Proj cannot be specifed simultaneously. ')
+    if data_format == 'aps_32id':
+        try:
+            if ver[0] > 0 or ver[1] > 1 or ver[2] > 1:
+                dat, flt, drk, _ = dxchange.read_aps_32id(fname, proj=proj, sino=sino)
+            else:
+                dat, flt, drk = dxchange.read_aps_32id(fname, proj=proj, sino=sino)
+        except:
+            f = h5py.File(fname)
+            d = f['exchange/data']
+            if proj is None:
+                dat = d[:, sino[0]:sino[1], :]
+                flt = f['exchange/data_white'][:, sino[0]:sino[1], :]
+                try:
+                    drk = f['exchange/data_dark'][:, sino[0]:sino[1], :]
+                except:
+                    print('WARNING: Failed to read dark field. Using zero array instead.')
+                    drk = np.zeros([flt.shape[0], 1, flt.shape[2]])
+            elif sino is None:
+                dat = d[proj[0]:proj[1], :, :]
+                flt = f['exchange/data_white'].value
+                try:
+                    drk = f['exchange/data_dark'].value
+                except:
+                    print('WARNING: Failed to read dark field. Using zero array instead.')
+                    drk = np.zeros([1, flt.shape[1], flt.shape[2]])
+            else:
+                dat = None
+                flt = None
+                drk = None
+                print('ERROR: Sino and Proj cannot be specifed simultaneously. ')
+    elif data_format == 'aps_13bm':
+        if sino is None:
+            f = cdf.Dataset(fname)
+            dat = f['array_data'][proj[0]:proj[1], :, :]
+            basename = os.path.splitext(fname)[0]
+            flt1 = cdf.Dataset(basename + '_flat1.nc')[...]
+            flt2 = cdf.Dataset(basename + '_flat2.nc')[...]
+            flt = np.vstack([flt1, flt2])
+            drk = np.zeros([1, flt.shape[1], flt.shape[2]])
+            drk[...] = 64
+        elif proj is None:
+            f = cdf.Dataset(fname)
+            dat = f['array_data'][:, sino[0]:sino[1], :]
+            basename = os.path.splitext(fname)[0]
+            flt1 = cdf.Dataset(basename + '_flat1.nc')[:, sino[0]:sino[1], :]
+            flt2 = cdf.Dataset(basename + '_flat2.nc')[:, sino[0]:sino[1], :]
+            flt = np.vstack([flt1, flt2])
+            drk = np.zeros([1, flt.shape[1], flt.shape[2]])
+            drk[...] = 64
+
     return dat, flt, drk
