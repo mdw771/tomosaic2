@@ -187,21 +187,21 @@ def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', **kw
     elif data_format == 'aps_13bm':
         if sino is None:
             f = cdf.Dataset(fname)
-            dat = f['array_data'][proj[0]:proj[1], :, :]
+            dat = f['array_data'][proj[0]:proj[1], :, :].astype('uint16')
             basename = os.path.splitext(fname)[0]
             flt1 = cdf.Dataset(basename + '_flat1.nc')['array_data'][...]
             flt2 = cdf.Dataset(basename + '_flat2.nc')['array_data'][...]
-            flt = np.vstack([flt1, flt2])
-            drk = np.zeros([1, flt.shape[1], flt.shape[2]])
+            flt = np.vstack([flt1, flt2]).astype('uint16')
+            drk = np.zeros([1, flt.shape[1], flt.shape[2]]).astype('uint16')
             drk[...] = 64
         elif proj is None:
             f = cdf.Dataset(fname)
-            dat = f['array_data'][:, sino[0]:sino[1], :]
+            dat = f['array_data'][:, sino[0]:sino[1], :].astype('uint16')
             basename = os.path.splitext(fname)[0]
             flt1 = cdf.Dataset(basename + '_flat1.nc')['array_data'][:, sino[0]:sino[1], :]
             flt2 = cdf.Dataset(basename + '_flat2.nc')['array_data'][:, sino[0]:sino[1], :]
-            flt = np.vstack([flt1, flt2])
-            drk = np.zeros([1, flt.shape[1], flt.shape[2]])
+            flt = np.vstack([flt1, flt2]).astype('uint16')
+            drk = np.zeros([1, flt.shape[1], flt.shape[2]]).astype('uint16')
             drk[...] = 64
 
     return dat, flt, drk
