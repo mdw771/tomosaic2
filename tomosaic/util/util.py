@@ -108,9 +108,16 @@ except:
 
 
 def get_files(folder, prefix, type='.h5'):
+    if not type.startswith('.'):
+        type = '.' + type
     root = os.getcwd()
     os.chdir(folder)
-    file_list = glob.glob(prefix + '*' + type)
+    file_list = []
+    for f in glob.glob(prefix + '*' + type):
+        if re.match(prefix + '.+[x,y]\d+' + type, f):
+            file_list.append(f)
+    if len(file_list) == 0:
+        file_list = glob.glob(prefix + '*' + type)
     os.chdir(root)
     return file_list
 
