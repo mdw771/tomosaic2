@@ -193,6 +193,8 @@ def register_translation(src_image, target_image, rangeX=[None, None], rangeY=[N
         rangeX = [0, new_size]
     if rangeY[0] is None:
         rangeY = [0, new_size]
+    rangeX = map(int, rangeX)
+    rangeY = map(int, rangeY)
 
     # Whole-pixel shift - Compute cross-correlation by an IFFT
     shape = src_freq.shape
