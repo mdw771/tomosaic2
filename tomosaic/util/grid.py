@@ -153,8 +153,8 @@ def find_pairs(file_grid):
     return pairs
 
 
-def refine_shift_grid(grid, shift_grid, src_folder='.', savefolder='.', step=800, upsample=10,
-                      y_mask=[-5,5], x_mask=[-5,5], motor_readout=None, data_format='aps_32id'):
+def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=800, upsample=10,
+                      y_mask=(-5, 5), x_mask=(-5, 5), motor_readout=None, data_format='aps_32id'):
 
     root = os.getcwd()
     os.chdir(src_folder)
@@ -247,7 +247,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', savefolder='.', step=800
             pairs_shift = pairs_shift + temp
     os.chdir(root)
     try:
-        np.savetxt(os.path.join(savefolder, 'shifts.txt'), pairs_shift)
+        np.savetxt(os.path.join(dest_folder, 'shifts.txt'), pairs_shift)
     except:
         print('Warning: failed to save files. Please save pair shifts as shifts.txt manually:')
         print(pairs_shift)

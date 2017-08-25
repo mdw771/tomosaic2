@@ -154,8 +154,10 @@ def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', **kw
     m = re.search(r'(\d+)\.(\d+)\.(\d+)', dxver)
     ver = m.group(1, 2, 3)
     ver = map(int, ver)
-    proj_step = 1 if len(proj) == 2 else proj[2]
-    sino_step = 1 if len(sino) == 2 else sino[2]
+    if proj is not None:
+        proj_step = 1 if len(proj) == 2 else proj[2]
+    if sino is not None:
+        sino_step = 1 if len(sino) == 2 else sino[2]
     if data_format == 'aps_32id':
         try:
             if ver[0] > 0 or ver[1] > 1 or ver[2] > 1:
