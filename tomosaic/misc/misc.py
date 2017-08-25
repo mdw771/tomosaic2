@@ -154,6 +154,8 @@ def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', **kw
     m = re.search(r'(\d+)\.(\d+)\.(\d+)', dxver)
     ver = m.group(1, 2, 3)
     ver = map(int, ver)
+    proj_step = 1 if len(proj) == 2 else proj[2]
+    sino_step = 1 if len(sino) == 2 else sino[2]
     if data_format == 'aps_32id':
         try:
             if ver[0] > 0 or ver[1] > 1 or ver[2] > 1:
@@ -164,15 +166,15 @@ def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', **kw
             f = h5py.File(fname)
             d = f['exchange/data']
             if proj is None:
-                dat = d[:, sino[0]:sino[1], :]
-                flt = f['exchange/data_white'][:, sino[0]:sino[1], :]
+                dat = d[:, sino[0]:sino[1]:sino_step, :]
+                flt = f['exchange/data_white'][:, sino[0]:sino[1]:sino_step, :]
                 try:
-                    drk = f['exchange/data_dark'][:, sino[0]:sino[1], :]
+                    drk = f['exchange/data_dark'][:, sino[0]:sino[1]:sino_step, :]
                 except:
                     print('WARNING: Failed to read dark field. Using zero array instead.')
                     drk = np.zeros([flt.shape[0], 1, flt.shape[2]])
             elif sino is None:
-                dat = d[proj[0]:proj[1], :, :]
+                dat = d[proj[0]:proj[1]:proj_step, :, :]
                 flt = f['exchange/data_white'].value
                 try:
                     drk = f['exchange/data_dark'].value
@@ -187,7 +189,7 @@ def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', **kw
     elif data_format == 'aps_13bm':
         if sino is None:
             f = cdf.Dataset(fname)
-            dat = f['array_data'][proj[0]:proj[1], :, :].astype('uint16')
+            dat = f['array_data'][proj[0]:proj[1]:proj_step, :, :].astype('uint16')
             basename = os.path.splitext(fname)[0]
             flt1 = cdf.Dataset(basename + '_flat1.nc')['array_data'][...]
             flt2 = cdf.Dataset(basename + '_flat2.nc')['array_data'][...]
@@ -196,10 +198,10 @@ def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', **kw
             drk[...] = 64
         elif proj is None:
             f = cdf.Dataset(fname)
-            dat = f['array_data'][:, sino[0]:sino[1], :].astype('uint16')
+            dat = f['array_data'][:, sino[0]:sino[1]:sino_step, :].astype('uint16')
             basename = os.path.splitext(fname)[0]
-            flt1 = cdf.Dataset(basename + '_flat1.nc')['array_data'][:, sino[0]:sino[1], :]
-            flt2 = cdf.Dataset(basename + '_flat2.nc')['array_data'][:, sino[0]:sino[1], :]
+            flt1 = cdf.Dataset(basename + '_flat1.nc')['array_data'][:, sino[0]:sino[1]:sino_step, :]
+            flt2 = cdf.Dataset(basename + '_flat2.nc')['array_data'][:, sino[0]:sino[1]:sino_step, :]
             flt = np.vstack([flt1, flt2]).astype('uint16')
             drk = np.zeros([1, flt.shape[1], flt.shape[2]]).astype('uint16')
             drk[...] = 64
