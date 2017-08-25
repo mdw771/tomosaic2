@@ -175,8 +175,8 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
         if (grid[pairs[line, 0]] == None):
             print ("Block Inexistent")
             continue
-        print('Line ' + str(line))
         main_pos = pairs[line, 0]
+        print('Line {} ({})'.format(line, main_pos))
         main_shape = g_shapes(grid[main_pos])
         right_pos = pairs[line, 1]
         if (right_pos != None):
@@ -189,6 +189,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
         else:
             bottom_shape = [0,0,0]
         size_max = max(main_shape[0],right_shape[0],bottom_shape[0])
+        print('    Reading data...')
         prj, flt, drk = read_data_adaptive(grid[main_pos], proj=(0, size_max, step), data_format=data_format)
         prj = tomopy.normalize(prj, flt, drk)
         prj[np.abs(prj) < 2e-3] = 2e-3
@@ -209,6 +210,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
             shift_ini = shift_grid[right_pos] - shift_grid[main_pos]
             rangeX = shift_ini[1] + x_mask
             rangeY = shift_ini[0] + y_mask
+            print('    Calculating shift: {}'.format(right_pos))
             right_vec = create_stitch_shift(main_prj, right_prj, rangeX, rangeY, down=0, upsample=upsample)
             # if the computed shift drifts out of the mask, use motor readout instead
             if right_vec[0] <= rangeY[0] or right_vec[0] >= rangeY[1]:
@@ -228,6 +230,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
             shift_ini = shift_grid[bottom_pos] - shift_grid[main_pos]
             rangeX = shift_ini[1] + x_mask
             rangeY = shift_ini[0] + y_mask
+            print('    Calculating shift: {}'.format(bottom_pos))
             right_vec = create_stitch_shift(main_prj, bottom_prj, rangeX, rangeY, down=1, upsample=upsample)
             if right_vec[0] <= rangeY[0] or right_vec[0] >= rangeY[1]:
                 right_vec[0] = motor_readout[0]
