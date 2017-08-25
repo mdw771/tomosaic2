@@ -153,7 +153,7 @@ def find_pairs(file_grid):
     return pairs
 
 
-def refine_shift_grid(grid, shift_grid, src_folder='.', savefolder='.', step=200, upsample=100,
+def refine_shift_grid(grid, shift_grid, src_folder='.', savefolder='.', step=800, upsample=10,
                       y_mask=[-5,5], x_mask=[-5,5], motor_readout=None, data_format='aps_32id'):
 
     root = os.getcwd()
@@ -173,9 +173,9 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', savefolder='.', step=200
 
     for line in sets[rank]:
         if (grid[pairs[line, 0]] == None):
-            print ("###Block Inexistent")
+            print ("Block Inexistent")
             continue
-        print('###Line ' + str(line))
+        print('Line ' + str(line))
         main_pos = pairs[line, 0]
         main_shape = g_shapes(grid[main_pos])
         right_pos = pairs[line, 1]
