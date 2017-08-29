@@ -248,12 +248,14 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
         for src in range(1, size):
             temp = comm.recv(source=src)
             pairs_shift = pairs_shift + temp
+    comm.Barrier()
     os.chdir(root)
-    try:
-        np.savetxt(os.path.join(dest_folder, 'shifts.txt'), pairs_shift)
-    except:
-        print('Warning: failed to save files. Please save pair shifts as shifts.txt manually:')
-        print(pairs_shift)
+    if rank == 0:
+        try:
+                np.savetxt(os.path.join(dest_folder, 'shifts.txt'), pairs_shift)
+        except:
+            print('Warning: failed to save files. Please save pair shifts as shifts.txt manually:')
+            print(pairs_shift)
     return pairs_shift
 
 
