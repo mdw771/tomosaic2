@@ -484,6 +484,7 @@ def register_recon(grid, grid_lines, shift_grid, sinos, method='max', blend_opti
                 i += 1
                 if i == len(sinos):
                     raise ValueError('No valid data contained in sinos.')
+    assert_width = int(assert_width)
     if assert_width > row_sino.shape[-1]:
         temp = np.zeros([row_sino.shape[0], 1, assert_width])
         temp[:, :, :row_sino.shape[-1]] = row_sino
