@@ -141,7 +141,7 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
             if sino_blur is not None:
                 for i in range(data.shape[1]):
                     data[:, i, :] = gaussian_filter(data[:, i, :], sino_blur)
-            rec = tomopy.recon(data, theta, center=center, algorithm=algorithm, num_iter=num_iter, **kwargs)
+            rec = tomopy.recon(data, theta, center=center, algorithm=algorithm, **kwargs)
             rec = tomopy.remove_ring(rec)
             rec = tomopy.remove_outlier(rec, tolerance)
             rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
@@ -212,7 +212,7 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
                     mask[i, :, :] = mask0
                 rec[mask] = (rec[mask] + rec0[mask])/2
             else:
-                rec = tomopy.recon(data, theta, center=center, algorithm=algorithm, num_iter=num_iter, **kwargs)
+                rec = tomopy.recon(data, theta, center=center, algorithm=algorithm, **kwargs)
             rec = tomopy.remove_outlier(rec, tolerance)
             rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
             if crop is not None:
