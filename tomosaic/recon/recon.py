@@ -202,7 +202,7 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
                 if phase_retrieval:
                     data = tomopy.retrieve_phase(data, kwargs['pixel_size'], kwargs['dist'], kwargs['energy'],
                                                  kwargs['alpha'])
-                rec0 = tomopy.recon(data, theta, center=center, algorithm=algorithm, num_iter=num_iter, **kwargs)
+                rec0 = tomopy.recon(data, theta, center=center, algorithm=algorithm, **kwargs)
                 rec = tomopy.remove_ring(np.copy(rec0))
                 cent = int((rec.shape[1]-1) / 2)
                 xx, yy = np.meshgrid(np.arange(rec.shape[2]), np.arange(rec.shape[1]))
