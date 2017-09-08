@@ -73,8 +73,12 @@ __all__ = ['get_files',
            'g_shapes']
 
 import os, glob, re
+import warnings
 import h5py
-import netCDF4 as cdf
+try:
+    import netCDF4 as cdf
+except:
+    warnings.warn('netCDF4 cannot be imported.')
 import numpy as np
 import tomopy
 import dxchange
@@ -778,3 +782,28 @@ def blur_hdf5(fname, sigma):
         dset[frame, :, :] = gaussian_filter(dset[frame, :, :], sigma)
     f.close()
     gc.collect()
+
+
+def get_histogram(img, bin_min, bin_max, n_bin=256):
+
+    bins = np.linspace(bin_min, bin_max, n_bin)
+    counts = np.zeros(n_bin+1)
+    ind = np.squeeze(np.searchsorted(bins, img))
+    for i in ind:
+        counts[i] += 1
+    return counts / img.size
+
+
+def equalize_histogram(img, bin_min, bin_max, n_bin=256):
+
+    histogram = get_histogram(img, bin_min, bin_max, n_bin=n_bin)
+    bins = np.linspace(bin_min, bin_max, n_bin)
+    e_table = np.zeros(n_bin + 1)
+    res = np.zeros(img.shape)
+    s_max = float(np.max(img))
+    for i in range(bins.size):
+        e_table[i] = s_max * np.sum(histogram[:i+1])
+    ind = np.searchsorted(bins, img)
+    for (y, x), i in np.ndenumerate(ind):
+        res[y, x] = e_table[i]
+    return res

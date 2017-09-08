@@ -54,8 +54,12 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import logging
+import warnings
 import h5py
-import netCDF4 as cdf
+try:
+    import netCDF4 as cdf
+except:
+    warnings.warn('netCDF4 cannot be imported.')
 import numpy as np
 import dxchange
 import re

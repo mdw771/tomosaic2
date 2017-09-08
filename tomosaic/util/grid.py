@@ -69,8 +69,6 @@ __all__ = ['start_file_grid',
            'absolute_shift_grid']
 
 import numpy as np
-import h5py
-import netCDF4 as cdf
 import tomopy
 from tomosaic.register.morph import *
 from tomosaic.register.register_translation import register_translation
