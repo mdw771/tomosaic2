@@ -152,7 +152,8 @@ def find_pairs(file_grid):
 
 
 def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=800, upsample=10,
-                      y_mask=(-5, 5), x_mask=(-5, 5), motor_readout=None, data_format='aps_32id'):
+                      y_mask=(-5, 5), x_mask=(-5, 5), motor_readout=None, histogram_equalization=True,
+                      data_format='aps_32id'):
 
     root = os.getcwd()
     os.chdir(src_folder)
@@ -209,7 +210,8 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
             rangeX = shift_ini[1] + x_mask
             rangeY = shift_ini[0] + y_mask
             print('    Calculating shift: {}'.format(right_pos))
-            right_vec = create_stitch_shift(main_prj, right_prj, rangeX, rangeY, down=0, upsample=upsample)
+            right_vec = create_stitch_shift(main_prj, right_prj, rangeX, rangeY, down=0, upsample=upsample,
+                                            histogram_equalization=histogram_equalization)
             # if the computed shift drifts out of the mask, use motor readout instead
             if right_vec[0] <= rangeY[0] or right_vec[0] >= rangeY[1]:
                 right_vec[0] = motor_readout[0]
@@ -229,7 +231,8 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
             rangeX = shift_ini[1] + x_mask
             rangeY = shift_ini[0] + y_mask
             print('    Calculating shift: {}'.format(bottom_pos))
-            right_vec = create_stitch_shift(main_prj, bottom_prj, rangeX, rangeY, down=1, upsample=upsample)
+            right_vec = create_stitch_shift(main_prj, bottom_prj, rangeX, rangeY, down=1, upsample=upsample,
+                                            histogram_equalization=histogram_equalization)
             if right_vec[0] <= rangeY[0] or right_vec[0] >= rangeY[1]:
                 right_vec[0] = motor_readout[0]
             if right_vec[1] <= rangeX[0] or right_vec[1] >= rangeX[1]:
@@ -257,22 +260,21 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
     return pairs_shift
 
 
-def create_stitch_shift(block1, block2, rangeX=None, rangeY=None, down=0, upsample=100):
+def create_stitch_shift(block1, block2, rangeX=None, rangeY=None, down=0, upsample=100, histogram_equalization=True):
     """
     Find the relative shift between two tiles. If the inputs are image stacks, the correlation function receives the
     maximum intensity projection along the stacking axis.
     """
 
     shift_vec = np.zeros([block1.shape[0], 2])
-    shift_vec[0, :] = register_translation(block1.max(axis=0), block2.max(axis=0), rangeX=rangeX,
-                                                   rangeY=rangeY, down=down, upsample_factor=upsample)
+    feed1 = block1.max(axis=0)
+    feed2 = block2.max(axis=0)
+    if histogram_equalization:
+        feed1 = equalize_histogram(feed1, 0, 1, 1024)
+        feed2 = equalize_histogram(feed2, 0, 1, 1024)
+    shift_vec[0, :] = register_translation(feed1, feed2, rangeX=rangeX, rangeY=rangeY, down=down,
+                                           upsample_factor=upsample)
 
-    #for frame in range(block1.shape[0]):
-    #    shift_vec[frame, :] = register_translation(block1[frame, :, :], block2[frame, :, :], rangeX=rangeX,
-    #                                               rangeY=rangeY, down=down, upsample_factor=100)
-    #shift_vec2 = [reject_outliers(shift_vec[0]),reject_outliers(shift_vec[1])]
-
-    #shift = np.mean(shift_vec, axis=0)
     shift = shift_vec[0, :]
     return shift
 

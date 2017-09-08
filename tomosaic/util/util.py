@@ -70,7 +70,8 @@ __all__ = ['get_files',
            'file2grid',
            'hdf5_retrieve_phase',
 	       'preprocess',
-           'g_shapes']
+           'g_shapes',
+           'equalize_histogram']
 
 import os, glob, re
 import warnings
