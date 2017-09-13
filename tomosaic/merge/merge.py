@@ -80,6 +80,7 @@ __all__ = ['blend',
            'img_merge_overlay',
            'img_merge_max',
            'img_merge_min',
+           'img_merge_feathering',
            'img_merge_poisson',
            'img_merge_pyramid',
            'img_merge_pwd']
@@ -118,7 +119,8 @@ def blend(img1, img2, shift, method, margin=50, color_correction=False, **kwargs
         'poisson': [],
         'pyramid': ['blur', 'margin', 'depth'],
         'pwd': ['margin', 'chunk_size'],
-        'overlay': ['order']
+        'overlay': ['order'],
+        'feathering': []
     }
 
     generic_kwargs = []
@@ -188,6 +190,8 @@ def _get_func(method):
         func = img_merge_max
     elif method == 'min':
         func = img_merge_min
+    elif method == 'feathering':
+        func = img_merge_feathering
     elif method == 'poisson':
         func = img_merge_poisson
     elif method == 'pyramid':
@@ -308,6 +312,52 @@ def img_merge_min(img1, img2, shift, margin=100):
             newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + wid_hor] = final_img
     else:
         newimg = img2
+
+    return newimg
+
+
+def img_merge_feathering(img1, img2, shift, margin=50):
+
+    t00 = time.time()
+    t0 = time.time()
+    # print(    'Starting pyramid blend...')
+    newimg, img2 = morph.arrange_image(img1, img2, shift)
+    if abs(shift[0]) < margin and abs(shift[1]) < margin:
+        return newimg
+    # print('    Blend: Image aligned and built in', str(time.time() - t0))
+
+    t0 = time.time()
+    case, rough_shift, corner, buffer1, buffer2, wid_hor, wid_ver = find_overlap(img1, img2, shift, margin=margin)
+    if case == 'skip':
+        return newimg
+    mask2 = np.ones(buffer1.shape)
+    if abs(rough_shift[1]) > margin:
+        mask2[:, :int(wid_hor / 2)] = 0
+    if abs(rough_shift[0]) > margin:
+        mask2[:int(wid_ver / 2), :] = 0
+    ##
+    if case == 'l':
+        blur = wid_hor * 0.05
+    elif case == 't':
+        blur = wid_ver * 0.05
+    elif case == 'lt':
+        blur = np.mean([wid_ver, wid_hor]) * 0.05
+    mask2 = gaussian_filter(mask2, blur)
+    # import matplotlib.pyplot as plt
+    # plt.imshow(mask2)
+    # plt.show()
+    ovlp_blended = buffer1 * (1 - mask2) + buffer2 * mask2
+    # print('    Blend: Blending done in', str(time.time() - t0), 'sec.')
+
+    if abs(rough_shift[1]) > margin and abs(rough_shift[0]) > margin:
+        newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + mask2.shape[1]] = \
+            ovlp_blended[:wid_ver, :]
+        newimg[corner[0, 0] + wid_ver:corner[0, 0] + mask2.shape[0], corner[0, 1]:corner[0, 1] + wid_hor] = \
+            ovlp_blended[wid_ver:, :wid_hor]
+    else:
+        newimg[corner[0, 0]:corner[0, 0] + wid_ver, corner[0, 1]:corner[0, 1] + wid_hor] = ovlp_blended
+    # print('    Blend: Done with this tile in', str(time.time() - t00), 'sec.')
+    gc.collect()
 
     return newimg
 
