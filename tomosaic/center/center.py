@@ -301,7 +301,7 @@ def find_center_discrete(source_folder, file_grid, shift_grid, row_range, search
             sino = dxchange.read_tiff(os.path.join('center_temp', 'sino', 'sino_{:05d}.tiff'.format(slice)))
             sino = sino.reshape([sino.shape[0], 1, sino.shape[1]])
         sino = tomopy.remove_stripe_ti(sino, alpha=4)
-        if method == 'manual':
+        if method == 'manual' or 'entropy':
             tomopy.write_center(sino, tomopy.angles(sino.shape[0]), dpath='center/{}'.format(row),
                                 cen_range=(center_st, center_end, search_step))
             if method == 'entropy':
