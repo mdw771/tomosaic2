@@ -78,7 +78,10 @@ __author__ = "Rafael Vescovi, Ming Du"
 __credits__ = "Doga Gursoy"
 __copyright__ = "Copyright (c) 2015, UChicago Argonne, LLC."
 __docformat__ = 'restructuredtext en'
-__all__ = ['find_center_vo']
+__all__ = ['find_center_vo',
+           'find_center_discrete',
+           'find_center_merged',
+           'find_center_single']
 
 
 PI = 3.1415927
