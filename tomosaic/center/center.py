@@ -67,6 +67,7 @@ import dxchange
 import matplotlib.pyplot as plt
 import os
 import re
+import time
 try:
     from mpi4py import MPI
 except:
