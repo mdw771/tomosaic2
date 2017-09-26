@@ -67,8 +67,11 @@ import dxchange
 import matplotlib.pyplot as plt
 import os
 import re
-
-from tomosaic.misc import minimum_entropy
+try:
+    from mpi4py import MPI
+except:
+    from tomosaic.util.pseudo import pseudo_comm
+from tomosaic.misc import minimum_entropy, allocate_mpi_subsets
 from tomosaic.recon import recon_block
 from tomosaic.util import preprocess
 
@@ -84,8 +87,17 @@ __all__ = ['find_center_vo',
            'find_center_single']
 
 
-PI = 3.1415927
+try:
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+    name = MPI.Get_processor_name()
+except:
+    comm = pseudo_comm()
+    rank = 0
+    size = 1
 
+PI = 3.1415927
 
 def find_center_vo(tomo, ind=None, smin=-50, smax=50, srad=6, step=0.5,
                    ratio=0.5, drop=20):
@@ -237,7 +249,9 @@ def find_center_merged(fname, shift_grid, row_range, search_range, search_step=1
     center_st, center_end = search_range
     row_st, row_end = row_range
     f = h5py.File(fname)
-    for row in range(row_st, row_end):
+    row_list = range(row_st, row_end)
+    sets = allocate_mpi_subsets(len(row_list), size, task_list=row_list)
+    for row in sets[rank]:
         sino = slice + shift_grid[row, 0, 0]
         sino = f['exchange/data'][:, sino:sino+1, :]
         if method == 'manual' or 'entropy':
@@ -263,7 +277,9 @@ def find_center_discrete(source_folder, file_grid, shift_grid, row_range, search
     log = open(output_fname, 'a')
     row_st, row_end = row_range
     center_st, center_end = search_range
-    for row in range(row_st, row_end):
+    row_list = range(row_st, row_end)
+    sets = allocate_mpi_subsets(len(row_list), size, task_list=row_list)
+    for row in sets[rank]:
         print('Row {}'.format(row))
         slice = int(shift_grid[row, 0, 0] + slice)
         # create sinogram
