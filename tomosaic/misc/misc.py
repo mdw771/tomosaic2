@@ -74,7 +74,8 @@ __credits__ = "Doga Gursoy"
 __copyright__ = "Copyright (c) 2015, UChicago Argonne, LLC."
 __docformat__ = 'restructuredtext en'
 __all__ = ['allocate_mpi_subsets',
-           'read_data_adaptive']
+           'read_data_adaptive',
+           'minimum_entropy']
 
 
 def allocate_mpi_subsets_cont_chunk(n_task, size, task_list=None):
@@ -130,10 +131,15 @@ def which_tile(shift_grid, file_grid, x_coord, y_coord):
     return s
 
 
-def entropy(img, range=(-0.002, 0.002)):
+def entropy(img, range=(-0.002, 0.002), mask_ratio=0.9):
 
-    hist, e = np.histogram(img, bins=1024, range=range)
-    hist = hist.astype('float32') / img.size + 1e-12
+    temp = np.copy(img)
+    mask = tomopy.misc.corr._get_mask(temp.shape[0], temp.shape[1], mask_ratio)
+    temp = temp[mask].flatten()
+    temp[np.isnan(temp)] = 0
+    temp[True-np.isfinite(temp)] = 0
+    hist, e = np.histogram(temp, bins=1024, range=range)
+    hist = hist.astype('float32') / temp.size + 1e-12
     val = -np.dot(hist, np.log2(hist))
     return val
 

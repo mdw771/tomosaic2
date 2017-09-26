@@ -49,19 +49,4 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-import logging
-
-from tomosaic.merge import *
-from tomosaic.register import *
-from tomosaic.recon import *
-from tomosaic.util import *
-from tomosaic.gui import *
-from tomosaic.center import *
-
-logging.basicConfig()
-
-try:
-    import pkg_resources
-    __version__ = pkg_resources.working_set.require("tomosaic")[0].version
-except:
-    pass
+from .center import *
