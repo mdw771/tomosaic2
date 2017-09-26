@@ -112,14 +112,17 @@ except:
     size = 1
 
 
-def get_files(folder, prefix, type='.h5'):
+def get_files(folder, prefix, type='.h5', strict_matching=True):
     if not type.startswith('.'):
         type = '.' + type
     root = os.getcwd()
     os.chdir(folder)
     file_list = []
     for f in glob.glob(prefix + '*' + type):
-        if re.match(prefix + '.+[x,y]\d+' + type, f):
+        if strict_matching:
+            if re.match(prefix + '.+[x,y]\d+' + type, f):
+                file_list.append(f)
+        else:
             file_list.append(f)
     if len(file_list) == 0:
         file_list = glob.glob(prefix + '*' + type)

@@ -245,6 +245,7 @@ def _create_mask(nrow, ncol, radius, drop):
 def find_center_merged(fname, shift_grid, row_range, search_range, search_step=1, slice=600, method='entropy',
                        output_fname='center_pos.txt'):
 
+    t00 = time.time()
     log = open(output_fname, 'a')
     center_st, center_end = search_range
     row_st, row_end = row_range
@@ -252,6 +253,7 @@ def find_center_merged(fname, shift_grid, row_range, search_range, search_step=1
     row_list = range(row_st, row_end)
     sets = allocate_mpi_subsets(len(row_list), size, task_list=row_list)
     for row in sets[rank]:
+        t0 = time.time()
         sino = slice + shift_grid[row, 0, 0]
         sino = f['exchange/data'][:, sino:sino+1, :]
         if method == 'manual' or 'entropy':
@@ -259,21 +261,23 @@ def find_center_merged(fname, shift_grid, row_range, search_range, search_step=1
             if method == 'entropy':
                 mins_fname = minimum_entropy(os.path.join('center', str(row)), range=(0, 0.008))
                 center = re.findall('\d+', mins_fname)
-                print('For {} center is {}.'.format(row, center))
+                print('For {} center is {}. ({} s)'.format(row, center, time.time() - t0))
                 log.write('{} {}\n'.format(row, center))
         elif method == 'vo':
             mid = sino.shape[2] / 2
             smin = (center_st - mid) * 2
             smax = (center_end - mid) * 2
             center = find_center_vo(sino, smin=smin, smax=smax, step=search_step)
-            print('For {} center is {}.'.format(row, center))
+            print('For {} center is {}. ({} s)'.format(row, center, time.time() - t0))
             log.write('{} {}\n'.format(row, center))
     log.close()
+    print('Total time: {} s.'.format(time.time() - t00))
 
 
 def find_center_discrete(source_folder, file_grid, shift_grid, row_range, search_range, search_step=1, slice=600,
                          method='entropy', data_format='aps_32id', output_fname='center_pos.txt'):
 
+    t00 = time.time()
     log = open(output_fname, 'a')
     row_st, row_end = row_range
     center_st, center_end = search_range
@@ -281,6 +285,7 @@ def find_center_discrete(source_folder, file_grid, shift_grid, row_range, search
     sets = allocate_mpi_subsets(len(row_list), size, task_list=row_list)
     for row in sets[rank]:
         print('Row {}'.format(row))
+        t0 = time.time()
         slice = int(shift_grid[row, 0, 0] + slice)
         # create sinogram
         try:
@@ -292,7 +297,7 @@ def find_center_discrete(source_folder, file_grid, shift_grid, row_range, search
             recon_block(file_grid, shift_grid, source_folder, 'center_temp', (slice, slice+1), 1,
                         center_vec, algorithm='gridrec', test_mode=True, ds_level=0, save_sino=True,
                         blend_method='pyramid', data_format=data_format)
-            sino = dxchange.read_tiff('center_temp/sino/sino_{:05d}.tiff'.format(slice))
+            sino = dxchange.read_tiff(os.path.join('center_temp', 'sino', 'sino_{:05d}.tiff'.format(slice)))
             sino = sino.reshape([sino.shape[0], 1, sino.shape[1]])
         sino = tomopy.remove_stripe_ti(sino, alpha=4)
         if method == 'manual':
@@ -301,16 +306,17 @@ def find_center_discrete(source_folder, file_grid, shift_grid, row_range, search
             if method == 'entropy':
                 mins_fname = minimum_entropy(os.path.join('center', str(row)), range=(0, 0.008))
                 center = re.findall('\d+', mins_fname)
-                print('For {} center is {}.'.format(row, center))
+                print('For {} center is {}. ({} s)'.format(row, center, time.time() - t0))
                 log.write('{} {}\n'.format(row, center))
         elif method == 'vo':
             mid = sino.shape[2] / 2
             smin = (center_st - mid) * 2
             smax = (center_end - mid) * 2
             center = find_center_vo(sino, smin=smin, smax=smax, step=search_step)
-            print('For {} center is {}.'.format(row, center))
+            print('For {} center is {}. ({} s)'.format(row, center, time.time() - t0))
             log.write('{} {}\n'.format(row, center))
     log.close()
+    print('Total time: {} s.'.format(time.time() - t00))
 
 
 def find_center_single(sino_name, search_range, search_step=1, preprocess_single=False, method='entropy',
