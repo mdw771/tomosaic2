@@ -288,8 +288,6 @@ def recon_block(grid, shift_grid, src_folder, dest_folder, slice_range, sino_ste
     Reconstruct dsicrete HDF5 tiles, blending sinograms only.
     """
 
-    raw_folder = os.getcwd()
-    os.chdir(src_folder)
     sino_ini = int(slice_range[0])
     sino_end = int(slice_range[1])
     mod_start_slice = 0
@@ -302,7 +300,7 @@ def recon_block(grid, shift_grid, src_folder, dest_folder, slice_range, sino_ste
     for i_slice in alloc_set[rank]:
         print('############################################')
         print('Reconstructing ' + str(i_slice))
-        row_sino, center_pos = create_row_sinogram(grid, shift_grid, i_slice, center_vec, ds_level,
+        row_sino, center_pos = create_row_sinogram(grid, shift_grid, src_folder, i_slice, center_vec, ds_level,
                                                    blend_method, blend_options, assert_width, sino_blur,
                                                    color_correction, normalize, mode, phase_retrieval, data_format)
         if row_sino is None:
@@ -332,22 +330,21 @@ def recon_block(grid, shift_grid, src_folder, dest_folder, slice_range, sino_ste
             crop = np.asarray(crop)
             rec = rec[crop[0, 0]:crop[1, 0], crop[0, 1]:crop[1, 1]]
 
-        os.chdir(raw_folder)
         if test_mode:
             dxchange.write_tiff(rec, fname=os.path.join(dest_folder, 'recon/recon_{:05d}_{:04d}.tiff'.format(i_slice, center_pos)), dtype=dtype)
         else:
             dxchange.write_tiff(rec, fname=os.path.join(dest_folder, 'recon/recon_{:05d}.tiff'.format(i_slice)), dtype=dtype)
         if save_sino:
             dxchange.write_tiff(np.squeeze(row_sino), fname=os.path.join(dest_folder, 'sino/sino_{:05d}.tiff'.format(i_slice)), overwrite=True)
-        os.chdir(src_folder)
-    os.chdir(raw_folder)
     return
 
 
-def create_row_sinogram(grid, shift_grid, i_slice, center_vec, ds_level, blend_method='pyramid',
+def create_row_sinogram(grid, shift_grid, src_folder, i_slice, center_vec, ds_level, blend_method='pyramid',
                         blend_options=None, assert_width=None, sino_blur=None, color_correction=None, normalize=True,
                         mode='180', phase_retrieval=None, data_format='aps32id'):
 
+    root = os.getcwd()
+    os.chdir(src_folder)
     pix_shift_grid = np.ceil(shift_grid)
     pix_shift_grid[pix_shift_grid < 0] = 0
     grid_lines = np.zeros(grid.shape[1], dtype=np.int)
@@ -368,6 +365,7 @@ def create_row_sinogram(grid, shift_grid, i_slice, center_vec, ds_level, blend_m
                                          color_correction=color_correction,
                                          normalize=normalize, mode=mode, phase_retrieval=phase_retrieval,
                                          data_format=data_format)
+    os.chdir(root)
     return row_sino, center_pos
 
 
