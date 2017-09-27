@@ -85,7 +85,8 @@ __all__ = ['recon_hdf5',
            'recon_slice',
            'prepare_slice',
            'load_sino',
-           'register_recon']
+           'register_recon',
+           'create_row_sinogram']
 
 try:
     comm = MPI.COMM_WORLD
@@ -295,38 +296,17 @@ def recon_block(grid, shift_grid, src_folder, dest_folder, slice_range, sino_ste
     center_vec = np.asarray(center_vec)
     center_pos_cache = 0
     sino_ls = np.arange(sino_ini, sino_end, sino_step, dtype='int')
-    pix_shift_grid = np.ceil(shift_grid)
-    pix_shift_grid[pix_shift_grid < 0] = 0
+
 
     alloc_set = allocate_mpi_subsets(sino_ls.size, size, task_list=sino_ls)
     for i_slice in alloc_set[rank]:
         print('############################################')
         print('Reconstructing ' + str(i_slice))
-        # judge from which tile to retrieve sinos
-        grid_lines = np.zeros(grid.shape[1], dtype=np.int)
-        slice_in_tile = np.zeros(grid.shape[1], dtype=np.int)
-        for col in range(grid.shape[1]):
-            bins = pix_shift_grid[:, col, 0]
-            grid_lines[col] = int(np.squeeze(np.digitize(i_slice, bins)) - 1)
-            if grid_lines[col] == -1:
-                print("WARNING: The specified starting slice number does not allow for full sinogram construction. Trying next slice...")
-                mod_start_slice = 1
-                break
-            else:
-                mod_start_slice = 0
-            slice_in_tile[col] = i_slice - bins[grid_lines[col]]
-        if mod_start_slice == 1:
+        row_sino, center_pos = create_row_sinogram(grid, shift_grid, i_slice, center_vec, ds_level,
+                                                   blend_method, blend_options, assert_width, sino_blur,
+                                                   color_correction, normalize, mode, phase_retrieval, data_format)
+        if row_sino is None:
             continue
-        center_pos = int(np.round(center_vec[grid_lines].mean()))
-        if center_pos_cache == 0:
-            center_pos_cache = center_pos
-        center_diff = center_pos - center_pos_cache
-        center_pos_0 = center_pos
-        row_sino, center_pos = prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=ds_level,
-                                             method=blend_method, blend_options=blend_options, rot_center=center_pos,
-                                             assert_width=assert_width, sino_blur=sino_blur, color_correction=color_correction,
-                                             normalize=normalize, mode=mode, phase_retrieval=phase_retrieval,
-                                             data_format=data_format)
         rec0 = recon_slice(row_sino, center_pos, sinogram_order=sinogram_order, algorithm=algorithm,
                           init_recon=init_recon, ncore=ncore, nchunk=nchunk, **kwargs)
         rec = tomopy.remove_ring(np.copy(rec0))
@@ -342,6 +322,10 @@ def recon_block(grid, shift_grid, src_folder, dest_folder, slice_range, sino_ste
 
         print('Center:            {:d}'.format(center_pos))
         rec = np.squeeze(rec)
+        # correct recon position shifting due to center misalignment
+        if center_pos_cache == 0:
+            center_pos_cache = center_pos
+        center_diff = center_pos - center_pos_cache
         if center_diff != 0:
             rec = np.roll(rec, -center_diff, axis=0)
         if not crop is None:
@@ -358,6 +342,33 @@ def recon_block(grid, shift_grid, src_folder, dest_folder, slice_range, sino_ste
         os.chdir(src_folder)
     os.chdir(raw_folder)
     return
+
+
+def create_row_sinogram(grid, shift_grid, i_slice, center_vec, ds_level, blend_method='pyramid',
+                        blend_options=None, assert_width=None, sino_blur=None, color_correction=None, normalize=True,
+                        mode='180', phase_retrieval=None, data_format='aps32id'):
+
+    pix_shift_grid = np.ceil(shift_grid)
+    pix_shift_grid[pix_shift_grid < 0] = 0
+    grid_lines = np.zeros(grid.shape[1], dtype=np.int)
+    slice_in_tile = np.zeros(grid.shape[1], dtype=np.int)
+    for col in range(grid.shape[1]):
+        bins = pix_shift_grid[:, col, 0]
+        grid_lines[col] = int(np.squeeze(np.digitize(i_slice, bins)) - 1)
+        if grid_lines[col] == -1:
+            print(
+                "WARNING: The specified starting slice number does not allow for full sinogram construction. Trying next slice...")
+            return None, None, None
+        slice_in_tile[col] = i_slice - bins[grid_lines[col]]
+    center_pos = int(np.round(center_vec[grid_lines].mean()))
+
+    row_sino, center_pos = prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=ds_level,
+                                         method=blend_method, blend_options=blend_options, rot_center=center_pos,
+                                         assert_width=assert_width, sino_blur=sino_blur,
+                                         color_correction=color_correction,
+                                         normalize=normalize, mode=mode, phase_retrieval=phase_retrieval,
+                                         data_format=data_format)
+    return row_sino, center_pos
 
 
 def to_rgb2(im):

@@ -73,7 +73,7 @@ try:
 except:
     from tomosaic.util.pseudo import pseudo_comm
 from tomosaic.misc import minimum_entropy, allocate_mpi_subsets
-from tomosaic.recon import recon_block
+from tomosaic.recon import *
 from tomosaic.util import preprocess
 
 logger = logging.getLogger(__name__)
@@ -295,11 +295,9 @@ def find_center_discrete(source_folder, file_grid, shift_grid, row_range, search
         except:
             center_vec = [center_st] * file_grid.shape[0]
             center_vec = np.array(center_vec)
-            recon_block(file_grid, shift_grid, source_folder, 'center_temp', (slice, slice+1), 1,
-                        center_vec, algorithm='gridrec', test_mode=True, ds_level=0, save_sino=True,
-                        blend_method='pyramid', data_format=data_format)
-            sino = dxchange.read_tiff(os.path.join('center_temp', 'sino', 'sino_{:05d}.tiff'.format(slice)))
-            sino = sino.reshape([sino.shape[0], 1, sino.shape[1]])
+            sino, _ = create_row_sinogram(file_grid, shift_grid, slice, center_vec, 1, blend_method='pyramid',
+                                          data_format=data_format)
+            dxchange.write_tiff(sino, os.path.join('center_temp', 'sino', 'sino_{:05d}.tiff'.format(slice)))
         sino = tomopy.remove_stripe_ti(sino, alpha=4)
         if method == 'manual' or 'entropy':
             tomopy.write_center(sino, tomopy.angles(sino.shape[0]), dpath='center/{}'.format(row),
