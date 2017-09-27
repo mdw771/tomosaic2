@@ -371,11 +371,13 @@ def prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=0, metho
                   rot_center=None, assert_width=None, sino_blur=None, color_correction=False, normalize=True,
                   mode='180', phase_retrieval=None, data_format='aps_32id', **kwargs):
     sinos = [None] * grid.shape[1]
+    t = time.time()
     for col in range(grid.shape[1]):
         if os.path.exists(grid[grid_lines[col], col]):
             sinos[col] = load_sino(grid[grid_lines[col], col], slice_in_tile[col], normalize=normalize, data_format=data_format)
         else:
             pass
+    print('reading:           ' + str(time.time() - t))
     t = time.time()
     row_sino = register_recon(grid, grid_lines, shift_grid, sinos, method=method, blend_options=blend_options,
                               color_correction=color_correction, assert_width=assert_width)

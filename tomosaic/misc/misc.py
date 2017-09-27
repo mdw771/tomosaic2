@@ -65,6 +65,7 @@ import dxchange
 import re
 import os
 import glob
+import tomopy
 
 
 logger = logging.getLogger(__name__)
