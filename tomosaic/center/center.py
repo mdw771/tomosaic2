@@ -261,7 +261,7 @@ def find_center_merged(fname, shift_grid, row_range, search_range, search_step=1
             tomopy.write_center(sino, os.path.join('center', str(row)), cen_range=(center_st, center_end, search_step))
             if method == 'entropy':
                 mins_fname = minimum_entropy(os.path.join('center', str(row)), range=(0, 0.008))
-                center = re.findall('\d+', mins_fname)
+                center = re.findall('\d+\.\d+', mins_fname)[0]
                 print('For {} center is {}. ({} s)'.format(row, center, time.time() - t0))
                 log.write('{} {}\n'.format(row, center))
         elif method == 'vo':
@@ -306,7 +306,7 @@ def find_center_discrete(source_folder, file_grid, shift_grid, row_range, search
                                 cen_range=(center_st, center_end, search_step))
             if method == 'entropy':
                 mins_fname = minimum_entropy(os.path.join('center', str(row)), range=(0, 0.008))
-                center = re.findall('\d+', mins_fname)
+                center = re.findall('\d+\.\d+', mins_fname)[0]
                 print('For {} center is {}. ({} s)'.format(row, center, time.time() - t0))
                 log.write('{} {}\n'.format(row, center))
         elif method == 'vo':
