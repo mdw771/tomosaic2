@@ -761,10 +761,12 @@ def partial_center_alignment(file_grid, shift_grid, center_vec, src_folder, rang
     return
 
 
-def preprocess(dat, blur=None):
+def preprocess(dat, blur=None, normalize_bg=False):
 
     dat[np.abs(dat) < 2e-3] = 2e-3
     dat[dat > 1] = 1
+    if normalize_bg:
+        dat = tomopy.normalize_bg(dat)
     dat = -np.log(dat)
     dat[np.where(np.isnan(dat) == True)] = 0
     if blur is not None:

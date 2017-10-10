@@ -260,7 +260,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
     return pairs_shift
 
 
-def create_stitch_shift(block1, block2, rangeX=None, rangeY=None, down=0, upsample=100, histogram_equalization=True):
+def create_stitch_shift(block1, block2, rangeX=None, rangeY=None, down=0, upsample=100, histogram_equalization=False):
     """
     Find the relative shift between two tiles. If the inputs are image stacks, the correlation function receives the
     maximum intensity projection along the stacking axis.

@@ -295,7 +295,7 @@ def find_center_discrete(source_folder, file_grid, shift_grid, row_range, search
         except:
             center_vec = [center_st] * file_grid.shape[0]
             center_vec = np.array(center_vec)
-            sino, _ = create_row_sinogram(file_grid, shift_grid, slice, center_vec, 1, blend_method='pyramid',
+            sino, _ = create_row_sinogram(file_grid, shift_grid, source_folder, slice, center_vec, 1, blend_method='pyramid',
                                           data_format=data_format)
             dxchange.write_tiff(sino, os.path.join('center_temp', 'sino', 'sino_{:05d}.tiff'.format(slice)))
         sino = tomopy.remove_stripe_ti(sino, alpha=4)
