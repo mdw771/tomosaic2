@@ -152,7 +152,7 @@ def find_pairs(file_grid):
 
 
 def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=800, upsample=10,
-                      y_mask=(-5, 5), x_mask=(-5, 5), motor_readout=None, histogram_equalization=True,
+                      y_mask=(-5, 5), x_mask=(-5, 5), motor_readout=None, histogram_equalization=False,
                       data_format='aps_32id'):
 
     root = os.getcwd()
