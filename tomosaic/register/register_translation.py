@@ -204,17 +204,7 @@ def register_translation(src_image, target_image, rangeX=[None, None], rangeY=[N
     mask = np.zeros(cross_correlation.shape)
     mask[:rangeY[1] - rangeY[0] + 1, :rangeX[1] - rangeX[0] + 1] = 1
     mask = np.roll(np.roll(mask, int(rangeY[0]), axis=0), int(rangeX[0]), axis=1)
-
-    # if rangeY[0] > 0 and rangeX[0] > 0:
-    #     mask[rangeY[0]:rangeY[1], rangeX[0]:rangeX[1]] = 1
-    # elif rangeY[0] < 0:
-    #     mask[shape[0] + rangeY[0]:, rangeX[0]:rangeX[1]] = 1
-    #     mask[:rangeY[1], rangeX[0]:rangeX[1]] = 1
-    # elif rangeX[0] < 0:
-    #     mask[rangeY[0]:rangeY[1], shape[1] + rangeX[0]:] = 1
-    #     mask[rangeY[0]:rangeY[1], :rangeX[1]] = 1
     cross_correlation = cross_correlation * mask
-
 
     # Locate maximum
     maxima = np.unravel_index(np.argmax(np.abs(cross_correlation)),
