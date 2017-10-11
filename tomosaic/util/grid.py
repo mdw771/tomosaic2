@@ -65,6 +65,7 @@ __all__ = ['start_file_grid',
            'start_shift_grid',
            'shift2center_grid',
            'refine_shift_grid',
+           'refine_shift_grid_reslice',
            'create_stitch_shift',
            'absolute_shift_grid']
 
@@ -287,7 +288,7 @@ def reject_outliers(data, m = 2.):
     return data[s<m]
 
 
-def refine_shift_grid_reslice(grid, shift_grid, src_folder, center_grid=None, mid_tile=None, center_search_range=None,
+def refine_shift_grid_reslice(grid, shift_grid, src_folder, mid_tile=None, center_search_range=None,
                               discard_y_shift=False, data_format='aps_32id'):
 
     y_est, x_est = shift_grid[0, 0, :]
@@ -302,7 +303,9 @@ def refine_shift_grid_reslice(grid, shift_grid, src_folder, center_grid=None, mi
         i += 1
     if mid_tile is None:
         mid_tile = int(grid.shape[1] / 2)
-    if center_grid is None:
+    try:
+        center_grid = np.loadtxt('center_grid.txt')
+    except:
         center_grid = np.zeros_like(grid)
         if center_search_range is None:
             prj_shape = read_data_adaptive(grid[0, 0], proj=(0, 1), data_format=data_format, shape_only=True)
@@ -319,7 +322,7 @@ def refine_shift_grid_reslice(grid, shift_grid, src_folder, center_grid=None, mi
                         pad_length = 1024
                     else:
                         pad_length = min(1024, mid_center + x_est - fov + 10)
-                    prj, flt, drk = read_data_adaptive(grid[irow, icol],
+                    prj, flt, drk = read_data_adaptive(os.path.join(src_folder, grid[irow, icol]),
                                                        sino=(int(prj_shape[1] / 2), int(prj_shape[1] / 2)+1),
                                                        data_format=data_format)
                     prj = tomopy.normalize(prj, flt, drk)
@@ -338,8 +341,6 @@ def refine_shift_grid_reslice(grid, shift_grid, src_folder, center_grid=None, mi
                                                           [window_ymid+fov4, img_mid+fov4]])
                     center_grid[irow, icol] = float(re.findall('\d+\.\d+', min_s_fname)[0])
                     np.savetxt('center_grid.txt', center_grid)
-    else:
-       center_grid = np.loadtxt('center_grid.txt')
     raise NotImplementedError
 
 
