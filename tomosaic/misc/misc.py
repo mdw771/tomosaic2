@@ -132,32 +132,34 @@ def which_tile(shift_grid, file_grid, x_coord, y_coord):
     return s
 
 
-def entropy(img, range=(-0.002, 0.002), mask_ratio=0.9):
+def entropy(img, range=(0, 0.002), mask_ratio=0.9, window=None):
 
     temp = np.copy(img)
     mask = tomopy.misc.corr._get_mask(temp.shape[0], temp.shape[1], mask_ratio)
+    if window is not None:
+        temp = temp[window[0, 0]:window[1, 0], window[0, 1]:window[1, 1]]
     temp = temp[mask].flatten()
-    temp[np.isnan(temp)] = 0
-    temp[True-np.isfinite(temp)] = 0
+    # temp[np.isnan(temp)] = 0
+    temp[np.invert(np.isfinite(temp))] = 0
     hist, e = np.histogram(temp, bins=1024, range=range)
     hist = hist.astype('float32') / temp.size + 1e-12
     val = -np.dot(hist, np.log2(hist))
     return val
 
 
-def minimum_entropy(folder, pattern='*.tiff', range=(-0.002, 0.002)):
+def minimum_entropy(folder, pattern='*.tiff', range=(0, 0.002), mask_ratio=0.9, window=None):
 
     flist = glob.glob(os.path.join(folder, pattern))
     a = []
     s = []
     for fname in flist:
         img = dxchange.read_tiff(fname)
-        s.append(entropy(img, range=range))
+        s.append(entropy(img, range=range, mask_ratio=mask_ratio, window=window))
         a.append(fname)
     return a[np.argmin(s)]
 
 
-def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', **kwargs):
+def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', shape_only=False, **kwargs):
     """
     Adaptive data reading function that works with dxchange both below and beyond version 0.0.11.
     """
@@ -178,6 +180,8 @@ def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', **kw
         except:
             f = h5py.File(fname)
             d = f['exchange/data']
+            if shape_only:
+                return d.shape
             if proj is None:
                 dat = d[:, sino[0]:sino[1]:sino_step, :]
                 flt = f['exchange/data_white'][:, sino[0]:sino[1]:sino_step, :]
@@ -200,8 +204,10 @@ def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', **kw
                 drk = None
                 print('ERROR: Sino and Proj cannot be specifed simultaneously. ')
     elif data_format == 'aps_13bm':
+        f = cdf.Dataset(fname)
+        if shape_only:
+            return f['array_data'].shape
         if sino is None:
-            f = cdf.Dataset(fname)
             dat = f['array_data'][proj[0]:proj[1]:proj_step, :, :].astype('uint16')
             basename = os.path.splitext(fname)[0]
             flt1 = cdf.Dataset(basename + '_flat1.nc')['array_data'][...]
@@ -210,7 +216,6 @@ def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', **kw
             drk = np.zeros([1, flt.shape[1], flt.shape[2]]).astype('uint16')
             drk[...] = 64
         elif proj is None:
-            f = cdf.Dataset(fname)
             dat = f['array_data'][:, sino[0]:sino[1]:sino_step, :].astype('uint16')
             basename = os.path.splitext(fname)[0]
             flt1 = cdf.Dataset(basename + '_flat1.nc')['array_data'][:, sino[0]:sino[1]:sino_step, :]

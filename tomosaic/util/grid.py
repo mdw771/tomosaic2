@@ -76,6 +76,7 @@ from tomosaic.util.util import *
 from tomosaic.misc.misc import *
 import warnings
 import os
+import re
 import time
 try:
     from mpi4py import MPI
@@ -285,9 +286,71 @@ def reject_outliers(data, m = 2.):
     s = d/mdev if mdev else 0.
     return data[s<m]
 
-# Generate absolute shift grid from a relative shift grid.
-# Default building method is first right then down.
+
+def refine_shift_grid_reslice(grid, shift_grid, src_folder, center_grid=None, mid_tile=None, center_search_range=None,
+                              discard_y_shift=False, data_format='aps_32id'):
+
+    y_est, x_est = shift_grid[0, 0, :]
+    # determine the order of tiles in a row to be analyzed
+    tile_list = [mid_tile]
+    i = 1
+    while len(tile_list) < mid_tile.shape[1]:
+        if mid_tile - i >= 0:
+            tile_list.append(mid_tile - i)
+        if len(tile_list) < grid.shape[1] and mid_tile + i < grid.shape[1]:
+            tile_list.append(mid_tile + i)
+        i += 1
+    if mid_tile is None:
+        mid_tile = int(grid.shape[1] / 2)
+    if center_grid is None:
+        center_grid = np.zeros_like(grid)
+        if center_search_range is None:
+            prj_shape = read_data_adaptive(grid[0, 0], proj=(0, 1), data_format=data_format, shape_only=True)
+            prj_mid = int(prj_shape[2] / 2)
+            fov = prj_shape[2]
+            fov2 = int(fov / 2)
+            fov4 = int(fov2 / 2)
+            center_search_range = (prj_mid-50, prj_mid+50)
+            theta = tomopy.angles(prj_shape[0])
+            for irow in range(grid.shape[0]):
+                mid_center = None
+                for icol in tile_list:
+                    if mid_center is None:
+                        pad_length = 1024
+                    else:
+                        pad_length = min(1024, mid_center + x_est - fov + 10)
+                    prj, flt, drk = read_data_adaptive(grid[irow, icol],
+                                                       sino=(int(prj_shape[1] / 2), int(prj_shape[1] / 2)+1),
+                                                       data_format=data_format)
+                    prj = tomopy.normalize(prj, flt, drk)
+                    prj = preprocess(prj)
+                    tomopy.write_center(prj, theta, os.path.join('partial_center', str(irow), str(icol)),
+                                        cen_range=center_search_range)
+                    img_mid = int((pad_length * 2 + fov) / 2)
+                    if icol < mid_tile:
+                        window_ymid = img_mid + mid_center + (x_est + 10) * (mid_tile - icol) - fov2
+                    elif icol > mid_tile:
+                        window_ymid = img_mid - (x_est - mid_center + (x_est - 10) * (mid_tile - icol - 1)) - fov2
+                    elif icol == mid_tile:
+                        window_ymid = img_mid + (np.mean(center_search_range[:2]) - fov2)
+                    min_s_fname = minimum_entropy(os.path.join('partial_center', str(irow), str(icol)),
+                                                  window=[[window_ymid-fov4, img_mid-fov4],
+                                                          [window_ymid+fov4, img_mid+fov4]])
+                    center_grid[irow, icol] = float(re.findall('\d+\.\d+', min_s_fname)[0])
+                    np.savetxt('center_grid.txt', center_grid)
+    else:
+       center_grid = np.loadtxt('center_grid.txt')
+    raise NotImplementedError
+
+
 def absolute_shift_grid(pairs_shift, file_grid, mode='vh'):
+    """
+    Generate absolute shift grid from a relative shift grid. Default building method is first right then down.
+    :param pairs_shift: 
+    :param file_grid: 
+    :param mode: 
+    :return: 
+    """
     shape = file_grid.shape
     abs_shift_grid = np.zeros([shape[0], shape[1], 2], dtype='float32')
 
