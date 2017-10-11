@@ -295,7 +295,7 @@ def refine_shift_grid_reslice(grid, shift_grid, src_folder, mid_tile=None, cente
     # determine the order of tiles in a row to be analyzed
     tile_list = [mid_tile]
     i = 1
-    while len(tile_list) < mid_tile.shape[1]:
+    while len(tile_list) < shift_grid.shape[1]:
         if mid_tile - i >= 0:
             tile_list.append(mid_tile - i)
         if len(tile_list) < grid.shape[1] and mid_tile + i < grid.shape[1]:
@@ -304,11 +304,13 @@ def refine_shift_grid_reslice(grid, shift_grid, src_folder, mid_tile=None, cente
     if mid_tile is None:
         mid_tile = int(grid.shape[1] / 2)
     try:
+        raise Error
         center_grid = np.loadtxt('center_grid.txt')
     except:
         center_grid = np.zeros_like(grid)
-        if center_search_range is None:
+        if center_search_range is not None:
             prj_shape = read_data_adaptive(grid[0, 0], proj=(0, 1), data_format=data_format, shape_only=True)
+            print(prj_shape)
             prj_mid = int(prj_shape[2] / 2)
             fov = prj_shape[2]
             fov2 = int(fov / 2)
@@ -339,7 +341,10 @@ def refine_shift_grid_reslice(grid, shift_grid, src_folder, mid_tile=None, cente
                     min_s_fname = minimum_entropy(os.path.join('partial_center', str(irow), str(icol)),
                                                   window=[[window_ymid-fov4, img_mid-fov4],
                                                           [window_ymid+fov4, img_mid+fov4]])
-                    center_grid[irow, icol] = float(re.findall('\d+\.\d+', min_s_fname)[0])
+                    best_center = float(re.findall('\d+\.\d+', min_s_fname)[0])
+                    center_grid[irow, icol] = best_center
+                    if icol == mid_tile:
+                        mid_center = best_center
                     np.savetxt('center_grid.txt', center_grid)
     raise NotImplementedError
 

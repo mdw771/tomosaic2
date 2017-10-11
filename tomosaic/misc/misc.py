@@ -135,10 +135,12 @@ def which_tile(shift_grid, file_grid, x_coord, y_coord):
 def entropy(img, range=(0, 0.002), mask_ratio=0.9, window=None):
 
     temp = np.copy(img)
-    mask = tomopy.misc.corr._get_mask(temp.shape[0], temp.shape[1], mask_ratio)
     if window is not None:
-        temp = temp[window[0, 0]:window[1, 0], window[0, 1]:window[1, 1]]
-    temp = temp[mask].flatten()
+        temp = temp[window[0][0]:window[1][0], window[0][1]:window[1][1]]
+        temp = temp.flatten()
+    else:
+        mask = tomopy.misc.corr._get_mask(temp.shape[0], temp.shape[1], mask_ratio)
+        temp = temp[mask].flatten()
     # temp[np.isnan(temp)] = 0
     temp[np.invert(np.isfinite(temp))] = 0
     hist, e = np.histogram(temp, bins=1024, range=range)
@@ -172,6 +174,10 @@ def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', shap
     if sino is not None:
         sino_step = 1 if len(sino) == 2 else sino[2]
     if data_format == 'aps_32id':
+        if shape_only:
+            f = h5py.File(fname)
+            d = f['exchange/data']
+            return d.shape
         try:
             if ver[0] > 0 or ver[1] > 1 or ver[2] > 1:
                 dat, flt, drk, _ = dxchange.read_aps_32id(fname, proj=proj, sino=sino)
@@ -180,8 +186,6 @@ def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', shap
         except:
             f = h5py.File(fname)
             d = f['exchange/data']
-            if shape_only:
-                return d.shape
             if proj is None:
                 dat = d[:, sino[0]:sino[1]:sino_step, :]
                 flt = f['exchange/data_white'][:, sino[0]:sino[1]:sino_step, :]
