@@ -68,7 +68,8 @@ __copyright__ = "Copyright (c) 2015, UChicago Argonne, LLC."
 __docformat__ = 'restructuredtext en'
 __all__ = ['realign_image',
            'realign_block',
-           'vig_image']
+           'vig_image',
+           'pad_sinogram']
 
 
 def arrange_image(img1, img2, shift, order=1, trim=True):

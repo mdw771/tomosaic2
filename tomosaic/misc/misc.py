@@ -56,6 +56,7 @@ from __future__ import (absolute_import, division, print_function,
 import logging
 import warnings
 import h5py
+import scipy.misc
 try:
     import netCDF4 as cdf
 except:
@@ -76,7 +77,8 @@ __copyright__ = "Copyright (c) 2015, UChicago Argonne, LLC."
 __docformat__ = 'restructuredtext en'
 __all__ = ['allocate_mpi_subsets',
            'read_data_adaptive',
-           'minimum_entropy']
+           'minimum_entropy',
+           'entropy']
 
 
 def allocate_mpi_subsets_cont_chunk(n_task, size, task_list=None):
@@ -132,15 +134,19 @@ def which_tile(shift_grid, file_grid, x_coord, y_coord):
     return s
 
 
-def entropy(img, range=(0, 0.002), mask_ratio=0.9, window=None):
+def entropy(img, range=(0, 0.002), mask_ratio=0.9, window=None, ring_removal=True, center_x=None, center_y=None):
 
     temp = np.copy(img)
     if window is not None:
+        window = np.array(window, dtype='int')
         temp = temp[window[0][0]:window[1][0], window[0][1]:window[1][1]]
-        temp = temp.flatten()
-    else:
+        dxchange.write_tiff(temp, 'tmp/data', dtype='float32', overwrite=False)
+    if ring_removal:
+        temp = np.squeeze(tomopy.remove_ring(temp[np.newaxis, :, :], center_x=center_x, center_y=center_y))
+    if mask_ratio is not None:
         mask = tomopy.misc.corr._get_mask(temp.shape[0], temp.shape[1], mask_ratio)
-        temp = temp[mask].flatten()
+        temp = temp[mask]
+    temp = temp.flatten()
     # temp[np.isnan(temp)] = 0
     temp[np.invert(np.isfinite(temp))] = 0
     hist, e = np.histogram(temp, bins=1024, range=range)
@@ -149,14 +155,20 @@ def entropy(img, range=(0, 0.002), mask_ratio=0.9, window=None):
     return val
 
 
-def minimum_entropy(folder, pattern='*.tiff', range=(0, 0.002), mask_ratio=0.9, window=None):
+def minimum_entropy(folder, pattern='*.tiff', range=(0, 0.002), mask_ratio=0.9, window=None, ring_removal=True,
+                    center_x=None, center_y=None):
 
     flist = glob.glob(os.path.join(folder, pattern))
     a = []
     s = []
     for fname in flist:
         img = dxchange.read_tiff(fname)
-        s.append(entropy(img, range=range, mask_ratio=mask_ratio, window=window))
+        # if max(img.shape) > 1000:
+        #     img = scipy.misc.imresize(img, 1000. / max(img.shape), mode='F')
+        # if ring_removal:
+        #     img = np.squeeze(tomopy.remove_ring(img[np.newaxis, :, :]))
+        s.append(entropy(img, range=range, mask_ratio=mask_ratio, window=window, ring_removal=ring_removal,
+                         center_x=center_x, center_y=center_y))
         a.append(fname)
     return a[np.argmin(s)]
 

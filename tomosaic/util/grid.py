@@ -79,6 +79,7 @@ import warnings
 import os
 import re
 import time
+import operator
 try:
     from mpi4py import MPI
 except:
@@ -288,10 +289,10 @@ def reject_outliers(data, m = 2.):
     return data[s<m]
 
 
-def refine_shift_grid_reslice(grid, shift_grid, src_folder, mid_tile=None, center_search_range=None,
+def refine_shift_grid_reslice(grid, shift_grid, src_folder, rough_shift, mid_tile=None, center_search_range=None,
                               discard_y_shift=False, data_format='aps_32id'):
 
-    y_est, x_est = shift_grid[0, 0, :]
+    y_est, x_est = rough_shift
     # determine the order of tiles in a row to be analyzed
     tile_list = [mid_tile]
     i = 1
@@ -304,48 +305,56 @@ def refine_shift_grid_reslice(grid, shift_grid, src_folder, mid_tile=None, cente
     if mid_tile is None:
         mid_tile = int(grid.shape[1] / 2)
     try:
-        raise Error
+        raise Exception
         center_grid = np.loadtxt('center_grid.txt')
     except:
-        center_grid = np.zeros_like(grid)
-        if center_search_range is not None:
-            prj_shape = read_data_adaptive(grid[0, 0], proj=(0, 1), data_format=data_format, shape_only=True)
-            print(prj_shape)
-            prj_mid = int(prj_shape[2] / 2)
-            fov = prj_shape[2]
-            fov2 = int(fov / 2)
-            fov4 = int(fov2 / 2)
+        center_grid = np.zeros_like(grid, dtype='float')
+        prj_shape = read_data_adaptive(grid[0, 0], proj=(0, 1), data_format=data_format, shape_only=True)
+        print(prj_shape)
+        prj_mid = int(prj_shape[2] / 2)
+        fov = prj_shape[2]
+        fov2 = int(fov / 2)
+        fov4 = int(fov2 / 2)
+        if center_search_range is None:
             center_search_range = (prj_mid-50, prj_mid+50)
-            theta = tomopy.angles(prj_shape[0])
-            for irow in range(grid.shape[0]):
-                mid_center = None
-                for icol in tile_list:
-                    if mid_center is None:
-                        pad_length = 1024
-                    else:
-                        pad_length = min(1024, mid_center + x_est - fov + 10)
-                    prj, flt, drk = read_data_adaptive(os.path.join(src_folder, grid[irow, icol]),
-                                                       sino=(int(prj_shape[1] / 2), int(prj_shape[1] / 2)+1),
-                                                       data_format=data_format)
-                    prj = tomopy.normalize(prj, flt, drk)
-                    prj = preprocess(prj)
-                    tomopy.write_center(prj, theta, os.path.join('partial_center', str(irow), str(icol)),
-                                        cen_range=center_search_range)
-                    img_mid = int((pad_length * 2 + fov) / 2)
-                    if icol < mid_tile:
-                        window_ymid = img_mid + mid_center + (x_est + 10) * (mid_tile - icol) - fov2
-                    elif icol > mid_tile:
-                        window_ymid = img_mid - (x_est - mid_center + (x_est - 10) * (mid_tile - icol - 1)) - fov2
-                    elif icol == mid_tile:
-                        window_ymid = img_mid + (np.mean(center_search_range[:2]) - fov2)
-                    min_s_fname = minimum_entropy(os.path.join('partial_center', str(irow), str(icol)),
-                                                  window=[[window_ymid-fov4, img_mid-fov4],
-                                                          [window_ymid+fov4, img_mid+fov4]])
-                    best_center = float(re.findall('\d+\.\d+', min_s_fname)[0])
-                    center_grid[irow, icol] = best_center
-                    if icol == mid_tile:
-                        mid_center = best_center
-                    np.savetxt('center_grid.txt', center_grid)
+        theta = tomopy.angles(prj_shape[0])
+        for irow in range(grid.shape[0]):
+            mid_center = None
+            for icol in tile_list:
+                if mid_center is None:
+                    pad_length = 1024
+                else:
+                    pad_length = max(1024, mid_center + x_est - fov + 10)
+                prj, flt, drk = read_data_adaptive(os.path.join(src_folder, grid[irow, icol]),
+                                                   sino=(int(prj_shape[1] / 2), int(prj_shape[1] / 2)+1),
+                                                   data_format=data_format)
+                prj = tomopy.normalize(prj, flt, drk)
+                prj = preprocess(prj)
+                prj = tomopy.remove_stripe_ti(prj, alpha=4)
+                prj = pad_sinogram(np.squeeze(prj), pad_length)[:, np.newaxis, :]
+                extra_term = pad_length + (mid_tile - icol) * x_est
+                adapted_range = map(operator.add, center_search_range, [extra_term, extra_term])
+                tomopy.write_center(prj, theta, os.path.join('partial_center', str(irow), str(icol)),
+                                    cen_range=adapted_range)
+                img_mid = int((pad_length * 2 + fov) / 2)
+                if icol < mid_tile:
+                    window_ymid = img_mid + mid_center + (x_est + 10) * (mid_tile - icol) - fov2
+                elif icol > mid_tile:
+                    window_ymid = img_mid - (x_est - mid_center + (x_est - 10) * (mid_tile - icol - 1)) - fov2
+                elif icol == mid_tile:
+                    window_ymid = img_mid + (np.mean(center_search_range[:2]) - fov2)
+                center_y = img_mid-window_ymid+1 if icol == mid_tile else None
+                min_s_fname = minimum_entropy(os.path.join('partial_center', str(irow), str(icol)),
+                                              window=[[window_ymid-fov4, img_mid-fov4],
+                                                      [window_ymid+fov4, img_mid+fov4]],
+                                              ring_removal=True, center_y=center_y)
+                best_center = float(re.findall('\d+\.\d+', min_s_fname)[0]) - pad_length
+                center_grid[irow, icol] = best_center
+                if icol == mid_tile:
+                    mid_center = best_center
+                print(best_center)
+                np.savetxt('center_grid.txt', center_grid, fmt=str('%4.2f'))
+
     raise NotImplementedError
 
 
