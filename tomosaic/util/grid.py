@@ -324,7 +324,11 @@ def refine_shift_grid_reslice(grid, shift_grid, src_folder, rough_shift, mid_til
                 if mid_center is None:
                     pad_length = 1024
                 else:
-                    pad_length = max(1024, mid_center + x_est - fov + 10)
+                    if icol < mid_tile:
+                        pad_length = max(1024, mid_center + x_est * abs(mid_tile - icol) - fov + 10)
+                        print(pad_length)
+                    else:
+                        pad_length = max(1024, x_est * abs(mid_tile - icol) + 10)
                 prj, flt, drk = read_data_adaptive(os.path.join(src_folder, grid[irow, icol]),
                                                    sino=(int(prj_shape[1] / 2), int(prj_shape[1] / 2)+1),
                                                    data_format=data_format)
@@ -352,7 +356,7 @@ def refine_shift_grid_reslice(grid, shift_grid, src_folder, rough_shift, mid_til
                 center_grid[irow, icol] = best_center
                 if icol == mid_tile:
                     mid_center = best_center
-                print(best_center)
+                print(str(best_center) + '({})'.format(min_s_fname))
                 np.savetxt('center_grid.txt', center_grid, fmt=str('%4.2f'))
 
     raise NotImplementedError

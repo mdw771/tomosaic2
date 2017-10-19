@@ -85,7 +85,8 @@ __docformat__ = 'restructuredtext en'
 __all__ = ['find_center_vo',
            'find_center_discrete',
            'find_center_merged',
-           'find_center_single']
+           'find_center_single',
+           'write_center']
 
 
 try:
@@ -258,7 +259,7 @@ def find_center_merged(fname, shift_grid, row_range, search_range, search_step=1
         sino = slice + shift_grid[row, 0, 0]
         sino = f['exchange/data'][:, sino:sino+1, :]
         if method == 'manual' or 'entropy':
-            tomopy.write_center(sino, os.path.join('center', str(row)), cen_range=(center_st, center_end, search_step))
+            write_center(sino, os.path.join('center', str(row)), cen_range=(center_st, center_end, search_step))
             if method == 'entropy':
                 mins_fname = minimum_entropy(os.path.join('center', str(row)), range=(0, 0.008))
                 center = re.findall('\d+\.\d+', mins_fname)[0]
@@ -300,7 +301,7 @@ def find_center_discrete(source_folder, file_grid, shift_grid, row_range, search
             dxchange.write_tiff(sino, os.path.join('center_temp', 'sino', 'sino_{:05d}.tiff'.format(slice)))
         sino = tomopy.remove_stripe_ti(sino, alpha=4)
         if method == 'manual' or 'entropy':
-            tomopy.write_center(sino, tomopy.angles(sino.shape[0]), dpath='center/{}'.format(row),
+            write_center(sino, tomopy.angles(sino.shape[0]), dpath='center/{}'.format(row),
                                 cen_range=(center_st, center_end, search_step))
             if method == 'entropy':
                 mins_fname = minimum_entropy(os.path.join('center', str(row)), range=(0, 0.008))
@@ -328,7 +329,7 @@ def find_center_single(sino_name, search_range, search_step=1, preprocess_single
     if preprocess_single:
         sino = preprocess(np.copy(sino))
     if method == 'manual':
-        tomopy.write_center(sino, tomopy.angles(sino.shape[0]), dpath='center',
+        write_center(sino, tomopy.angles(sino.shape[0]), dpath='center',
                             cen_range=(center_st, center_end, search_step))
     elif method == 'vo':
         mid = sino.shape[2] / 2
@@ -338,3 +339,12 @@ def find_center_single(sino_name, search_range, search_step=1, preprocess_single
         print('Center is {}.'.format(center))
         log.write('{}\n'.format(center))
         log.close()
+
+
+def write_center(tomo, theta, dpath='tmp/center', cen_range=None, pad_length=0):
+
+    for center in np.arange(*cen_range):
+        rec = tomopy.recon(tomo[:, 0:1, :], theta, algorithm='gridrec', center=center)
+        if not pad_length == 0:
+            rec = rec[:, pad_length:-pad_length, pad_length:-pad_length]
+        dxchange.write_tiff(np.squeeze(rec), os.path.join(dpath, '{:.2f}'.format(center-pad_length)), overwrite=True)
