@@ -249,6 +249,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
     if rank != 0:
         comm.send(pairs_shift, dest=0)
     else:
+        print('Combining grids from other ranks...')
         for src in range(1, size):
             temp = comm.recv(source=src)
             pairs_shift = pairs_shift + temp
@@ -256,7 +257,8 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
     os.chdir(root)
     if rank == 0:
         try:
-                np.savetxt(os.path.join(dest_folder, 'shifts.txt'), pairs_shift)
+            print(pairs_shift)
+            np.savetxt(os.path.join(dest_folder, 'shifts.txt'), pairs_shift)
         except:
             print('Warning: failed to save files. Please save pair shifts as shifts.txt manually:')
             print(pairs_shift)
