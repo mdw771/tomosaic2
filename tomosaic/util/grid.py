@@ -242,8 +242,6 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
                 right_vec[1] = motor_readout[1]
             pairs_shift[line, 4:6] = right_vec
 
-    print('Rank: '+str(rank), pairs_shift)
-
     comm.Barrier()
     # combine all shifts
     if rank != 0:
