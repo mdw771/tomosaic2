@@ -259,7 +259,8 @@ def find_center_merged(fname, shift_grid, row_range, search_range, search_step=1
         sino = int(slice + shift_grid[row, 0, 0])
         sino = f['exchange/data'][:, sino:sino+1, :]
         if method == 'manual' or 'entropy':
-            write_center(sino, os.path.join('center', str(row)), cen_range=(center_st, center_end, search_step))
+            write_center(sino, tomopy.angles(sino.shape[0]), os.path.join('center', str(row)),
+                         cen_range=(center_st, center_end, search_step))
             if method == 'entropy':
                 mins_fname = minimum_entropy(os.path.join('center', str(row)), range=(0, 0.008))
                 center = re.findall('\d+\.\d+', mins_fname)[0]
