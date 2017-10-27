@@ -67,6 +67,7 @@ import re
 import os
 import glob
 import tomopy
+import gc
 
 
 logger = logging.getLogger(__name__)
@@ -134,13 +135,13 @@ def which_tile(shift_grid, file_grid, x_coord, y_coord):
     return s
 
 
-def entropy(img, range=(0, 0.002), mask_ratio=0.9, window=None, ring_removal=True, center_x=None, center_y=None):
+def entropy(img, range=(0, 0.002), mask_ratio=0.9, window=None, ring_removal=False, center_x=None, center_y=None):
 
-    temp = np.copy(img)
+    gc.collect()
+    temp = img[...]
     if window is not None:
         window = np.array(window, dtype='int')
         temp = temp[window[0][0]:window[1][0], window[0][1]:window[1][1]]
-        dxchange.write_tiff(temp, 'tmp/data', dtype='float32', overwrite=False)
     if ring_removal:
         temp = np.squeeze(tomopy.remove_ring(temp[np.newaxis, :, :], center_x=center_x, center_y=center_y))
     if mask_ratio is not None:
@@ -155,7 +156,7 @@ def entropy(img, range=(0, 0.002), mask_ratio=0.9, window=None, ring_removal=Tru
     return val
 
 
-def minimum_entropy(folder, pattern='*.tiff', range=(0, 0.002), mask_ratio=0.9, window=None, ring_removal=True,
+def minimum_entropy(folder, pattern='*.tiff', range=(0, 0.002), mask_ratio=0.9, window=None, ring_removal=False,
                     center_x=None, center_y=None):
 
     flist = glob.glob(os.path.join(folder, pattern))
@@ -170,6 +171,7 @@ def minimum_entropy(folder, pattern='*.tiff', range=(0, 0.002), mask_ratio=0.9, 
         s.append(entropy(img, range=range, mask_ratio=mask_ratio, window=window, ring_removal=ring_removal,
                          center_x=center_x, center_y=center_y))
         a.append(fname)
+        gc.collect()
     return a[np.argmin(s)]
 
 
