@@ -256,7 +256,7 @@ def find_center_merged(fname, shift_grid, row_range, search_range, search_step=1
     sets = allocate_mpi_subsets(len(row_list), size, task_list=row_list)
     for row in sets[rank]:
         t0 = time.time()
-        sino = slice + shift_grid[row, 0, 0]
+        sino = int(slice + shift_grid[row, 0, 0])
         sino = f['exchange/data'][:, sino:sino+1, :]
         if method == 'manual' or 'entropy':
             write_center(sino, os.path.join('center', str(row)), cen_range=(center_st, center_end, search_step))
