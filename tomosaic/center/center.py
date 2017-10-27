@@ -255,6 +255,7 @@ def find_center_merged(fname, shift_grid, row_range, search_range, search_step=1
     row_list = range(row_st, row_end)
     sets = allocate_mpi_subsets(len(row_list), size, task_list=row_list)
     for row in sets[rank]:
+        print('Rank {}: starting row {}.'.format(rank, row))
         t0 = time.time()
         sino = int(slice + shift_grid[row, 0, 0])
         sino = f['exchange/data'][:, sino:sino+1, :]
