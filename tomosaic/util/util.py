@@ -72,7 +72,8 @@ __all__ = ['get_files',
 	       'preprocess',
            'g_shapes',
            'equalize_histogram',
-           'pad_sinogram']
+           'pad_sinogram',
+           'read_center_pos']
 
 import os, glob, re
 import warnings
@@ -831,3 +832,15 @@ def pad_sinogram(sino, length, mean_length=40, mode='edge'):
             mean_right = np.mean(sino[:, i, -mean_length:], axis=1).reshape([sino.shape[0], 1])
             res[:, i, :length] = mean_left
             res[:, i, -length:] = mean_right
+
+
+def read_center_pos(fname):
+
+    center_vec = []
+    f = open(fname)
+    lines = f.readlines()
+    lines.sort()
+    for line in lines:
+        pos = float(line.split()[1])
+        center_vec.append(pos)
+    return np.array(center_vec)
