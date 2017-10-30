@@ -691,7 +691,6 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
         # sys.stdout = save_stdout
         pano[:temp.shape[0], :temp.shape[1]] = temp.astype(dtype)
         dset_data[frame, :, :] = pano
-        dxchange.write_tiff(dset_data[frame, :, :], 'test', dtype='float32')
         print('    Frame {:d} done in {:.3f} s.'.format(frame, time.time() - t00))
     print('Data built and written in {:.3f} s.'.format(time.time() - t0))
     # try:
