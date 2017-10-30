@@ -71,7 +71,8 @@ __all__ = ['get_files',
            'hdf5_retrieve_phase',
 	       'preprocess',
            'g_shapes',
-           'equalize_histogram']
+           'equalize_histogram',
+           'pad_sinogram']
 
 import os, glob, re
 import warnings
@@ -93,6 +94,7 @@ from scipy.misc import imread, imsave
 import matplotlib.pyplot as plt
 from tomopy import downsample
 import time
+import six.moves
 import gc
 
 try:
@@ -338,7 +340,7 @@ def reorganize_dir(file_list, raw_ds=(2,4), dtype='float16', **kwargs):
                 if rank == 0:
                     if os.path.exists(folder_name+'/'+fname):
                         print('Warning: File already exists. Continue anyway? (y/n) ')
-                        cont = raw_input()
+                        cont = six.moves.input()
                         if cont in ['n', 'N']:
                             continue
                         else:
@@ -568,7 +570,7 @@ def hdf5_retrieve_phase(src_folder, src_fname, dest_folder, dest_fname, method='
             os.mkdir(dest_folder)
         if os.path.exists(dest_folder + '/' + dest_fname):
             print('Warning: File already exists. Continue anyway? (y/n) ')
-            cont = raw_input()
+            cont = six.moves.input()
             if cont in ['n', 'N']:
                 exit()
             else:
@@ -623,7 +625,8 @@ def hdf5_retrieve_phase(src_folder, src_fname, dest_folder, dest_fname, method='
 
 
 def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, blend_method='pyramid', blend_method2=None,
-                 blend_options={}, blend_options2={}, blur=None, color_correction=False, dtype='float16'):
+                 blend_options={}, blend_options2={}, blur=None, color_correction=False, data_format='aps_32id',
+                 dtype='float16'):
     """
     Fuse hdf5 of all tiles in to one single file. MPI is supported.
 
@@ -641,7 +644,7 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
             os.mkdir(dest_folder)
         if os.path.exists(dest_folder + '/' + dest_fname):
             print('Warning: File already exists. Continue anyway? (y/n) ')
-            cont = raw_input()
+            cont = six.moves.input()
             if cont in ['n', 'N']:
                 exit()
             else:
@@ -656,14 +659,15 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
     origin_dir = os.getcwd()
     os.chdir(src_folder)
 
-    o = h5py.File(file_grid[0, 0])
-    n_frames, y_cam, x_cam = o['exchange/data'].shape
+    _, _, _, theta = read_data_adaptive(file_grid[0, 0], proj=(0, 1), data_format=data_format)
+    n_frames, y_cam, x_cam = read_data_adaptive(file_grid[0, 0], shape_only=True, data_format=data_format)
     frames_per_rank = int(n_frames/size)
 
     grp = f.create_group('exchange')
     full_width = int(np.max(shift_grid[:, -1, 1]) + x_cam + 10)
     full_height = int(np.max(shift_grid[-1, :, 0]) + y_cam + 10)
     full_shape = (n_frames, full_height, full_width)
+    dset_theta = grp.create_dataset('theta', theta.shape, dtype=theta.dtype, data=theta)
     dset_data = grp.create_dataset('data', full_shape, dtype=dtype)
     dset_flat = grp.create_dataset('data_white', (1, full_height, full_width), dtype=dtype)
     dset_dark = grp.create_dataset('data_dark', (1, full_height, full_width), dtype=dtype)
@@ -813,3 +817,17 @@ def equalize_histogram(img, bin_min, bin_max, n_bin=256):
     for (y, x), i in np.ndenumerate(ind):
         res[y, x] = e_table[i]
     return res
+
+
+def pad_sinogram(sino, length, mean_length=40, mode='edge'):
+
+    assert sino.ndim == 3
+    length = int(length)
+    res = np.zeros([sino.shape[0], sino.shape[1], sino.shape[2] + length * 2])
+    res[:, :, length:length+sino.shape[2]] = sino
+    if mode == 'edge':
+        for i in range(sino.shape[1]):
+            mean_left = np.mean(sino[:, i, :mean_length], axis=1).reshape([sino.shape[0], 1])
+            mean_right = np.mean(sino[:, i, -mean_length:], axis=1).reshape([sino.shape[0], 1])
+            res[:, i, :length] = mean_left
+            res[:, i, -length:] = mean_right
