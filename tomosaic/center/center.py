@@ -72,9 +72,9 @@ try:
     from mpi4py import MPI
 except:
     from tomosaic.util.pseudo import pseudo_comm
-from tomosaic.misc import minimum_entropy, allocate_mpi_subsets
+from tomosaic.misc import *
 from tomosaic.recon import *
-from tomosaic.util import preprocess
+from tomosaic.util import *
 
 logger = logging.getLogger(__name__)
 
@@ -245,7 +245,7 @@ def _create_mask(nrow, ncol, radius, drop):
 
 
 def find_center_merged(fname, shift_grid, row_range, search_range, search_step=1, slice=600, method='entropy',
-                       output_fname='center_pos.txt'):
+                       output_fname='center_pos.txt', read_theta=True):
 
     t00 = time.time()
     log = open(output_fname, 'a')
@@ -254,13 +254,18 @@ def find_center_merged(fname, shift_grid, row_range, search_range, search_step=1
     f = h5py.File(fname)
     row_list = range(row_st, row_end)
     sets = allocate_mpi_subsets(len(row_list), size, task_list=row_list)
+    if read_theta:
+        _, _, _, theta = read_data_adaptive(fname, proj=(0, 1))
+    else:
+        full_shape = read_data_adaptive(fname, shape_only=True)
+        theta = tomopy.angles(full_shape[0])
     for row in sets[rank]:
         print('Rank {}: starting row {}.'.format(rank, row))
         t0 = time.time()
         sino = int(slice + shift_grid[row, 0, 0])
         sino = f['exchange/data'][:, sino:sino+1, :]
         if method == 'manual' or 'entropy':
-            write_center(sino, tomopy.angles(sino.shape[0]), os.path.join('center', str(row)),
+            write_center(sino, theta, os.path.join('center', str(row)),
                          cen_range=(center_st, center_end, search_step))
             if method == 'entropy':
                 mins_fname = minimum_entropy(os.path.join('center', str(row)), range=(0, 0.008))
@@ -279,7 +284,7 @@ def find_center_merged(fname, shift_grid, row_range, search_range, search_step=1
 
 
 def find_center_discrete(source_folder, file_grid, shift_grid, row_range, search_range, search_step=1, slice=600,
-                         method='entropy', data_format='aps_32id', output_fname='center_pos.txt'):
+                         method='entropy', data_format='aps_32id', output_fname='center_pos.txt', read_theta=True):
 
     t00 = time.time()
     log = open(output_fname, 'a')
@@ -287,6 +292,11 @@ def find_center_discrete(source_folder, file_grid, shift_grid, row_range, search
     center_st, center_end = search_range
     row_list = range(row_st, row_end)
     sets = allocate_mpi_subsets(len(row_list), size, task_list=row_list)
+    full_shape = read_data_adaptive(os.path.join(source_folder, file_grid[0, 0]), shape_only=True)
+    if read_theta:
+        _, _, _, theta = read_data_adaptive(os.path.join(source_folder, file_grid[0, 0]), proj=(0, 1))
+    else:
+        theta = tomopy.angles(full_shape[0])
     for row in sets[rank]:
         print('Row {}'.format(row))
         t0 = time.time()
@@ -303,7 +313,7 @@ def find_center_discrete(source_folder, file_grid, shift_grid, row_range, search
             dxchange.write_tiff(sino, os.path.join('center_temp', 'sino', 'sino_{:05d}.tiff'.format(slice)))
         sino = tomopy.remove_stripe_ti(sino, alpha=4)
         if method == 'manual' or 'entropy':
-            write_center(sino, tomopy.angles(sino.shape[0]), dpath='center/{}'.format(row),
+            write_center(sino, theta, dpath='center/{}'.format(row),
                                 cen_range=(center_st, center_end, search_step))
             if method == 'entropy':
                 mins_fname = minimum_entropy(os.path.join('center', str(row)), range=(0, 0.008))

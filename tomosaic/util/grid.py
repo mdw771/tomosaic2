@@ -349,9 +349,9 @@ def refine_shift_reslice(current_tile, irow, mid_tile, tile_list, file_grid, cen
         pad_length = max(1024, x_est * abs(mid_tile - current_tile) + 10)
 
     theta = tomopy.angles(prj_shape[0])
-    prj, flt, drk = read_data_adaptive(os.path.join(src_folder, file_grid[irow, current_tile]),
-                                       sino=(int(prj_shape[1] / 2), int(prj_shape[1] / 2) + 1),
-                                       data_format=data_format)
+    prj, flt, drk, _ = read_data_adaptive(os.path.join(src_folder, file_grid[irow, current_tile]),
+                                          sino=(int(prj_shape[1] / 2), int(prj_shape[1] / 2) + 1),
+                                          data_format=data_format)
     prj = tomopy.normalize(prj, flt, drk)
     prj = preprocess(prj)
     prj = tomopy.remove_stripe_ti(prj, alpha=4)

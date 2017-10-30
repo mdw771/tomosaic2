@@ -103,7 +103,7 @@ except:
 def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center_vec=None, center_eq=None, dtype='float32',
                algorithm='gridrec', tolerance=1, chunk_size=20, save_sino=False, sino_blur=None, flattened_radius=120,
                mode='180', test_mode=False, phase_retrieval=None, ring_removal=True, crop=None, num_iter=None,
-               pad_length=0, **kwargs):
+               pad_length=0, read_theta=True, **kwargs):
     """
     center_eq: a and b parameters in fitted center position equation center = a*slice + b.
     """
@@ -123,7 +123,10 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
     f = h5py.File(src_fanme)
     dset = f['exchange/data']
     full_shape = dset.shape
-    theta = tomopy.angles(full_shape[0])
+    if read_theta:
+        _, _, _, theta = read_data_adaptive(src_fanme, proj=(0, 1))
+    else:
+        theta = tomopy.angles(full_shape[0])
     if center_eq is not None:
         a, b = center_eq
         center_ls = sino_ls * a + b
