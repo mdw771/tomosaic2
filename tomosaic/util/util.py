@@ -832,6 +832,7 @@ def pad_sinogram(sino, length, mean_length=40, mode='edge'):
             mean_right = np.mean(sino[:, i, -mean_length:], axis=1).reshape([sino.shape[0], 1])
             res[:, i, :length] = mean_left
             res[:, i, -length:] = mean_right
+    return sino
 
 
 def read_center_pos(fname='center_pos.txt'):
