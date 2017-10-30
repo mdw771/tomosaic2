@@ -834,7 +834,7 @@ def pad_sinogram(sino, length, mean_length=40, mode='edge'):
             res[:, i, -length:] = mean_right
 
 
-def read_center_pos(fname):
+def read_center_pos(fname='center_pos.txt'):
 
     center_vec = []
     f = open(fname)
