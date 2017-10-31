@@ -397,9 +397,7 @@ def reorganize_dir(file_list, raw_ds=(2,4), dtype='float16', **kwargs):
 
                 comm.Barrier()
                 raw = o['exchange/theta']
-                dat = dat_grp.create_dataset('theta', shape=raw.shape)
-                if rank == 0:
-                    dat[...] = raw.value
+                dat = dat_grp.create_dataset('theta', shape=raw.shape, data=raw.value)
 
                 comm.Barrier()
                 f.close()
