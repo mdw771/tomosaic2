@@ -259,7 +259,7 @@ def grid2file(grid, file_name):
 
 def file2grid(file_name):
 
-    with file(file_name, 'r') as infile:
+    with open(file_name, 'r') as infile:
         grid0 = np.loadtxt(file_name)
         grid_shape = [grid0[-1, 0] + 1, grid0[-1, 1] + 1]
         grid_shape = map(int, grid_shape)
@@ -823,17 +823,23 @@ def equalize_histogram(img, bin_min, bin_max, n_bin=256):
 
 def pad_sinogram(sino, length, mean_length=40, mode='edge'):
 
-    assert sino.ndim == 3
-    length = int(length)
-    res = np.zeros([sino.shape[0], sino.shape[1], sino.shape[2] + length * 2])
-    res[:, :, length:length+sino.shape[2]] = sino
-    if mode == 'edge':
-        for i in range(sino.shape[1]):
-            mean_left = np.mean(sino[:, i, :mean_length], axis=1).reshape([sino.shape[0], 1])
-            mean_right = np.mean(sino[:, i, -mean_length:], axis=1).reshape([sino.shape[0], 1])
-            res[:, i, :length] = mean_left
-            res[:, i, -length:] = mean_right
-    return sino
+    if sino.ndim == 3:
+        length = int(length)
+        res = np.zeros([sino.shape[0], sino.shape[1], sino.shape[2] + length * 2])
+        res[:, :, length:length+sino.shape[2]] = sino
+        if mode == 'edge':
+            for i in range(sino.shape[1]):
+                mean_left = np.mean(sino[:, i, :mean_length], axis=1).reshape([sino.shape[0], 1])
+                mean_right = np.mean(sino[:, i, -mean_length:], axis=1).reshape([sino.shape[0], 1])
+                res[:, i, :length] = mean_left
+                res[:, i, -length:] = mean_right
+    else:
+        res = np.zeros([sino.shape[0], sino.shape[1] + length * 2])
+        mean_left = np.mean(sino[:, :mean_length], axis=1).reshape([sino.shape[0], 1])
+        mean_right = np.mean(sino[:, -mean_length:], axis=1).reshape([sino.shape[0], 1])
+        res[:, :length] = mean_left
+        res[:, -length:] = mean_right
+    return res
 
 
 def read_center_pos(fname='center_pos.txt'):

@@ -4,10 +4,10 @@
 from functools import partial
 import copy
 
-from Tkinter import *
-from ttk import Notebook
-from tkFileDialog import *
-from tkMessageBox import showerror, showwarning, showinfo
+from six.moves import tkinter
+from six.moves import tkinter_ttk as ttk
+from six.moves import tkinter_filedialog as tkFileDialog
+from six.moves import tkinter_messagebox as tkMessageBox
 
 from meta_ui import *
 from regi_ui import *
@@ -16,6 +16,12 @@ from phas_ui import *
 from cent_ui import *
 from reco_ui import *
 from metascripts import *
+
+from tkinter import *
+from ttk import Notebook
+from tkFileDialog import *
+from tkMessageBox import showerror, showwarning, showinfo
+
 
 
 class TomosaicUI(Frame):

@@ -80,7 +80,8 @@ __docformat__ = 'restructuredtext en'
 __all__ = ['allocate_mpi_subsets',
            'read_data_adaptive',
            'minimum_entropy',
-           'entropy']
+           'entropy',
+           'get_reslice']
 
 
 def allocate_mpi_subsets_cont_chunk(n_task, size, task_list=None):
@@ -255,3 +256,43 @@ def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', shap
         return dat, flt, drk
 
 
+def get_reslice(recon_folder, chunk_size=50, slice_y=None, slice_x=None):
+
+    filelist = glob.glob(os.path.join(recon_folder, 'recon*.tiff'))
+    inds = []
+    digit = None
+    for i in filelist:
+        i = os.path.split(i)[-1]
+        regex = re.compile(r'\d+')
+        a = regex.findall(i)[0]
+        if digit is None:
+            digit = len(a)
+        inds.append(int(a))
+    chunks = []
+    chunk_st = np.min(inds)
+    chunk_end = chunk_st + chunk_size
+    sino_end = np.max(inds)
+
+    while chunk_end < sino_end:
+        chunks.append((chunk_st, chunk_end))
+        chunk_st = chunk_end
+        chunk_end += chunk_size
+    chunks.append((chunk_st, sino_end))
+
+    a = dxchange.read_tiff_stack(filelist[0], range(chunks[0][0], chunks[0][1]), digit)
+    if slice_y is not None:
+        slice = a[:, slice_y, :]
+    elif slice_x is not None:
+        slice = a[:, :, slice_x]
+    else:
+        raise ValueError('Either slice_y or slice_x must be specified.')
+    for (chunk_st, chunk_end) in chunks[1:]:
+        a = dxchange.read_tiff_stack(filelist[0], range(chunk_st, chunk_end), digit)
+        if slice_y is not None:
+            slice = np.append(slice, a[:, slice_y, :], axis=0)
+        elif slice_x is not None:
+            slice = np.append(slice, a[:, :, slice_x], axis=0)
+        else:
+            raise ValueError('Either slice_y or slice_x must be specified.')
+
+    return slice

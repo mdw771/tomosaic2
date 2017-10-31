@@ -63,7 +63,7 @@ from scipy.ndimage.filters import gaussian_filter
 from scipy.signal import convolve2d
 from scipy.sparse import csc_matrix
 import scipy.sparse.linalg as lng
-from itertools import izip
+from six.moves import zip
 import gc
 import tomosaic.register.morph as morph
 import dxchange
@@ -416,19 +416,19 @@ def _find_bound(shape, corner, newimg):
     newimg_expand[1:-1, 1:-1] = newimg
     corner = corner + [[1, 1], [1, 1]]
     # Top edge
-    for i, j in izip(range(corner[0, 1], corner[1, 1] + 1), range(shape[1])):
+    for i, j in zip(range(corner[0, 1], corner[1, 1] + 1), range(shape[1])):
         if not np.isnan(newimg_expand[corner[0, 0] - 1, i]):
             img2_boo[0, j] = False
     # Right edge
-    for i, j in izip(range(corner[0, 0], corner[1, 0] + 1), range(shape[0])):
+    for i, j in zip(range(corner[0, 0], corner[1, 0] + 1), range(shape[0])):
         if not np.isnan(newimg_expand[i, corner[1, 1] + 1]):
             img2_boo[j, -1] = False
     # Bottom edge
-    for i, j in izip(range(corner[0, 1], corner[1, 1] + 1), range(shape[1])):
+    for i, j in zip(range(corner[0, 1], corner[1, 1] + 1), range(shape[1])):
         if not np.isnan(newimg_expand[corner[1, 0] + 1, i]):
             img2_boo[-1, j] = False
     # Left edge
-    for i, j in izip(range(corner[0, 0], corner[1, 0] + 1), range(shape[0])):
+    for i, j in zip(range(corner[0, 0], corner[1, 0] + 1), range(shape[0])):
         if not np.isnan(newimg_expand[i, corner[0, 1] - 1]):
             img2_boo[j, 0] = False
     return img2_boo
