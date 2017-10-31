@@ -61,7 +61,7 @@ import pyfftw
 import scipy.ndimage as ndimage
 from tomopy import downsample
 import tomopy.util.dtype as dtype
-from itertools import izip
+from six.moves import zip
 import gc
 import dxchange
 import matplotlib.pyplot as plt

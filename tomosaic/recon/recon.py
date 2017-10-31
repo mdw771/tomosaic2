@@ -56,7 +56,7 @@ from __future__ import (absolute_import, division, print_function,
 import logging
 import os
 import time
-from itertools import izip
+from six.moves import zip
 
 import dxchange
 import h5py
@@ -67,7 +67,7 @@ from scipy.ndimage import gaussian_filter
 import tomosaic
 from tomosaic import blend
 from tomosaic.misc.misc import allocate_mpi_subsets, read_data_adaptive
-from tomosaic.util import *
+from tomosaic.util.util import *
 
 try:
     from mpi4py import MPI
@@ -204,7 +204,7 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
 
         # reconstruct chunks
         iblock = 1
-        for (istart, iend), center in izip(chunks, center_ls):
+        for (istart, iend), center in zip(chunks, center_ls):
             print('Beginning block {:d}.'.format(iblock))
             t0 = time.time()
             print('Reading data...')
