@@ -75,7 +75,6 @@ from tomosaic.register.morph import *
 from tomosaic.register.register_translation import register_translation
 from tomosaic.util.util import *
 from tomosaic.misc.misc import *
-from tomosaic.recon import recon_single
 import warnings
 import os
 import re
