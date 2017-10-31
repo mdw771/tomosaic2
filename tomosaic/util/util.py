@@ -73,7 +73,8 @@ __all__ = ['get_files',
            'g_shapes',
            'equalize_histogram',
            'pad_sinogram',
-           'read_center_pos']
+           'read_center_pos',
+           'reorganize_dir']
 
 import os, glob, re
 import warnings
@@ -395,9 +396,10 @@ def reorganize_dir(file_list, raw_ds=(2,4), dtype='float16', **kwargs):
                     print('\r    Rank: {:d}, DS: {:d}, at frame {:d}'.format(rank, ds, frame))
 
                 comm.Barrier()
+                raw = o['exchange/theta']
+                dat = dat_grp.create_dataset('theta', shape=raw.shape)
                 if rank == 0:
-                    raw = o['exchange/theta']
-                    dat = dat_grp.create_dataset('theta', shape=raw.shape, data=raw.value)
+                    dat[...] = raw.value
 
                 comm.Barrier()
                 f.close()
