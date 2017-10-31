@@ -80,8 +80,7 @@ __docformat__ = 'restructuredtext en'
 __all__ = ['allocate_mpi_subsets',
            'read_data_adaptive',
            'minimum_entropy',
-           'entropy',
-           'recon_single']
+           'entropy']
 
 
 def allocate_mpi_subsets_cont_chunk(n_task, size, task_list=None):
