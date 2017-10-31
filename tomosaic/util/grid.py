@@ -75,6 +75,7 @@ from tomosaic.register.morph import *
 from tomosaic.register.register_translation import register_translation
 from tomosaic.util.util import *
 from tomosaic.misc.misc import *
+from tomosaic.recon import recon_single
 import warnings
 import os
 import re
@@ -292,6 +293,10 @@ def reject_outliers(data, m = 2.):
 def refine_shift_grid_reslice(grid, shift_grid, src_folder, rough_shift, mid_tile=None, center_search_range=None,
                               discard_y_shift=False, data_format='aps_32id', refinement_range=2, mid_center_array=None):
 
+    try:
+        os.mkdir('center_reslice')
+    except:
+        pass
 
     # determine the order of tiles in a row to be analyzed
     tile_list = [mid_tile]
@@ -329,14 +334,14 @@ def refine_shift_grid_reslice(grid, shift_grid, src_folder, rough_shift, mid_til
 
 
 def refine_shift_reslice(current_tile, irow, mid_tile, tile_list, file_grid, center_grid, fov, rough_shift, center_search_range,
-                         src_folder, prj_shape=None, mid_center=None, data_format='aps_32id'):
+                         src_folder, prj_shape=None, mid_center=None, data_format='aps_32id', chunk_size=50):
 
     y_est, x_est = rough_shift
     fov2 = int(fov / 2)
     fov4 = int(fov2 / 2)
 
     if prj_shape is None:
-        prj_shape = read_data_adaptive(file_grid[0, 0], proj=(0, 1), data_format=data_format, shape_only=True)
+        prj_shape = read_data_adaptive(file_grid[0, 0], data_format=data_format, shape_only=True)
 
     mid_center = center_grid[irow, mid_tile]
     this_center = center_grid[irow, current_tile]
@@ -359,25 +364,42 @@ def refine_shift_reslice(current_tile, irow, mid_tile, tile_list, file_grid, cen
     extra_term = pad_length + (mid_tile - current_tile) * x_est
     adapted_range = map(operator.add, center_search_range, [extra_term, extra_term])
 
+    # find a window in the ring-section of the final reconstruction
+    img_mid = int((pad_length * 2 + fov) / 2)
+    if current_tile < mid_tile:
+        window_ymid = img_mid + mid_center + (x_est + 10) * (mid_tile - current_tile) - fov2
+    elif current_tile > mid_tile:
+        window_ymid = img_mid - (x_est - mid_center + (x_est - 10) * (mid_tile - current_tile - 1)) - fov2
+    else:
+        window_ymid = img_mid + (np.mean(center_search_range[:2]) - fov2)
+
+    # find center for this tile if not given
     if np.isnan(this_center):
         tomopy.write_center(prj, theta, os.path.join('partial_center', str(irow), str(current_tile)),
                             cen_range=adapted_range)
-        img_mid = int((pad_length * 2 + fov) / 2)
-        if current_tile < mid_tile:
-            window_ymid = img_mid + mid_center + (x_est + 10) * (mid_tile - current_tile) - fov2
-        elif current_tile > mid_tile:
-            window_ymid = img_mid - (x_est - mid_center + (x_est - 10) * (mid_tile - current_tile - 1)) - fov2
-        else:
-            window_ymid = img_mid + (np.mean(center_search_range[:2]) - fov2)
         center_y = img_mid - window_ymid + 1 if current_tile == mid_tile else None
         min_s_fname = minimum_entropy(os.path.join('partial_center', str(irow), str(current_tile)),
                                       window=[[window_ymid - fov4, img_mid - fov4],
                                               [window_ymid + fov4, img_mid + fov4]],
                                       ring_removal=True, center_y=center_y)
-        best_center = float(re.findall('\d+\.\d+', min_s_fname)[0]) - pad_length
-        center_grid[irow, current_tile] = best_center
-        print(str(best_center) + '({})'.format(min_s_fname))
+        this_center = float(re.findall('\d+\.\d+', min_s_fname)[0]) - pad_length
+        center_grid[irow, current_tile] = this_center
+        print(str(this_center) + '({})'.format(min_s_fname))
         np.savetxt('center_grid.txt', center_grid, fmt=str('%4.2f'))
+
+    dirname = os.path.join('center_reslice', str(irow), str(current_tile))
+    try:
+        os.mkdir(dirname)
+    except:
+        pass
+
+    # do full reconstruction
+    recon_single(file_grid[irow, current_tile], this_center, dirname, pad_length=pad_length, ring_removal=True,
+                 crop=[[window_ymid-fov2, img_mid-fov2], [window_ymid+fov2, img_mid+fov2]])
+
+
+
+
 
     return center_grid
 

@@ -84,6 +84,7 @@ __docformat__ = 'restructuredtext en'
 __all__ = ['recon_hdf5',
            'recon_block',
            'recon_slice',
+           'recon_single',
            'prepare_slice',
            'load_sino',
            'register_recon',
@@ -534,3 +535,61 @@ def register_recon(grid, grid_lines, shift_grid, sinos, method='max', blend_opti
     return row_sino
 
 
+def recon_single(fname, center, dest_folder, sino_range=None, chunk_size=50, read_theta=True, pad_length=0,
+                 phase_retrieval=False, ring_removal=True, algorithm='gridrec', flattened_radius=40, crop=None,
+                 remove_padding=True, **kwargs):
+
+    prj_shape = read_data_adaptive(fname, shape_only=True)
+    if read_theta:
+        theta = read_data_adaptive(fname, proj=(0, 1), return_theta=True)
+    else:
+        theta = tomopy.angles(prj_shape[0])
+    if sino_range is None:
+        sino_st = 0
+        sino_end = prj_shape[1]
+        sino_step = 1
+    else:
+        sino_st, sino_end = sino_range[:2]
+        if len(sino_range) == 3:
+            sino_step = sino_range[-1]
+        else:
+            sino_step = 1
+    chunks = np.arange(0, sino_end, chunk_size * sino_step, dtype='int')
+    for chunk_st in chunks:
+        t0 = time.time()
+        chunk_end = min(chunk_st + chunk_size * sino_step, prj_shape[1])
+        data, flt, drk = read_data_adaptive(fname, sino=(chunk_st, chunk_end, sino_step), return_theta=False)
+        data = tomopy.normalize(data, flt, drk)
+        data = data.astype('float32')
+        data = tomopy.remove_stripe_ti(data, alpha=4)
+        if phase_retrieval:
+            data = tomopy.retrieve_phase(data, kwargs['pixel_size'], kwargs['dist'], kwargs['energy'],
+                                         kwargs['alpha'])
+        if pad_length != 0:
+            data = pad_sinogram(data, pad_length)
+        if ring_removal:
+            data = tomopy.remove_stripe_ti(data, alpha=4)
+            rec0 = tomopy.recon(data, theta, center=center + pad_length, algorithm=algorithm, **kwargs)
+            rec = tomopy.remove_ring(np.copy(rec0))
+            cent = int((rec.shape[1] - 1) / 2)
+            xx, yy = np.meshgrid(np.arange(rec.shape[2]), np.arange(rec.shape[1]))
+            mask0 = ((xx - cent) ** 2 + (yy - cent) ** 2 <= flattened_radius ** 2)
+            mask = np.zeros(rec.shape, dtype='bool')
+            for i in range(mask.shape[0]):
+                mask[i, :, :] = mask0
+            rec[mask] = (rec[mask] + rec0[mask]) / 2
+        else:
+            rec = tomopy.recon(data, theta, center=center + pad_length, algorithm=algorithm, **kwargs)
+        if pad_length != 0 and remove_padding:
+            rec = rec[:, pad_length:pad_length + prj_shape[2], pad_length:pad_length + prj_shape[2]]
+        rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
+        if crop is not None:
+            crop = np.asarray(crop)
+            rec = rec[:, crop[0, 0]:crop[1, 0], crop[0, 1]:crop[1, 1]]
+        for i in range(rec.shape[0]):
+            slice = chunk_st + sino_step * i
+            print('Saving slice {}'.format(slice))
+            dxchange.write_tiff(rec[i, :, :],
+                                fname=os.path.join(dest_folder, 'recon_{:05d}.tiff').format(slice),
+                                dtype='float32')
+        print('Block finished in {:.2f} s.'.format(time.time() - t0))

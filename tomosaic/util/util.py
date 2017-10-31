@@ -364,6 +364,7 @@ def reorganize_dir(file_list, raw_ds=(2,4), dtype='float16', **kwargs):
                     dat[frame:frame+1, :, :] = temp
                     print('\r    Rank: {:d}, DS: {:d}, at frame {:d}'.format(rank, ds, frame))
                 print(' ')
+
                 # downsample flat/dark field data
                 comm.Barrier()
                 raw = o['exchange/data_white']
@@ -392,15 +393,16 @@ def reorganize_dir(file_list, raw_ds=(2,4), dtype='float16', **kwargs):
                     temp = image_downsample(temp, ds)
                     dat[frame:frame+1, :, :] = temp
                     print('\r    Rank: {:d}, DS: {:d}, at frame {:d}'.format(rank, ds, frame))
+
+                comm.Barrier()
+                if rank == 0:
+                    raw = o['exchange/theta']
+                    dat = dat_grp.create_dataset('theta', shape=raw.shape, data=raw.value)
+
                 comm.Barrier()
                 f.close()
                 comm.Barrier()
                 print('Done file: {:s} DS: {:d}'.format(fname, ds))
-        # delete file after all done
-        # try:
-        #     os.remove(fname)
-        # except:
-        #     pass
 
 
 def reorganize_tiffs():
