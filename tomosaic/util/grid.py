@@ -433,13 +433,13 @@ def refine_pair_shift_reslice(current_tile, irow, pair_shift, mid_tile, file_gri
                                             ref_section,
                                             rangeX=(x_est-20, x_est+20),
                                             rangeY=(-10, 10))
-            pair_shift[irow * n_col + current_tile, :] = np.array([irow, current_tile, *shift_vec, y_est, 0])
+            pair_shift[irow * n_col + current_tile, :] = np.array([irow, current_tile, shift_vec[0], shift_vec[1], y_est, 0])
         else:
             shift_vec = create_stitch_shift(ref_section,
                                             this_section,
                                             rangeX=(x_est-20, x_est+20),
                                             rangeY=(-10, 10))
-            pair_shift[irow * n_col + current_tile - 1, :] = np.array([irow, current_tile, *shift_vec, y_est, 0])
+            pair_shift[irow * n_col + current_tile - 1, :] = np.array([irow, current_tile, shift_vec[0], shift_vec[1], y_est, 0])
 
 
 
