@@ -195,7 +195,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
             bottom_shape = [0,0,0]
         size_max = max(main_shape[0],right_shape[0],bottom_shape[0])
         print('    Reading data...')
-        prj, flt, drk = read_data_adaptive(grid[main_pos], proj=(0, size_max, step), data_format=data_format)
+        prj, flt, drk = read_data_adaptive(grid[main_pos], proj=(0, size_max, step), data_format=data_format, return_theta=False)
         prj = tomopy.normalize(prj, flt, drk)
         prj[np.abs(prj) < 2e-3] = 2e-3
         prj[prj > 1] = 1
@@ -205,7 +205,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
         pairs_shift[line, 0:2] = main_pos
 
         if (right_pos != None):
-            prj, flt, drk = read_data_adaptive(grid[right_pos], proj=(0, size_max, step), data_format=data_format)
+            prj, flt, drk = read_data_adaptive(grid[right_pos], proj=(0, size_max, step), data_format=data_format, return_theta=False)
             prj = tomopy.normalize(prj, flt, drk)
             prj[np.abs(prj) < 2e-3] = 2e-3
             prj[prj > 1] = 1
@@ -226,7 +226,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
             pairs_shift[line, 2:4] = right_vec
 
         if (bottom_pos != None):
-            prj, flt, drk = read_data_adaptive(grid[bottom_pos], proj=(0, size_max, step), data_format=data_format)
+            prj, flt, drk = read_data_adaptive(grid[bottom_pos], proj=(0, size_max, step), data_format=data_format, return_theta=False)
             prj = tomopy.normalize(prj, flt, drk)
             prj[np.abs(prj) < 2e-3] = 2e-3
             prj[prj > 1] = 1
