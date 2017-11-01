@@ -65,9 +65,10 @@ from scipy.sparse import csc_matrix
 import scipy.sparse.linalg as lng
 from six.moves import zip
 import gc
-import tomosaic.register.morph as morph
 import dxchange
 import matplotlib.pyplot as plt
+
+from tomosaic.util import *
 
 logger = logging.getLogger(__name__)
 
@@ -221,7 +222,7 @@ def img_merge_alpha(img1, img2, shift, alpha=0.4, margin=100):
     -------
     ndarray
     """
-    newimg, img2 = morph.arrange_image(img1, img2, shift)
+    newimg, img2 = arrange_image(img1, img2, shift)
   
     case, rough_shift, corner, buffer1, buffer2, wid_hor, wid_ver = find_overlap(img1, img2, shift, margin=margin)
     if case != 'skip':
@@ -244,7 +245,7 @@ def img_merge_overlay(img1, img2, shift):
     """
     Simple overlay of two images. Equivalent to alpha blending with alpha = 1.
     """
-    newimg, _ = morph.arrange_image(img1, img2, shift, order=1)
+    newimg, _ = arrange_image(img1, img2, shift, order=1)
     return newimg
 
 
@@ -263,7 +264,7 @@ def img_merge_max(img1, img2, shift, margin=100):
     ndarray
         Output array.
     """
-    newimg, img2 = morph.arrange_image(img1, img2, shift)
+    newimg, img2 = arrange_image(img1, img2, shift)
   
     case, rough_shift, corner, buffer1, buffer2, wid_hor, wid_ver = find_overlap(img1, img2, shift, margin=margin)
     if case != 'skip':
@@ -297,7 +298,7 @@ def img_merge_min(img1, img2, shift, margin=100):
     ndarray
         Output array.
     """
-    newimg, img2 = morph.arrange_image(img1, img2, shift)
+    newimg, img2 = arrange_image(img1, img2, shift)
   
     case, rough_shift, corner, buffer1, buffer2, wid_hor, wid_ver = find_overlap(img1, img2, shift, margin=margin)
     if case != 'skip':
@@ -321,7 +322,7 @@ def img_merge_feathering(img1, img2, shift, margin=50):
     t00 = time.time()
     t0 = time.time()
     # print(    'Starting pyramid blend...')
-    newimg, img2 = morph.arrange_image(img1, img2, shift)
+    newimg, img2 = arrange_image(img1, img2, shift)
     if abs(shift[0]) < margin and abs(shift[1]) < margin:
         return newimg
     # print('    Blend: Image aligned and built in', str(time.time() - t0))
@@ -364,12 +365,12 @@ def img_merge_feathering(img1, img2, shift, margin=50):
 
 # Modified for subpixel fourier shift.
 def img_merge_poisson(img1, img2, shift):
-    newimg, img2 = morph.arrange_image(img1, img2, shift)
+    newimg, img2 = arrange_image(img1, img2, shift)
     if abs(shift[0]) < 10 and abs(shift[1]) < 10:
         return newimg
     # Get corner positions for img2 INCLUDING boundary.
     shape = np.squeeze(img2.shape)
-    corner = _get_corner(morph.get_roughshift(shift), shape)
+    corner = _get_corner(get_roughshift(shift), shape)
     img2_boo_part = _find_bound(shape, corner, newimg)
     img2_boo = np.ones([shape[0], shape[1]], dtype='bool')
     img2_boo[0, :] = False
@@ -537,7 +538,7 @@ def img_merge_pyramid(img1, img2, shift, margin=100, blur=0.4, depth=5):
     t00 = time.time()
     t0 = time.time()
     # print(    'Starting pyramid blend...')
-    newimg, img2 = morph.arrange_image(img1, img2, shift)
+    newimg, img2 = arrange_image(img1, img2, shift)
     if abs(shift[0]) < margin and abs(shift[1]) < margin:
         return newimg
     # print('    Blend: Image aligned and built in', str(time.time() - t0))
@@ -653,11 +654,11 @@ def _collapse(lapl_pyr, blur):
 def img_merge_pwd(img1, img2, shift, margin=100, chunk_size=10000):
     t00 = time.time()
     t0 = time.time()
-    newimg, _ = morph.arrange_image(img1, img2, shift, order=2)
+    newimg, _ = arrange_image(img1, img2, shift, order=2)
     print('Starting PWD blend...')
     if abs(shift[0]) < margin and abs(shift[1]) < margin:
         return newimg
-    rough_shift = morph.get_roughshift(shift)
+    rough_shift = get_roughshift(shift)
     print('    Blend: Image aligned and built in', str(time.time() - t0))
 
     # determine scenario
@@ -956,7 +957,7 @@ def correct_luminance(img1, img2, shift, margin=50):
 
 def find_overlap(img1, img2, shift, margin=50):
 
-    rough_shift = morph.get_roughshift(shift)
+    rough_shift = get_roughshift(shift)
     corner = _get_corner(rough_shift, img2.shape)
     if min(img1.shape) < margin or min(img2.shape) < margin:
         return 'skip', rough_shift, corner, None, None, None, None

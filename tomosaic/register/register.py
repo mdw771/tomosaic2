@@ -72,9 +72,9 @@ try:
 except:
     from tomosaic.util.pseudo import pseudo_comm
 
-from tomosaic.register.morph import vig_image
 from tomosaic.misc import *
 from tomosaic.util import *
+from tomosaic.merge import blend
 from tomosaic.register.register_translation import register_translation
 
 
@@ -279,11 +279,31 @@ def refine_shift_grid_hybrid(grid, shift_grid, src_folder, rough_shift, mid_tile
             side = 0 if icol < mid_tile else 1
             if abs(icol - mid_tile) <= refinement_range[side]:
                 print('Tile ({}, {}) refining using reslicing'.format(irow, icol))
-                refine_pair_shift_reslice(icol, irow, pairs_shift, mid_tile, grid, center_grid, fov, rough_shift,
-                                               center_search_range, src_folder, prj_shape=prj_shape, data_format=data_format,
-                                               chunk_size=50)
+                pairs_shift, center_grid = refine_pair_shift_reslice(icol, irow, pairs_shift, mid_tile, grid, center_grid, fov, rough_shift,
+                                                                     center_search_range, src_folder, prj_shape=prj_shape, data_format=data_format,
+                                                                     chunk_size=50)
             else:
                 print('Tile ({}, {}) refining using brute-force'.format(irow, icol))
+
+            # save a sinogram
+            edge_y = int(prj_shape[1] / 2)
+            if icol == mid_tile:
+                dat, flt, drk = read_data_adaptive(grid[irow, icol], sino=(edge_y, edge_y+1), return_theta=False)
+                dat = tomopy.normalize(dat, flt, drk)
+                dat = preprocess(dat)
+                dxchange.write_tiff(dat, os.path.join('refined_sinograms', 'sino_{}.tiff'.format(irow)), dtype='float32')
+            else:
+                base_sino = dxchange.read_tiff(os.path.join('refined_sinograms', 'sino_{}.tiff'.format(irow)))
+                if icol < mid_tile:
+                    this_shift = np.round(pairs_shift[grid.shape[1] * irow + icol, 2:4])
+                    y_shift = int(this_shift[0])
+                    add_sino, flt, drk = read_data_adaptive(grid[irow, icol], sino=(edge_y-y_shift, edge_y-y_shift+1), return_theta=False)
+                    add_sino = tomopy.normalize(add_sino, flt, drk)
+                    add_sino = preprocess(add_sino)
+                    new_sino = blend(np.squeeze(add_sino), np.squeeze(base_sino), shift=this_shift, method='pyramid')
+
+
+
         pairs_shift[grid.shape[1] * (irow + 1) - 1, :2] = [irow, grid.shape[1]-1]
 
     np.savetxt('shifts.txt', pairs_shift, fmt=str('%4.2f'))
@@ -326,8 +346,8 @@ def refine_pair_shift_reslice(current_tile, irow, pair_shift, mid_tile, file_gri
 
     # theta = tomopy.angles(prj_shape[0])
     prj, flt, drk, theta = read_data_adaptive(os.path.join(src_folder, file_grid[irow, current_tile]),
-                                          sino=(int(prj_shape[1] / 2), int(prj_shape[1] / 2) + 1),
-                                          data_format=data_format)
+                                              sino=(int(prj_shape[1] / 2), int(prj_shape[1] / 2) + 1),
+                                              data_format=data_format)
     prj = tomopy.normalize(prj, flt, drk)
     prj = preprocess(prj)
     prj = tomopy.remove_stripe_ti(prj, alpha=4)

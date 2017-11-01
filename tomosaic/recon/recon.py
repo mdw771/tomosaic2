@@ -214,7 +214,7 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
                 data[:, ind, :] = dset[:, i, :]
             if mode == '360':
                 overlap = 2 * (dset.shape[2] - center)
-                data = tomosaic.morph.sino_360_to_180(data, overlap=overlap, rotation='right')
+                data = tomosaic.sino_360_to_180(data, overlap=overlap, rotation='right')
                 theta = tomopy.angles(data.shape[0])
             data[np.isnan(data)] = 0
             data = data.astype('float32')
@@ -445,7 +445,7 @@ def prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=0, metho
         row_sino[:, 0, :] = gaussian_filter(row_sino[:, 0, :], sino_blur)
     if mode == '360':
         overlap = 2 * (row_sino.shape[2] - rot_center)
-        row_sino = tomosaic.morph.sino_360_to_180(row_sino, overlap=overlap, rotation='right')
+        row_sino = tomosaic.sino_360_to_180(row_sino, overlap=overlap, rotation='right')
     if phase_retrieval:
         row_sino = tomopy.retrieve_phase(row_sino, kwargs['pixel_size'], kwargs['dist'], kwargs['energy'],
                                      kwargs['alpha'])
