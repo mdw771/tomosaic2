@@ -271,22 +271,20 @@ def create_stitch_shift(block1, block2, rangeX=None, rangeY=None, down=0, upsamp
     Find the relative shift between two tiles. If the inputs are image stacks, the correlation function receives the
     maximum intensity projection along the stacking axis.
     """
-
-    # shift_vec = np.zeros([block1.shape[0], 2])
-    if block1.ndim == 3:
-        feed1 = block1.max(axis=0)
-        feed2 = block2.max(axis=0)
-    else:
-        feed1 = block1[...]
-        feed2 = block2[...]
+    feed1 = block1[...]
+    feed2 = block2[...]
     if histogram_equalization:
         feed1 = equalize_histogram(feed1, 0, 1, 1024)
         feed2 = equalize_histogram(feed2, 0, 1, 1024)
-    # shift_vec[0, :] = register_translation(feed1, feed2, rangeX=rangeX, rangeY=rangeY, down=down,
-    #                                        upsample_factor=upsample)
-    shift = register_translation(feed1, feed2, rangeX=rangeX, rangeY=rangeY, down=down, upsample_factor=upsample)
+    if feed1.ndim == 3:
+        assert feed1.shape[0] == feed2.shape[0]
+        shift_vec = np.zeros([feed1.shape[0], 2])
+        for i in range(feed1.shape[0]):
+            shift_vec[i, :] = register_translation(feed1[i], feed2[2], rangeX=rangeX, rangeY=rangeY, down=down, upsample_factor=upsample)
+        shift = shift_vec.mean(axis=0)
+    else:
+        shift = register_translation(feed1, feed2, rangeX=rangeX, rangeY=rangeY, down=down, upsample_factor=upsample)
 
-    # shift = shift_vec[0, :]
     return shift
 
 
@@ -301,7 +299,7 @@ def refine_shift_grid_reslice(grid, shift_grid, src_folder, rough_shift, mid_til
                               discard_y_shift=False, data_format='aps_32id', refinement_range=2, mid_center_array=None):
 
     try:
-        os.mkdir('center_reslice')
+        os.mkdir('recon_reslice')
     except:
         pass
 
@@ -319,8 +317,10 @@ def refine_shift_grid_reslice(grid, shift_grid, src_folder, rough_shift, mid_til
     if mid_tile is None:
         mid_tile = int(grid.shape[1] / 2)
     try:
-        raise Exception
         center_grid = np.loadtxt('center_grid.txt')
+        if center_grid.ndim == 1:
+            center_grid = center_grid.reshape(grid.shape)
+        print(center_grid)
     except:
         center_grid = np.zeros_like(grid, dtype='float')
         center_grid[...] = None
@@ -340,7 +340,9 @@ def refine_shift_grid_reslice(grid, shift_grid, src_folder, rough_shift, mid_til
                                                chunk_size=50)
             else:
                 pass
-        pairs_shift[grid.shape[1] * (irow + 1) - 1, :2] = [irow, icol]
+        pairs_shift[grid.shape[1] * (irow + 1) - 1, :2] = [irow, grid.shape[1]-1]
+
+    np.savetxt('shifts.txt', pairs_shift, fmt=str('%4.2f'))
 
     raise NotImplementedError
 
@@ -387,16 +389,15 @@ def refine_pair_shift_reslice(current_tile, irow, pair_shift, mid_tile, file_gri
 
     # find center for this tile if not given
     if np.isnan(this_center):
-        print(theta)
+        print('Center of current tile is not given. Finding center using entropy optimization')
         write_center(prj, theta, os.path.join('partial_center', str(irow), str(current_tile)),
-                     cen_range=adapted_range)
-        raise Exception
+                     cen_range=adapted_range, pad_length=pad_length, remove_padding=False)
         center_y = img_mid - window_ymid + 1 if current_tile == mid_tile else None
         min_s_fname = minimum_entropy(os.path.join('partial_center', str(irow), str(current_tile)),
                                       window=[[window_ymid - fov4, img_mid - fov4],
                                               [window_ymid + fov4, img_mid + fov4]],
                                       ring_removal=True, center_y=center_y)
-        this_center = float(re.findall('\d+\.\d+', min_s_fname)[0]) - pad_length
+        this_center = float(re.findall('\d+\.\d+', min_s_fname)[0])
         center_grid[irow, current_tile] = this_center
         print(str(this_center) + '({})'.format(min_s_fname))
         np.savetxt('center_grid.txt', center_grid, fmt=str('%4.2f'))
@@ -407,27 +408,30 @@ def refine_pair_shift_reslice(current_tile, irow, pair_shift, mid_tile, file_gri
     except:
         pass
 
-    raise Exception
-
     # do full reconstruction
     temp = glob.glob(os.path.join(dirname, '*.tiff'))
     if len(temp) == 0:
-        print('Full reconstruction {}, {}'.format(irow, current_tile))
+        print('Full reconstruction ({}, {})'.format(irow, current_tile))
         _recon_single(file_grid[irow, current_tile], this_center, dirname, pad_length=pad_length, ring_removal=True,
-                      crop=[[window_ymid-fov2, img_mid-fov2], [window_ymid+fov2, img_mid+fov2]])
+                      crop=[[window_ymid-fov2, img_mid-fov2], [window_ymid+fov2, img_mid+fov2]], remove_padding=False)
 
     # do registration if this tile is not the mid-tile
+    print('Getting reslice ({}, {}) (this tile)'.format(irow, current_tile))
+    this_section = get_reslice(dirname, slice_x=fov2)
+    dxchange.write_tiff(this_section, os.path.join(dirname, 'reslice_{}_{}'.format(irow, current_tile)), dtype='float32', overwrite=True)
+
     if current_tile != mid_tile:
-        print('Getting reslice ({}, {}) (this tile)'.format(irow, current_tile))
-        this_section = get_reslice(dirname, slice_x=fov2)
         if current_tile < mid_tile:
-            ref_dirname = os.path.join('recon_reslice', str(irow), str(current_tile + 1))
+            ref_tile = current_tile + 1
+            ref_dirname = os.path.join('recon_reslice', str(irow), str(ref_tile))
         else:
-            ref_dirname = os.path.join('recon_reslice', str(irow), str(current_tile - 1))
+            ref_tile = current_tile - 1
+            ref_dirname = os.path.join('recon_reslice', str(irow), str(ref_tile))
         print('Getting reslice ({}, {}) (ref tile)'.format(irow, current_tile))
         ref_section = get_reslice(ref_dirname, slice_x=fov2)
 
         n_col = file_grid.shape[1]
+        print('Registering this tile ({}, {}) and ref tile ({}, {})'.format(irow, current_tile, irow, ref_tile))
         if current_tile < mid_tile:
             shift_vec = create_stitch_shift(this_section,
                                             ref_section,
@@ -441,7 +445,7 @@ def refine_pair_shift_reslice(current_tile, irow, pair_shift, mid_tile, file_gri
                                             rangeY=(-10, 10))
             pair_shift[irow * n_col + current_tile - 1, :] = np.array([irow, current_tile, shift_vec[0], shift_vec[1], y_est, 0])
 
-
+        print(shift_vec)
 
     return pair_shift, center_grid
 
@@ -481,7 +485,7 @@ def _recon_single(fname, center, dest_folder, sino_range=None, chunk_size=50, re
 
     prj_shape = read_data_adaptive(fname, shape_only=True)
     if read_theta:
-        theta = read_data_adaptive(fname, proj=(0, 1), return_theta=True)
+        _, _, _, theta = read_data_adaptive(fname, proj=(0, 1), return_theta=True)
     else:
         theta = tomopy.angles(prj_shape[0])
     if sino_range is None:
@@ -509,7 +513,7 @@ def _recon_single(fname, center, dest_folder, sino_range=None, chunk_size=50, re
             data = pad_sinogram(data, pad_length)
         if ring_removal:
             data = tomopy.remove_stripe_ti(data, alpha=4)
-            rec0 = tomopy.recon(data, theta, center=center + pad_length, algorithm=algorithm, **kwargs)
+            rec0 = tomopy.recon(data, theta, center=center+pad_length, algorithm=algorithm, **kwargs)
             rec = tomopy.remove_ring(np.copy(rec0))
             cent = int((rec.shape[1] - 1) / 2)
             xx, yy = np.meshgrid(np.arange(rec.shape[2]), np.arange(rec.shape[1]))
@@ -524,12 +528,11 @@ def _recon_single(fname, center, dest_folder, sino_range=None, chunk_size=50, re
             rec = rec[:, pad_length:pad_length + prj_shape[2], pad_length:pad_length + prj_shape[2]]
         rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
         if crop is not None:
-            crop = np.asarray(crop)
+            crop = np.asarray(crop, dtype='int')
             rec = rec[:, crop[0, 0]:crop[1, 0], crop[0, 1]:crop[1, 1]]
         for i in range(rec.shape[0]):
             slice = chunk_st + sino_step * i
-            print('Saving slice {}'.format(slice))
             dxchange.write_tiff(rec[i, :, :],
                                 fname=os.path.join(dest_folder, 'recon_{:05d}.tiff').format(slice),
                                 dtype='float32')
-        print('Block finished in {:.2f} s.'.format(time.time() - t0))
+        print('Slice {} - {} finished in {:.2f} s.'.format(chunk_st, chunk_st + rec.shape * sino_step, time.time() - t0))

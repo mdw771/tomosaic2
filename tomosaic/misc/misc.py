@@ -271,7 +271,7 @@ def get_reslice(recon_folder, chunk_size=50, slice_y=None, slice_x=None):
     chunks = []
     chunk_st = np.min(inds)
     chunk_end = chunk_st + chunk_size
-    sino_end = np.max(inds)
+    sino_end = np.max(inds) + 1
 
     while chunk_end < sino_end:
         chunks.append((chunk_st, chunk_end))
@@ -283,7 +283,7 @@ def get_reslice(recon_folder, chunk_size=50, slice_y=None, slice_x=None):
     if slice_y is not None:
         slice = a[:, slice_y, :]
     elif slice_x is not None:
-        slice = a[:, :, slice_x]
+        slice = a[:, ::-1, slice_x]
     else:
         raise ValueError('Either slice_y or slice_x must be specified.')
     for (chunk_st, chunk_end) in chunks[1:]:
@@ -291,7 +291,7 @@ def get_reslice(recon_folder, chunk_size=50, slice_y=None, slice_x=None):
         if slice_y is not None:
             slice = np.append(slice, a[:, slice_y, :], axis=0)
         elif slice_x is not None:
-            slice = np.append(slice, a[:, :, slice_x], axis=0)
+            slice = np.append(slice, a[:, ::-1, slice_x], axis=0)
         else:
             raise ValueError('Either slice_y or slice_x must be specified.')
 
