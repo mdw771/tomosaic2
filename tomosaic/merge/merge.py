@@ -71,7 +71,7 @@ import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
 
-__author__ = "Rafael Vescovi, Ming Du"
+__author__ = ['Rafael Vescovi', 'Ming Du']
 __credits__ = "Doga Gursoy"
 __copyright__ = "Copyright (c) 2015, UChicago Argonne, LLC."
 __docformat__ = 'restructuredtext en'

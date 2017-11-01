@@ -311,7 +311,8 @@ def recon_hdf5_mpi(src_fanme, dest_folder, sino_range, sino_step, center_vec, sh
 def recon_block(grid, shift_grid, src_folder, dest_folder, slice_range, sino_step, center_vec, ds_level=0, blend_method='max',
                 blend_options=None, tolerance=1, sinogram_order=False, algorithm='gridrec', init_recon=None, ncore=None, nchunk=None, dtype='float32',
                 crop=None, save_sino=False, assert_width=None, sino_blur=None, color_correction=False, flattened_radius=120, normalize=True,
-                test_mode=False, mode='180', phase_retrieval=None, data_format='aps_32id', **kwargs):
+                test_mode=False, mode='180', phase_retrieval=None, data_format='aps_32id', read_theta=True, ring_removal=True,
+                **kwargs):
     """
     Reconstruct dsicrete HDF5 tiles, blending sinograms only.
     """
@@ -333,16 +334,22 @@ def recon_block(grid, shift_grid, src_folder, dest_folder, slice_range, sino_ste
                                                    color_correction, normalize, mode, phase_retrieval, data_format)
         if row_sino is None:
             continue
-        rec0 = recon_slice(row_sino, center_pos, sinogram_order=sinogram_order, algorithm=algorithm,
-                          init_recon=init_recon, ncore=ncore, nchunk=nchunk, **kwargs)
-        rec = tomopy.remove_ring(np.copy(rec0))
-        cent = int((rec.shape[1] - 1) / 2)
-        xx, yy = np.meshgrid(np.arange(rec.shape[2]), np.arange(rec.shape[1]))
-        mask0 = ((xx - cent) ** 2 + (yy - cent) ** 2 <= flattened_radius ** 2)
-        mask = np.zeros(rec.shape, dtype='bool')
-        for i in range(mask.shape[0]):
-            mask[i, :, :] = mask0
-        rec[mask] = (rec[mask] + rec0[mask]) / 2
+        if read_theta:
+            _, _, _, theta = read_data_adaptive(grid[0, 0], proj=(0, 1), return_theta=True)
+        if ring_removal:
+            rec0 = recon_slice(row_sino, theta, center_pos, sinogram_order=sinogram_order, algorithm=algorithm,
+                              init_recon=init_recon, ncore=ncore, nchunk=nchunk, **kwargs)
+            rec = tomopy.remove_ring(np.copy(rec0))
+            cent = int((rec.shape[1] - 1) / 2)
+            xx, yy = np.meshgrid(np.arange(rec.shape[2]), np.arange(rec.shape[1]))
+            mask0 = ((xx - cent) ** 2 + (yy - cent) ** 2 <= flattened_radius ** 2)
+            mask = np.zeros(rec.shape, dtype='bool')
+            for i in range(mask.shape[0]):
+                mask[i, :, :] = mask0
+            rec[mask] = (rec[mask] + rec0[mask]) / 2
+        else:
+            rec = recon_slice(row_sino, theta, center_pos, sinogram_order=sinogram_order, algorithm=algorithm,
+                              init_recon=init_recon, ncore=ncore, nchunk=nchunk, **kwargs)
         rec = tomopy.remove_outlier(rec, tolerance)
         rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
 
@@ -465,15 +472,14 @@ def pad_sino(row_sino, pad, rot_center):
         return (row_sino, int(rot_center))
 
 
-def recon_slice(row_sino, center_pos, sinogram_order=False, algorithm=None,
-        init_recon=None, ncore=None, nchunk=None, **kwargs):
+def recon_slice(row_sino, theta, center_pos, sinogram_order=False, algorithm=None,
+                init_recon=None, ncore=None, nchunk=None, **kwargs):
     t = time.time()
-    ang = tomopy.angles(row_sino.shape[0])
     print(row_sino.shape)
     row_sino = row_sino.astype('float32')
     # row_sino = tomopy.normalize_bg(row_sino) # WARNING: normalize_bg can unpredicatably give bad results for some slices
     row_sino = tomopy.remove_stripe_ti(row_sino, alpha=4)
-    rec = tomopy.recon(row_sino, ang, center=center_pos, sinogram_order=sinogram_order, algorithm=algorithm,
+    rec = tomopy.recon(row_sino, theta, center=center_pos, sinogram_order=sinogram_order, algorithm=algorithm,
         init_recon=init_recon, ncore=ncore, nchunk=nchunk, **kwargs)
 
     print('recon:           ' + str(time.time() - t))
@@ -483,7 +489,7 @@ def recon_slice(row_sino, center_pos, sinogram_order=False, algorithm=None,
 def load_sino(filename, sino_n, normalize=True, data_format='aps_32id'):
     print('Loading {:s}, slice {:d}'.format(filename, sino_n))
     sino_n = int(sino_n)
-    sino, flt, drk = read_data_adaptive(filename, sino=(sino_n, sino_n + 1), data_format=data_format)
+    sino, flt, drk, _ = read_data_adaptive(filename, sino=(sino_n, sino_n + 1), data_format=data_format)
     if not normalize:
         flt[:, :, :] = flt.max()
         drk[:, :, :] = 0

@@ -62,14 +62,14 @@ import gc
 
 logger = logging.getLogger(__name__)
 
-__author__ = "Rafael Vescovi"
+__author__ = ['Rafael Vescovi', 'Ming Du']
 __credits__ = "Doga Gursoy"
 __copyright__ = "Copyright (c) 2015, UChicago Argonne, LLC."
 __docformat__ = 'restructuredtext en'
 __all__ = ['realign_image',
            'realign_block',
            'vig_image',
-           'pad_sinogram']
+           'arrange_image']
 
 
 def arrange_image(img1, img2, shift, order=1, trim=True):
@@ -264,17 +264,3 @@ def sino_360_to_180(data, overlap=0, rotation='left'):
         out[:, :, dz-lo:] = data[n:2*n, :, :-ro][:, :, ::-1]
 
     return out
-
-
-def pad_sinogram(sino, length, mean_length=40, mode='edge'):
-
-    length = int(length)
-    res = np.zeros([sino.shape[0], sino.shape[1] + length * 2])
-    res[:, length:length+sino.shape[1]] = sino
-    if mode == 'edge':
-        mean_left = np.mean(sino[:, :mean_length], axis=1).reshape([sino.shape[0], 1])
-        mean_right = np.mean(sino[:, -mean_length:], axis=1).reshape([sino.shape[0], 1])
-        res[:, :length] = mean_left
-        res[:, -length:] = mean_right
-
-    return res
