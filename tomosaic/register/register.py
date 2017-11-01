@@ -294,7 +294,14 @@ def refine_shift_grid_hybrid(grid, shift_grid, src_folder, rough_shift, mid_tile
 def refine_pair_shift_brute(current_tile, irow, pair_shift, mid_tile, file_grid, center_grid, fov, rough_shift, center_search_range,
                               src_folder, prj_shape=None, data_format='aps_32id', chunk_size=50):
 
-    pass
+    try:
+        os.mkdir('refiend_sinograms')
+    except:
+        pass
+
+    # read in stitched sinograms with redined shifts. This at least contains the mid-tile.
+    base_sino = dxchange.read_tiff(os.path.join('refined_sinograms', str(irow), str(current_tile)))
+
 
 
 def refine_pair_shift_reslice(current_tile, irow, pair_shift, mid_tile, file_grid, center_grid, fov, rough_shift, center_search_range,
