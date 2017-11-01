@@ -280,7 +280,7 @@ def create_stitch_shift(block1, block2, rangeX=None, rangeY=None, down=0, upsamp
         assert feed1.shape[0] == feed2.shape[0]
         shift_vec = np.zeros([feed1.shape[0], 2])
         for i in range(feed1.shape[0]):
-            shift_vec[i, :] = register_translation(feed1[i], feed2[2], rangeX=rangeX, rangeY=rangeY, down=down, upsample_factor=upsample)
+            shift_vec[i, :] = register_translation(feed1[i], feed2[i], rangeX=rangeX, rangeY=rangeY, down=down, upsample_factor=upsample)
         shift = shift_vec.mean(axis=0)
     else:
         shift = register_translation(feed1, feed2, rangeX=rangeX, rangeY=rangeY, down=down, upsample_factor=upsample)
