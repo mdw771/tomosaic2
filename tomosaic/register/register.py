@@ -87,7 +87,8 @@ __docformat__ = 'restructuredtext en'
 __all__ = ['cross_correlation_bf',
            'cross_correlation_pcm',
            'refine_shift_grid',
-           'refine_shift_grid_hybrid']
+           'refine_shift_grid_hybrid',
+           'absolute_shift_grid']
 
 try:
     comm = MPI.COMM_WORLD
@@ -125,15 +126,15 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
             continue
         main_pos = pairs[line, 0]
         print('Line {} ({})'.format(line, main_pos))
-        main_shape = g_shapes(grid[main_pos])
+        main_shape = read_data_adaptive(grid[main_pos], shape_only=True)
         right_pos = pairs[line, 1]
         if (right_pos != None):
-            right_shape = g_shapes(grid[right_pos])
+            right_shape = read_data_adaptive(grid[right_pos], shape_only=True)
         else:
             right_shape = [0,0,0]
         bottom_pos = pairs[line, 2]
         if (bottom_pos != None):
-            bottom_shape = g_shapes(grid[bottom_pos])
+            bottom_shape = read_data_adaptive(grid[bottom_pos], shape_only=True)
         else:
             bottom_shape = [0,0,0]
         size_max = max(main_shape[0],right_shape[0],bottom_shape[0])
@@ -275,6 +276,7 @@ def refine_shift_grid_hybrid(grid, shift_grid, src_folder, rough_shift, mid_tile
     if center_search_range is None:
         center_search_range = (prj_mid-50, prj_mid+50)
     for irow in range(grid.shape[0]):
+        edge_y = int(prj_shape[1] / 2)
         for icol in tile_list:
             side = 0 if icol < mid_tile else 1
             if abs(icol - mid_tile) <= refinement_range[side]:
@@ -284,23 +286,46 @@ def refine_shift_grid_hybrid(grid, shift_grid, src_folder, rough_shift, mid_tile
                                                                      chunk_size=50)
             else:
                 print('Tile ({}, {}) refining using brute-force'.format(irow, icol))
+                if icol < mid_tile:
+                    neightbor_y = edge_y + np.round(
+                        np.sum(pairs_shift[grid.shape[1] * irow:grid.shape[1] * irow + icol, 2:4], axis=0))
+                else:
+                    neightbor_y = edge_y - np.round(
+                        np.sum(pairs_shift[grid.shape[1] * irow:grid.shape[1] * irow + icol, 2:4], axis=0))
+                pairs_shift, center_grid = refine_pair_shift_brute()
+                pairs_shift[2, 2:4] = [0, 780]
 
             # save a sinogram
-            edge_y = int(prj_shape[1] / 2)
+            if icol == 0:
+                raise Exception
+            print(pairs_shift)
             if icol == mid_tile:
                 dat, flt, drk = read_data_adaptive(grid[irow, icol], sino=(edge_y, edge_y+1), return_theta=False)
                 dat = tomopy.normalize(dat, flt, drk)
                 dat = preprocess(dat)
-                dxchange.write_tiff(dat, os.path.join('refined_sinograms', 'sino_{}.tiff'.format(irow)), dtype='float32')
+                dxchange.write_tiff(np.squeeze(dat), os.path.join('refined_sinograms', 'sino_{}.tiff'.format(irow)), dtype='float32', overwrite=True)
             else:
                 base_sino = dxchange.read_tiff(os.path.join('refined_sinograms', 'sino_{}.tiff'.format(irow)))
+                if base_sino.ndim == 2:
+                    base_sino = base_sino[:, np.newaxis, :]
                 if icol < mid_tile:
-                    this_shift = np.round(pairs_shift[grid.shape[1] * irow + icol, 2:4])
-                    y_shift = int(this_shift[0])
-                    add_sino, flt, drk = read_data_adaptive(grid[irow, icol], sino=(edge_y-y_shift, edge_y-y_shift+1), return_theta=False)
+                    this_shift = np.sum(pairs_shift[grid.shape[1] * irow:grid.shape[1] * irow + icol, 2:4], axis=0)
+                    y_shift = int(np.round(this_shift[0]))
+                    edge_y += y_shift
+                    add_sino, flt, drk = read_data_adaptive(grid[irow, icol], sino=(edge_y, edge_y+1), return_theta=False)
                     add_sino = tomopy.normalize(add_sino, flt, drk)
                     add_sino = preprocess(add_sino)
-                    new_sino = blend(np.squeeze(add_sino), np.squeeze(base_sino), shift=this_shift, method='pyramid')
+                    new_sino = blend(np.squeeze(add_sino), np.squeeze(base_sino), shift=[0, this_shift[1]], method='pyramid')
+                else:
+                    this_shift = np.sum(pairs_shift[grid.shape[1] * irow:grid.shape[1] * irow + icol, 2:4], axis=0)
+                    y_shift = int(np.round(this_shift[0]))
+                    edge_y -= y_shift
+                    add_sino, flt, drk = read_data_adaptive(grid[irow, icol], sino=(edge_y, edge_y+1), return_theta=False)
+                    add_sino = tomopy.normalize(add_sino, flt, drk)
+                    add_sino = preprocess(add_sino)
+                    new_sino = blend(np.squeeze(base_sino), np.squeeze(add_sino), shift=[0, this_shift[1]], method='pyramid')
+                dxchange.write_tiff(new_sino, os.path.join('refined_sinograms', 'sino_{}.tiff'.format(irow)),
+                                    dtype='float32', overwrite=True)
 
 
 
@@ -311,16 +336,36 @@ def refine_shift_grid_hybrid(grid, shift_grid, src_folder, rough_shift, mid_tile
     raise NotImplementedError
 
 
-def refine_pair_shift_brute(current_tile, irow, pair_shift, mid_tile, file_grid, center_grid, fov, rough_shift, center_search_range,
-                              src_folder, prj_shape=None, data_format='aps_32id', chunk_size=50):
+def refine_pair_shift_brute(current_tile, irow, pair_shift, mid_tile, file_grid, center_grid, fov, rough_shift, neighbor_y,
+                            src_folder, y_range=(-5, 5, 1), x_range=(-10, 10, 1), tilt_range=(-3, 3, 0.5), prj_shape=None,
+                            data_format='aps_32id', chunk_size=50):
 
     try:
         os.mkdir('refiend_sinograms')
     except:
         pass
+    try:
+        os.mkdir('bf_recons')
+    except:
+        pass
+
+    y_est, x_est = rough_shift
 
     # read in stitched sinograms with redined shifts. This at least contains the mid-tile.
     base_sino = dxchange.read_tiff(os.path.join('refined_sinograms', str(irow), str(current_tile)))
+    for y_tweak in y_range:
+        slice_y = neighbor_y - y_tweak
+        add_sino, flt, drk, theta = read_data_adaptive(file_grid[irow, current_tile], sino=(slice_y, slice_y+1))
+        add_sino = tomopy.normalize(add_sino, flt, drk)
+        add_sino = preprocess(add_sino)
+        for x_tweak in x_range:
+            if current_tile < mid_tile:
+                shift_x = x_est + x_tweak
+                new_sino = blend(np.squeeze(add_sino), np.squeeze(base_sino), [0, x_est], method='pyramid')
+            else:
+                shift_x = x_est + x_tweak
+                new_sino = blend(np.squeeze(base_sino), np.squeeze(add_sino), [0, x_est], method='pyramid')
+
 
 
 
@@ -385,6 +430,10 @@ def refine_pair_shift_reslice(current_tile, irow, pair_shift, mid_tile, file_gri
     except:
         pass
 
+    # recalculate window boundaries using found center
+    img_mid = int((pad_length * 2 + fov) / 2)
+    window_ymid = img_mid + this_center - fov2
+
     # do full reconstruction
     temp = glob.glob(os.path.join(dirname, '*.tiff'))
     if len(temp) == 0:
@@ -405,7 +454,7 @@ def refine_pair_shift_reslice(current_tile, irow, pair_shift, mid_tile, file_gri
         else:
             ref_tile = current_tile - 1
             ref_dirname = os.path.join('recon_reslice', str(irow), str(ref_tile))
-        print('Getting reslice ({}, {}) (ref tile)'.format(irow, current_tile))
+        print('Getting reslice ({}, {}) (ref tile)'.format(irow, ref_tile))
         ref_section = get_reslice(ref_dirname, slice_x=fov2)
 
         n_col = file_grid.shape[1]
@@ -513,7 +562,7 @@ def _recon_single(fname, center, dest_folder, sino_range=None, chunk_size=50, re
             dxchange.write_tiff(rec[i, :, :],
                                 fname=os.path.join(dest_folder, 'recon_{:05d}.tiff').format(slice),
                                 dtype='float32')
-        print('Slice {} - {} finished in {:.2f} s.'.format(chunk_st, chunk_st + rec.shape * sino_step, time.time() - t0))
+        print('Slice {} - {} finished in {:.2f} s.'.format(chunk_st, chunk_st + rec.shape[0] * sino_step, time.time() - t0))
 
 
 
@@ -687,7 +736,6 @@ def _write_center(tomo, theta, dpath='tmp/center', cen_range=None, pad_length=0,
 
     for center in np.arange(*cen_range):
         rec = tomopy.recon(tomo[:, 0:1, :], theta, algorithm='gridrec', center=center)
-        print(rec.max())
         if not pad_length == 0 and remove_padding:
             rec = rec[:, pad_length:-pad_length, pad_length:-pad_length]
         dxchange.write_tiff(np.squeeze(rec), os.path.join(dpath, '{:.2f}'.format(center-pad_length)), overwrite=True)

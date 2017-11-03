@@ -357,7 +357,6 @@ def write_center(tomo, theta, dpath='tmp/center', cen_range=None, pad_length=0, 
 
     for center in np.arange(*cen_range):
         rec = tomopy.recon(tomo[:, 0:1, :], theta, algorithm='gridrec', center=center)
-        print(rec.max())
         if not pad_length == 0 and remove_padding:
             rec = rec[:, pad_length:-pad_length, pad_length:-pad_length]
         dxchange.write_tiff(np.squeeze(rec), os.path.join(dpath, '{:.2f}'.format(center-pad_length)), overwrite=True)
