@@ -206,8 +206,12 @@ def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', shap
         except:
             f = h5py.File(fname)
             d = f['exchange/data']
-            theta = f['exchange/theta'].value
-            theta = theta / 180 * np.pi
+            try:
+                theta = f['exchange/theta'].value
+                theta = theta / 180 * np.pi
+            except:
+                warnings.warn('Error reading theta. Using auto-generated values instead.')
+                theta = tomopy.angles(d.shape[0])
             if proj is None:
                 dat = d[:, sino[0]:sino[1]:sino_step, :]
                 flt = f['exchange/data_white'][:, sino[0]:sino[1]:sino_step, :]
