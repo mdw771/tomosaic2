@@ -108,7 +108,7 @@ def build_panorama(src_folder, file_grid, shift_grid, frame=0, method='max', met
     if method2 is None:
         for (y, x), value in np.ndenumerate(file_grid):
             if (value != None and frame < g_shapes(value)[0]):
-                prj, flt, drk = read_data_adaptive(value, proj=(frame, frame + 1), data_format=data_format)
+                prj, flt, drk, _ = read_data_adaptive(value, proj=(frame, frame + 1), data_format=data_format)
                 prj = tomopy.normalize(prj, flt, drk)
                 prj = preprocess(prj, blur=blur)
                 t0 = time.time()
@@ -127,14 +127,14 @@ def build_panorama(src_folder, file_grid, shift_grid, frame=0, method='max', met
             offset = np.min(temp_shift[:, :, 0])
             temp_shift[:, :, 0] = temp_shift[:, :, 0] - offset
             row_buff = np.zeros([1, 1])
-            prj, flt, drk = read_data_adaptive(temp_grid[0, 0], proj=(frame, frame + 1), data_format=data_format)
+            prj, flt, drk, _ = read_data_adaptive(temp_grid[0, 0], proj=(frame, frame + 1), data_format=data_format)
             prj = tomopy.normalize(prj, flt, drk)
             prj = preprocess(prj, blur=blur)
             row_buff, _ = arrange_image(row_buff, np.squeeze(prj), temp_shift[0, 0, :], order=1)
             for x in range(1, temp_grid.shape[1]):
                 value = temp_grid[0, x]
                 if (value != None and frame < g_shapes(value)[0]):
-                    prj, flt, drk = read_data_adaptive(value, proj=(frame, frame + 1), data_format=data_format)
+                    prj, flt, drk, _ = read_data_adaptive(value, proj=(frame, frame + 1), data_format=data_format)
                     prj = tomopy.normalize(prj, flt, drk)
                     prj = preprocess(prj, blur=blur)
                     t0 = time.time()

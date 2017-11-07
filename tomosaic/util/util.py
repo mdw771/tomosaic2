@@ -90,6 +90,7 @@ from tomosaic.misc.misc import allocate_mpi_subsets, read_data_adaptive
 import shutil
 from scipy.ndimage import gaussian_filter
 from scipy.misc import imread, imsave
+from scipy.interpolate import LinearNDInterpolator
 import matplotlib.pyplot as plt
 from tomopy import downsample
 import time
@@ -152,7 +153,7 @@ def save_partial_frames(file_grid, save_folder, prefix, frame=0, data_format='ap
     for (y, x), value in np.ndenumerate(file_grid):
         print(value)
         if (value != None):
-            prj, flt, drk = read_data_adaptive(value, proj=(frame, frame + 1), data_format=data_format)
+            prj, flt, drk, _ = read_data_adaptive(value, proj=(frame, frame + 1), data_format=data_format)
             prj = tomopy.normalize(prj, flt, drk)
             prj = preprocess(prj)
             fname = prefix + 'Y' + str(y).zfill(2) + '_X' + str(x).zfill(2)
@@ -162,7 +163,7 @@ def save_partial_frames(file_grid, save_folder, prefix, frame=0, data_format='ap
 def save_partial_raw(file_list, save_folder, data_format='aps_32id'):
     for value in file_list:
         if (value != None):
-            prj, flt, drk = read_data_adaptive(value, proj=(0, 1), data_format=data_format)
+            prj, flt, drk, _ = read_data_adaptive(value, proj=(0, 1), data_format=data_format)
             fname = value
             dxchange.write_tiff_stack(np.squeeze(flt), fname=os.path.join(save_folder, 'partial_flats', fname))
             dxchange.write_tiff_stack(np.squeeze(drk), fname=os.path.join(save_folder, 'partial_darks', fname))
@@ -521,3 +522,52 @@ def read_center_pos(fname='center_pos.txt'):
         pos = float(line.split()[1])
         center_vec.append(pos)
     return np.array(center_vec)
+
+
+def get_tilted_sinogram(fname, target_slice, tilt, preprocess_data=True):
+    """
+    Get a sinogram that is tilted about the theta-axis from the specified dataset.
+    The tilting axis is assumed to be along the center of the FOV width.
+    :param fname: name of the dataset.
+    :param target_slice: the slice number where the tilting axis lies.
+    :param tilt: tilting angle in degree. Positive = anticlockwise; negative = clockwise.
+    :return: tilted sinogram.
+    """
+    shape = read_data_adaptive(fname, shape_only=True)
+    fov2 = shape[2] / 2.
+    tilt = np.deg2rad(tilt)
+    range_l = target_slice + fov2 * np.tan(tilt)
+    range_r = target_slice - fov2 * np.tan(tilt)
+    if tilt > 0:
+        range_l = int(np.ceil(range_l)) + 1
+        range_r = int(np.floor(range_r))
+    else:
+        range_l = int(np.floor(range_l))
+        range_r = int(np.ceil(range_r)) + 1
+    target_slice = target_slice - min([range_l, range_r])
+    dat, flt, drk, _ = read_data_adaptive(fname,
+                                          sino=(min([range_l, range_r]), max([range_l, range_r])))
+    if preprocess_data:
+        dat = tomopy.normalize(dat, flt, drk)
+        dat = preprocess(dat)
+    else:
+        dat[np.isnan(dat)] = 0
+    values = dat.flatten()
+    dx, dy, dz = dat.shape
+    points = np.array([[x, y, z] for x in range(dx) for y in range(dy) for z in range(dz)])
+    f = LinearNDInterpolator(points, values)
+    range_l = target_slice + fov2 * np.tan(tilt)
+    range_r = target_slice - fov2 * np.tan(tilt)
+    xx = zz = []
+    for i in range(dx):
+        xx += [i] * dz
+    xx = np.array(xx)
+    for i in range(dx):
+        zz += range(dz)
+    zz = np.array(zz)
+    yy = np.tile(np.linspace(range_l, range_r, dz), dx)
+    sino = f(xx, yy, zz).reshape(dx, 1, dz)
+
+    return sino
+
+
