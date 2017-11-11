@@ -73,7 +73,8 @@ __all__ = ['get_files',
            'pad_sinogram',
            'read_center_pos',
            'check_fname_ext',
-           'image_downsample']
+           'image_downsample',
+           'get_tilted_sinogram']
 
 import os, glob, re
 import warnings
@@ -270,6 +271,7 @@ def g_shapes(fname):
 def image_downsample(img, ds):
     temp = downsample(downsample(img, level=int(np.log2(ds)), axis=1), level=int(np.log2(ds)), axis=2)
     return temp
+
 
 def check_fname_ext(fname, ext):
     ext_len = len(ext)
@@ -514,14 +516,13 @@ def pad_sinogram(sino, length, mean_length=40, mode='edge'):
 
 def read_center_pos(fname='center_pos.txt'):
 
-    center_vec = []
     f = open(fname)
     lines = f.readlines()
-    lines.sort()
+    center_vec = np.zeros(len(lines))
     for line in lines:
-        pos = float(line.split()[1])
-        center_vec.append(pos)
-    return np.array(center_vec)
+        row, pos = line.split()
+        center_vec[int(row)] = float(pos)
+    return center_vec
 
 
 def get_tilted_sinogram(fname, target_slice, tilt, preprocess_data=True):
@@ -545,6 +546,7 @@ def get_tilted_sinogram(fname, target_slice, tilt, preprocess_data=True):
         range_l = int(np.floor(range_l))
         range_r = int(np.ceil(range_r)) + 1
     target_slice = target_slice - min([range_l, range_r])
+    print(range_r, range_l)
     dat, flt, drk, _ = read_data_adaptive(fname,
                                           sino=(min([range_l, range_r]), max([range_l, range_r])))
     if preprocess_data:
@@ -555,7 +557,9 @@ def get_tilted_sinogram(fname, target_slice, tilt, preprocess_data=True):
     values = dat.flatten()
     dx, dy, dz = dat.shape
     points = np.array([[x, y, z] for x in range(dx) for y in range(dy) for z in range(dz)])
+    print('interp st')
     f = LinearNDInterpolator(points, values)
+    print('interp done')
     range_l = target_slice + fov2 * np.tan(tilt)
     range_r = target_slice - fov2 * np.tan(tilt)
     xx = zz = []
@@ -566,6 +570,7 @@ def get_tilted_sinogram(fname, target_slice, tilt, preprocess_data=True):
         zz += range(dz)
     zz = np.array(zz)
     yy = np.tile(np.linspace(range_l, range_r, dz), dx)
+    print('gen')
     sino = f(xx, yy, zz).reshape(dx, 1, dz)
 
     return sino

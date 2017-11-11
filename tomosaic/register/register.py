@@ -88,6 +88,7 @@ __all__ = ['cross_correlation_bf',
            'cross_correlation_pcm',
            'refine_shift_grid',
            'refine_shift_grid_hybrid',
+           'refine_tilt',
            'absolute_shift_grid']
 
 try:
@@ -240,7 +241,7 @@ def reject_outliers(data, m = 2.):
 
 
 def refine_shift_grid_hybrid(grid, shift_grid, src_folder, rough_shift, mid_tile=None, center_search_range=None,
-                              discard_y_shift=False, data_format='aps_32id', refinement_range=(1, 0), mid_center_array=None):
+                             discard_y_shift=False, data_format='aps_32id', refinement_range=(1, 0), mid_center_array=None):
 
     try:
         os.mkdir('recon_reslice')
@@ -351,6 +352,9 @@ def refine_pair_shift_brute(current_tile, irow, pair_shift, mid_tile, file_grid,
 
     y_est, x_est = rough_shift
 
+    if prj_shape is None:
+        prj_shape = read_data_adaptive(file_grid[irow, current_tile], proj=(0, 1), data_format=data_format, shape_only=True)
+
     # read in stitched sinograms with redined shifts. This at least contains the mid-tile.
     base_sino = dxchange.read_tiff(os.path.join('refined_sinograms', str(irow), str(current_tile)))
     for y_tweak in y_range:
@@ -365,8 +369,6 @@ def refine_pair_shift_brute(current_tile, irow, pair_shift, mid_tile, file_grid,
             else:
                 shift_x = x_est + x_tweak
                 new_sino = blend(np.squeeze(base_sino), np.squeeze(add_sino), [0, x_est], method='pyramid')
-
-
 
 
 def refine_pair_shift_reslice(current_tile, irow, pair_shift, mid_tile, file_grid, center_grid, fov, rough_shift, center_search_range,
@@ -475,6 +477,28 @@ def refine_pair_shift_reslice(current_tile, irow, pair_shift, mid_tile, file_gri
         print(shift_vec)
 
     return pair_shift, center_grid
+
+
+def refine_tilt(current_tile, irow, mid_tile, file_grid, tilt_range=(-3, 3, 0.5), prj_shape=None, data_format='aps_32id'):
+
+    if prj_shape is None:
+        prj_shape = read_data_adaptive(file_grid[0, 0], data_format=data_format, shape_only=True)
+
+    tilt_ls = np.arange(*tilt_range)
+    target_slice = int(prj_shape[1] / 2)
+    for tilt in tilt_ls:
+        print('Getting tilted sinogram for tilt angle {}'.format(tilt))
+        sino = get_tilted_sinogram(file_grid[irow, current_tile], target_slice, tilt, preprocess_data=True)
+        try:
+            _, _, _, theta = read_data_adaptive(file_grid[irow, current_tile], proj=(0, 1), data_format=data_format)
+        except:
+            theta = tomopy.angles(sino.shape[0])
+        rec = tomopy.recon(sino, theta, algorithm='gridrec')
+        dxchange.write_tiff(np.squeeze(rec),
+                            os.path.join('bf_recons', str(irow), 'tilt', '{:.2f}'.format(tilt)), overwrite=True)
+
+
+
 
 
 def absolute_shift_grid(pairs_shift, file_grid, mode='vh'):
