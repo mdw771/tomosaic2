@@ -202,18 +202,18 @@ def register_translation(src_image, target_image, rangeX=[None, None], rangeY=[N
     rangeX = map(int, rangeX)
     rangeY = map(int, rangeY)
 
-    # rotation and scale
-    f0, log_base = logpolar(src_image)
-    f1, log_base = logpolar(target_image)
-
-    f0 = fft2(f0)
-    f1 = fft2(f1)
-    r0 = abs(f0) * abs(f1)
-    ir = abs(ifft2((f0 * f1.conjugate()) / r0))
-
-    i0, i1 = np.unravel_index(np.argmax(ir), ir.shape)
-    angle = 180.0 * i0 / ir.shape[0]
-    scale = log_base ** i1
+    # # rotation and scale
+    # f0, log_base = logpolar(src_image)
+    # f1, log_base = logpolar(target_image)
+    #
+    # f0 = fft2(f0)
+    # f1 = fft2(f1)
+    # r0 = abs(f0) * abs(f1)
+    # ir = abs(ifft2((f0 * f1.conjugate()) / r0))
+    #
+    # i0, i1 = np.unravel_index(np.argmax(ir), ir.shape)
+    # angle = 180.0 * i0 / ir.shape[0]
+    # scale = log_base ** i1
 
     # Whole-pixel shift - Compute cross-correlation by an IFFT
     shape = src_freq.shape
