@@ -202,7 +202,12 @@ def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', shap
                 dat, flt, drk = dxchange.read_aps_32id(fname, proj=proj, sino=sino)
                 f = h5py.File(fname)
                 theta = f['exchange/theta'].value
-                theta = theta / 180 * np.pi
+                if theta[-1] - theta[0] > 170:
+                    theta = theta / 180 * np.pi
+                elif theta[-1] - theta[0] < 1e-3:
+                    theta = tomopy.angles(dat.shape[0])
+                else:
+                    print('Angle data already in radian.')
         except:
             f = h5py.File(fname)
             d = f['exchange/data']
