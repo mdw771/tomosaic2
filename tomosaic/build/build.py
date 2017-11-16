@@ -95,7 +95,7 @@ PI = 3.1415927
 
 
 def build_panorama(src_folder, file_grid, shift_grid, frame=0, method='max', method2=None, blend_options={}, blend_options2={},
-                   blur=None, color_correction=False, margin=100, data_format='aps_32id'):
+                   blur=None, color_correction=False, margin=100, data_format='aps_32id', verbose=True):
 
     t00 = time.time()
     root = os.getcwd()
@@ -139,8 +139,9 @@ def build_panorama(src_folder, file_grid, shift_grid, frame=0, method='max', met
                     prj = preprocess(prj, blur=blur)
                     t0 = time.time()
                     row_buff = blend(row_buff, np.squeeze(prj), temp_shift[0, x, :], method=method, color_correction=color_correction, **blend_options)
-                    print('Rank: {:d}; Frame: {:d}; Pos: ({:d}, {:d}); Method: {:s}; Color Corr.:{:b}; Tile stitched in '
-                          '{:.2f} s; Max: {}.'.format(rank, frame, y, x, method, color_correction, time.time() - t0, row_buff[np.isfinite(row_buff)].max()))
+                    if verbose:
+                        print('Rank: {:d}; Frame: {:d}; Pos: ({:d}, {:d}); Method: {:s}; Color Corr.:{:b}; Tile stitched in '
+                              '{:.2f} s; Max: {}.'.format(rank, frame, y, x, method, color_correction, time.time() - t0, row_buff[np.isfinite(row_buff)].max()))
                     if last_none:
                         row_buff[margin:, margin:-margin][np.isnan(row_buff[margin:, margin:-margin])] = 0
                         last_none = False

@@ -91,7 +91,7 @@ from tomosaic.misc.misc import allocate_mpi_subsets, read_data_adaptive
 import shutil
 from scipy.ndimage import gaussian_filter
 from scipy.misc import imread, imsave
-from scipy.interpolate import LinearNDInterpolator
+from scipy.ndimage.interpolation import rotate
 import matplotlib.pyplot as plt
 from tomopy import downsample
 import time
@@ -545,8 +545,6 @@ def get_tilted_sinogram(fname, target_slice, tilt, preprocess_data=True):
     else:
         range_l = int(np.floor(range_l))
         range_r = int(np.ceil(range_r)) + 1
-    target_slice = target_slice - min([range_l, range_r])
-    print(range_r, range_l)
     dat, flt, drk, _ = read_data_adaptive(fname,
                                           sino=(min([range_l, range_r]), max([range_l, range_r])))
     if preprocess_data:
@@ -554,25 +552,30 @@ def get_tilted_sinogram(fname, target_slice, tilt, preprocess_data=True):
         dat = preprocess(dat)
     else:
         dat[np.isnan(dat)] = 0
-    values = dat.flatten()
-    dx, dy, dz = dat.shape
-    points = np.array([[x, y, z] for x in range(dx) for y in range(dy) for z in range(dz)])
-    print('interp st')
-    f = LinearNDInterpolator(points, values)
-    print('interp done')
-    range_l = target_slice + fov2 * np.tan(tilt)
-    range_r = target_slice - fov2 * np.tan(tilt)
-    xx = zz = []
-    for i in range(dx):
-        xx += [i] * dz
-    xx = np.array(xx)
-    for i in range(dx):
-        zz += range(dz)
-    zz = np.array(zz)
-    yy = np.tile(np.linspace(range_l, range_r, dz), dx)
-    print('gen')
-    sino = f(xx, yy, zz).reshape(dx, 1, dz)
 
-    return sino
+    tilted_block = rotate(dat, tilt, axes=(0, 2), reshape=False)
+    mid_slice = int(dat.shape[0] / 2)
+
+    return tilted_block[:, mid_slice:mid_slice+1, :]
+
+    # values = dat.flatten()
+    # dx, dy, dz = dat.shape
+    # points = np.array([[x, y, z] for x in range(dx) for y in range(dy) for z in range(dz)])
+    # print('interp st')
+    # f = LinearNDInterpolator(points, values)
+    # print('interp done')
+    # range_l = target_slice + fov2 * np.tan(tilt)
+    # range_r = target_slice - fov2 * np.tan(tilt)
+    # xx = zz = []
+    # for i in range(dx):
+    #     xx += [i] * dz
+    # xx = np.array(xx)
+    # for i in range(dx):
+    #     zz += range(dz)
+    # zz = np.array(zz)
+    # yy = np.tile(np.linspace(range_l, range_r, dz), dx)
+    # print('gen')
+    # sino = f(xx, yy, zz).reshape(dx, 1, dz)
+
 
 
