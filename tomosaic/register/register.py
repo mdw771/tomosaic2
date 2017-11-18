@@ -499,8 +499,6 @@ def refine_tilt(current_tile, irow, mid_tile, file_grid, tilt_range=(-3, 3, 0.5)
 
 
 
-
-
 def absolute_shift_grid(pairs_shift, file_grid, mode='vh'):
     """
     Generate absolute shift grid from a relative shift grid. Default building method is first right then down.

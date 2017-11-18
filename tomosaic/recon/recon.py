@@ -153,8 +153,8 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
                                              kwargs['alpha'])
             if pad_length != 0:
                 data = pad_sinogram(data, pad_length)
+            data = tomopy.remove_stripe_ti(data, alpha=4)
             if ring_removal:
-                data = tomopy.remove_stripe_ti(data, alpha=4)
                 rec0 = tomopy.recon(data, theta, center=center+pad_length, algorithm=algorithm, **kwargs)
                 rec = tomopy.remove_ring(np.copy(rec0))
                 cent = int((rec.shape[1]-1) / 2)
