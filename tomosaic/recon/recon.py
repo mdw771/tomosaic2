@@ -175,7 +175,7 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
                 rec = rec[:, crop[0, 0]:crop[1, 0], crop[0, 1]:crop[1, 1]]
             for i in range(rec.shape[0]):
                 slice = sub_sino_ls[i]
-                dxchange.write_tiff(rec[i, :, :], fname=os.path.join(dest_folder, 'recon/recon_{:05d}_{:05d}.tiff').format(slice, sino_ini))
+                dxchange.write_tiff(rec[i, :, :], fname=os.path.join(dest_folder, 'recon/recon_{:05d}.tiff').format(slice))
                 if save_sino:
                     dxchange.write_tiff(data[:, i, :], fname=os.path.join(dest_folder, 'sino/recon_{:05d}_{:d}.tiff').format(slice, int(center[i])))
             iblock += 1
