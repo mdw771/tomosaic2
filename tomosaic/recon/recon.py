@@ -130,12 +130,12 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
         theta = tomopy.angles(full_shape[0])
     if center_eq is not None:
         a, b = center_eq
-        center_ls = sino_ls * a + b
+        center_ls = sino_ls_all * a + b
         center_ls = np.round(center_ls)
         for iblock in range(int(sino_ls.size/chunk_size)+1):
             print('Beginning block {:d}.'.format(iblock))
             t0 = time.time()
-            istart = iblock*chunk_size
+            istart = iblock * chunk_size
             iend = np.min([(iblock+1)*chunk_size, sino_ls.size])
             sub_sino_ls = sino_ls[istart:iend-1]
             center = np.take(center_ls, sub_sino_ls)
