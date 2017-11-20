@@ -179,6 +179,7 @@ def minimum_entropy(folder, pattern='*.tiff', range=(0, 0.002), mask_ratio=0.9, 
 
 def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', shape_only=False, return_theta=True, **kwargs):
     """
+    return_theta : return angle data in RADIAN
     Adaptive data reading function that works with dxchange both below and beyond version 0.0.11.
     """
     theta = None
@@ -202,9 +203,9 @@ def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', shap
                 dat, flt, drk = dxchange.read_aps_32id(fname, proj=proj, sino=sino)
                 f = h5py.File(fname)
                 theta = f['exchange/theta'].value
-                if theta[-1] - theta[0] > 170:
+                if abs(theta[-1] - theta[0]) > 170:
                     theta = theta / 180 * np.pi
-                elif theta[-1] - theta[0] < 1e-3:
+                elif abs(theta[-1] - theta[0]) < 1e-5:
                     theta = tomopy.angles(dat.shape[0])
                 else:
                     print('Angle data already in radian.')
