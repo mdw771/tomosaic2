@@ -74,7 +74,8 @@ __all__ = ['get_files',
            'read_center_pos',
            'check_fname_ext',
            'image_downsample',
-           'get_tilted_sinogram']
+           'get_tilted_sinogram',
+           'most_neighbor_clustering']
 
 import os, glob, re
 import warnings
@@ -578,4 +579,13 @@ def get_tilted_sinogram(fname, target_slice, tilt, preprocess_data=True):
     # sino = f(xx, yy, zz).reshape(dx, 1, dz)
 
 
+def most_neighbor_clustering(data, radius):
+
+    data = np.array(data)
+    counter = np.zeros(len(data))
+    for ind, i in enumerate(data):
+        for j in data:
+            if j != i and abs(j - i) < radius:
+                counter[ind] += 1
+    return data[np.where(counter == counter.max())]
 

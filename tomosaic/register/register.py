@@ -211,7 +211,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
     return pairs_shift
 
 
-def create_stitch_shift(block1, block2, rangeX=None, rangeY=None, down=0, upsample=100, histogram_equalization=False):
+def create_stitch_shift(block1, block2, rangeX=None, rangeY=None, down=0, upsample=100, histogram_equalization=False, take_max=False):
     """
     Find the relative shift between two tiles. If the inputs are image stacks, the correlation function receives the
     maximum intensity projection along the stacking axis.
@@ -221,12 +221,16 @@ def create_stitch_shift(block1, block2, rangeX=None, rangeY=None, down=0, upsamp
     if histogram_equalization:
         feed1 = equalize_histogram(feed1, 0, 1, 1024)
         feed2 = equalize_histogram(feed2, 0, 1, 1024)
+    if take_max:
+        feed1 = np.max(feed1, axis=0)
+        feed2 = np.max(feed2, axis=0)
     if feed1.ndim == 3:
         assert feed1.shape[0] == feed2.shape[0]
         shift_vec = np.zeros([feed1.shape[0], 2])
         for i in range(feed1.shape[0]):
             shift_vec[i, :] = register_translation(feed1[i], feed2[i], rangeX=rangeX, rangeY=rangeY, down=down, upsample_factor=upsample)
-        shift = shift_vec.mean(axis=0)
+        shift = [most_neighbor_clustering(shift_vec[:, 0], 3),
+                 most_neighbor_clustering(shift_vec[:, 1], 3)]
     else:
         shift = register_translation(feed1, feed2, rangeX=rangeX, rangeY=rangeY, down=down, upsample_factor=upsample)
 
