@@ -229,8 +229,8 @@ def create_stitch_shift(block1, block2, rangeX=None, rangeY=None, down=0, upsamp
         shift_vec = np.zeros([feed1.shape[0], 2])
         for i in range(feed1.shape[0]):
             shift_vec[i, :] = register_translation(feed1[i], feed2[i], rangeX=rangeX, rangeY=rangeY, down=down, upsample_factor=upsample)
-        shift = [most_neighbor_clustering(shift_vec[:, 0], 3),
-                 most_neighbor_clustering(shift_vec[:, 1], 3)]
+        shift = [np.mean(most_neighbor_clustering(shift_vec[:, 0], 3)),
+                 np.mean(most_neighbor_clustering(shift_vec[:, 1], 3))]
     else:
         shift = register_translation(feed1, feed2, rangeX=rangeX, rangeY=rangeY, down=down, upsample_factor=upsample)
 
