@@ -191,6 +191,7 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
     os.chdir(src_folder)
 
     _, _, _, theta = read_data_adaptive(file_grid[0, 0], proj=(0, 1), data_format=data_format)
+    theta = np.rad2deg(theta)
     n_frames, y_cam, x_cam = read_data_adaptive(file_grid[0, 0], shape_only=True, data_format=data_format)
     frames_per_rank = int(n_frames/size)
 
