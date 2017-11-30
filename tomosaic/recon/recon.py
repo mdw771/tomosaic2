@@ -335,7 +335,7 @@ def recon_block(grid, shift_grid, src_folder, dest_folder, slice_range, sino_ste
         if row_sino is None:
             continue
         if read_theta:
-            _, _, _, theta = read_data_adaptive(grid[0, 0], proj=(0, 1), return_theta=True)
+            _, _, _, theta = read_data_adaptive(os.path.join(src_folder, grid[0, 0]), proj=(0, 1), return_theta=True)
         if ring_removal:
             rec0 = recon_slice(row_sino, theta, center_pos, sinogram_order=sinogram_order, algorithm=algorithm,
                               init_recon=init_recon, ncore=ncore, nchunk=nchunk, **kwargs)
