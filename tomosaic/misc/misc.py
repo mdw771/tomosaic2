@@ -165,7 +165,7 @@ def entropy(img, range=(-0.002, 0.003), mask_ratio=0.9, window=None, ring_remova
 
 
 def minimum_entropy(folder, pattern='*.tiff', range=(-0.002, 0.003), mask_ratio=0.9, window=None, ring_removal=True,
-                    center_x=None, center_y=None, reliability_screening=False):
+                    center_x=None, center_y=None, reliability_screening=False, save_plot=True):
 
     flist = glob.glob(os.path.join(folder, pattern))
     flist.sort()
@@ -180,6 +180,14 @@ def minimum_entropy(folder, pattern='*.tiff', range=(-0.002, 0.003), mask_ratio=
         s.append(entropy(img, range=range, mask_ratio=mask_ratio, window=window, ring_removal=ring_removal,
                          center_x=center_x, center_y=center_y))
         a.append(fname)
+    if save_plot:
+        plt.figure()
+        pos = np.array([float(os.path.splitext(os.path.basename(i))[0]) for i in a])
+        plt.plot(pos, np.array(s))
+        save_path = os.path.join('entropy_plots', folder)
+        if not os.path.exists(save_path):
+            os.mkdir(save_path)
+        plt.savefig(os.path.join(save_path, 'entropy.png'), format='png')
     if reliability_screening:
         if a[np.argmin(s)] in [flist[0], flist[-1]]:
             return None
