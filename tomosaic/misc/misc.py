@@ -64,6 +64,7 @@ except:
 import numpy as np
 import dxchange
 import tomopy
+import matplotlib.pyplot as plt
 
 import re
 import os
@@ -137,13 +138,18 @@ def which_tile(shift_grid, file_grid, x_coord, y_coord):
     return s
 
 
-def entropy(img, range=(0, 0.002), mask_ratio=0.9, window=None, ring_removal=False, center_x=None, center_y=None):
+def entropy(img, range=(-0.002, 0.003), mask_ratio=0.9, window=None, ring_removal=True, center_x=None, center_y=None):
 
-    gc.collect()
-    temp = img[...]
+    temp = np.copy(img)
+    temp = np.squeeze(temp)
     if window is not None:
         window = np.array(window, dtype='int')
-        temp = temp[window[0][0]:window[1][0], window[0][1]:window[1][1]]
+        if window.ndim == 2:
+            temp = temp[window[0][0]:window[1][0], window[0][1]:window[1][1]]
+        elif window.ndim == 1:
+            mid_y, mid_x = (np.array(temp.shape) / 2).astype(int)
+            temp = temp[mid_y-window[0]:mid_y+window[0], mid_x-window[1]:mid_x+window[1]]
+        # dxchange.write_tiff(temp, 'tmp/data', dtype='float32', overwrite=False)
     if ring_removal:
         temp = np.squeeze(tomopy.remove_ring(temp[np.newaxis, :, :], center_x=center_x, center_y=center_y))
     if mask_ratio is not None:
@@ -158,10 +164,11 @@ def entropy(img, range=(0, 0.002), mask_ratio=0.9, window=None, ring_removal=Fal
     return val
 
 
-def minimum_entropy(folder, pattern='*.tiff', range=(0, 0.002), mask_ratio=0.9, window=None, ring_removal=False,
-                    center_x=None, center_y=None):
+def minimum_entropy(folder, pattern='*.tiff', range=(-0.002, 0.003), mask_ratio=0.9, window=None, ring_removal=True,
+                    center_x=None, center_y=None, reliability_screening=False):
 
     flist = glob.glob(os.path.join(folder, pattern))
+    flist.sort()
     a = []
     s = []
     for fname in flist:
@@ -173,8 +180,15 @@ def minimum_entropy(folder, pattern='*.tiff', range=(0, 0.002), mask_ratio=0.9, 
         s.append(entropy(img, range=range, mask_ratio=mask_ratio, window=window, ring_removal=ring_removal,
                          center_x=center_x, center_y=center_y))
         a.append(fname)
-        gc.collect()
-    return a[np.argmin(s)]
+    if reliability_screening:
+        if a[np.argmin(s)] in [flist[0], flist[-1]]:
+            return None
+        elif abs(np.min(s) - np.mean(s)) < 0.5 * np.std(s):
+            return None
+        else:
+            return float(os.path.splitext(os.path.basename(a[np.argmin(s)]))[0])
+    else:
+        return float(os.path.splitext(os.path.basename(a[np.argmin(s)]))[0])
 
 
 def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', shape_only=False, return_theta=True, **kwargs):
