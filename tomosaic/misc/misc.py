@@ -182,6 +182,7 @@ def minimum_entropy(folder, pattern='*.tiff', range=(-0.002, 0.003), mask_ratio=
         s.append(entropy(img, range=range, mask_ratio=mask_ratio, window=window, ring_removal=ring_removal,
                          center_x=center_x, center_y=center_y))
         a.append(fname)
+        gc.collect()
     if save_plot:
         plt.figure()
         pos = np.array([float(os.path.splitext(os.path.basename(i))[0]) for i in a])
