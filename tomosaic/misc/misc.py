@@ -158,19 +158,31 @@ def entropy(img, range=(-0.002, 0.003), mask_ratio=0.9, window=None, ring_remova
     temp = temp.flatten()
     # temp[np.isnan(temp)] = 0
     temp[np.invert(np.isfinite(temp))] = 0
-    hist, e = np.histogram(temp, bins=1024, range=range)
+    hist, e = np.histogram(temp, bins=10000, range=range)
     hist = hist.astype('float32') / temp.size + 1e-12
     val = -np.dot(hist, np.log2(hist))
     return val
 
 
-def minimum_entropy(folder, pattern='*.tiff', range=(-0.002, 0.003), mask_ratio=0.9, window=None, ring_removal=True,
+def minimum_entropy(folder, pattern='*.tiff', range=None, mask_ratio=0.9, window=None, ring_removal=True,
                     center_x=None, center_y=None, reliability_screening=False, save_plot=True, verbose=False):
 
     flist = glob.glob(os.path.join(folder, pattern))
     flist.sort()
     a = []
     s = []
+    if range is None:
+        temp = dxchange.read_tiff(flist[int(len(flist) / 2)])
+        temp_std = np.std(temp)
+        temp_mean = np.mean(temp)
+        temp[np.where(temp > (temp_mean + temp_std * 10))] = temp_mean
+        temp[np.where(temp < (temp_mean - temp_std * 10))] = temp_mean
+        hist_min = temp.min()
+        hist_min = hist_min * 2 if hist_min < 0 else hist_min * 0.5
+        hist_max = temp.max()
+        hist_max = hist_max * 2 if hist_max > 0 else hist_min * 0.5
+        range = (hist_min, hist_max)
+        print('Auto-determined histogram range is ({}, {}).'.format(hist_min, hist_max))
     for fname in flist:
         if verbose:
             print(fname)
@@ -194,7 +206,7 @@ def minimum_entropy(folder, pattern='*.tiff', range=(-0.002, 0.003), mask_ratio=
     if reliability_screening:
         if a[np.argmin(s)] in [flist[0], flist[-1]]:
             return None
-        elif abs(np.min(s) - np.mean(s)) < 0.5 * np.std(s):
+        elif abs(np.min(s) - np.mean(s)) < 0.2 * np.std(s):
             return None
         else:
             return float(os.path.splitext(os.path.basename(a[np.argmin(s)]))[0])

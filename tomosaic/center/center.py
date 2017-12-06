@@ -67,6 +67,7 @@ import dxchange
 import matplotlib.pyplot as plt
 import os
 import re
+import glob
 import time
 import warnings
 try:
@@ -261,10 +262,10 @@ def find_center_dnn(tomo, theta, search_range, level=0, outpath='center', pad_le
                  cen_range=[rot_start / pow(2, level), rot_end / pow(2, level),
                             search_step / pow(2, level)],
                  pad_length=pad_length)
-    return _search_in_folder_dnn(outpath, **kwargs)
+    return search_in_folder_dnn(outpath, **kwargs)
 
 
-def _search_in_folder_dnn(dest_folder, window=((600, 600), (1300, 1300)), dim_img=128, seed=1337, batch_size=50):
+def search_in_folder_dnn(dest_folder, window=((600, 600), (1300, 1300)), dim_img=128, seed=1337, batch_size=50):
 
     patch_size = (dim_img, dim_img)
     nb_classes = 2
@@ -340,8 +341,13 @@ def find_center_merged(fname, shift_grid, row_range, search_range, search_step=1
             write_center(sino, theta, os.path.join('center', str(row)),
                          cen_range=(center_st, center_end, search_step))
             if method == 'entropy':
-                mins_fname = minimum_entropy(os.path.join('center', str(row)), range=(0, 0.008))
-                center = re.findall('\d+\.\d+', mins_fname)[0]
+                center = minimum_entropy(os.path.join('center', str(row)), reliability_screening=True)
+                if center is None:
+                    print('Entropy result did not pass reliability screening. Switching to CNN...')
+                    rad = int(sino.shape[-1] * 0.3)
+                    rec_mid = int(sino.shape[-1] / 2)
+                    center = search_in_folder_dnn(os.path.join('center', str(row)),
+                                                  window=((rec_mid-rad, rec_mid-rad), (rec_mid+rad, rec_mid+rad)))
                 print('For {} center is {}. ({} s)'.format(row, center, time.time() - t0))
                 log.write('{} {}\n'.format(row, center))
         elif method == 'vo':
@@ -393,8 +399,13 @@ def find_center_discrete(source_folder, file_grid, shift_grid, row_range, search
             write_center(sino, theta, dpath='center/{}'.format(row),
                                 cen_range=(center_st, center_end, search_step))
             if method == 'entropy':
-                mins_fname = minimum_entropy(os.path.join('center', str(row)), range=(0, 0.008))
-                center = re.findall('\d+\.\d+', mins_fname)[0]
+                center = minimum_entropy(os.path.join('center', str(row)), reliability_screening=True)
+                if center is None:
+                    print('Entropy result did not pass reliability screening. Switching to CNN...')
+                    rad = int(sino.shape[-1] * 0.3)
+                    rec_mid = int(sino.shape[-1] / 2)
+                    center = search_in_folder_dnn(os.path.join('center', str(row)),
+                                                  window=((rec_mid-rad, rec_mid-rad), (rec_mid+rad, rec_mid+rad)))
                 print('For {} center is {}. ({} s)'.format(row, center, time.time() - t0))
                 log.write('{} {}\n'.format(row, center))
         elif method == 'vo':
