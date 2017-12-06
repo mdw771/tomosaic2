@@ -189,7 +189,7 @@ def minimum_entropy(folder, pattern='*.tiff', range=(-0.002, 0.003), mask_ratio=
         plt.plot(pos, np.array(s))
         save_path = os.path.join('entropy_plots', folder)
         if not os.path.exists(save_path):
-            os.mkdir(save_path)
+            os.makedirs(save_path)
         plt.savefig(os.path.join(save_path, 'entropy.png'), format='png')
     if reliability_screening:
         if a[np.argmin(s)] in [flist[0], flist[-1]]:
