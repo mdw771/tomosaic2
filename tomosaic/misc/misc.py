@@ -164,7 +164,7 @@ def entropy(img, range=(-0.002, 0.003), mask_ratio=0.9, window=None, ring_remova
     return val
 
 
-def minimum_entropy(folder, pattern='*.tiff', range=None, mask_ratio=0.9, window=None, ring_removal=True,
+def minimum_entropy(folder, pattern='*.tiff', range=None, mask_ratio=0.9, window=None, ring_removal=False,
                     center_x=None, center_y=None, reliability_screening=False, save_plot=True, verbose=False):
 
     flist = glob.glob(os.path.join(folder, pattern))
