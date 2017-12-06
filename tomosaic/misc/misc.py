@@ -165,13 +165,15 @@ def entropy(img, range=(-0.002, 0.003), mask_ratio=0.9, window=None, ring_remova
 
 
 def minimum_entropy(folder, pattern='*.tiff', range=(-0.002, 0.003), mask_ratio=0.9, window=None, ring_removal=True,
-                    center_x=None, center_y=None, reliability_screening=False, save_plot=True):
+                    center_x=None, center_y=None, reliability_screening=False, save_plot=True, verbose=False):
 
     flist = glob.glob(os.path.join(folder, pattern))
     flist.sort()
     a = []
     s = []
     for fname in flist:
+        if verbose:
+            print(fname)
         img = dxchange.read_tiff(fname)
         # if max(img.shape) > 1000:
         #     img = scipy.misc.imresize(img, 1000. / max(img.shape), mode='F')
