@@ -172,7 +172,8 @@ def minimum_entropy(folder, pattern='*.tiff', range=None, mask_ratio=0.9, window
     a = []
     s = []
     if range is None:
-        temp = dxchange.read_tiff(flist[int(len(flist) / 2)])[...]
+        temp = dxchange.read_tiff(flist[int(len(flist) / 2)])
+        temp = temp[...]
         temp_std = np.std(temp)
         temp_mean = np.mean(temp)
         temp[np.where(temp > (temp_mean + temp_std * 10))] = temp_mean
