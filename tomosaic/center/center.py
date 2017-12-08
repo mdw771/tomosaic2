@@ -425,7 +425,8 @@ def find_center_single(sino_name, search_range, search_step=1, preprocess_single
     log = open(output_fname, 'a')
     center_st, center_end = search_range
     sino = dxchange.read_tiff(sino_name)
-    sino = sino.reshape([sino.shape[0], 1, sino.shape[1]])
+    if sino.ndim == 2:
+        sino = sino.reshape([sino.shape[0], 1, sino.shape[1]])
     if preprocess_single:
         sino = preprocess(np.copy(sino))
     if method == 'manual':
