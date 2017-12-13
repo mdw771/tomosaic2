@@ -199,8 +199,11 @@ def minimum_entropy(folder, pattern='*.tiff', range=None, mask_ratio=0.9, window
         gc.collect()
     if save_plot:
         plt.figure()
-        pos = np.array([float(os.path.splitext(os.path.basename(i))[0]) for i in a])
-        plt.plot(pos, np.array(s))
+        try:
+            pos = np.array([float(os.path.splitext(os.path.basename(i))[0]) for i in a])
+            plt.plot(pos, np.array(s))
+        except:
+            plt.plot(np.array(s))
         save_path = os.path.join('entropy_plots', folder)
         if not os.path.exists(save_path):
             os.makedirs(save_path)
