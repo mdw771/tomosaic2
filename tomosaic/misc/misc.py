@@ -165,7 +165,8 @@ def entropy(img, range=(-0.002, 0.003), mask_ratio=0.9, window=None, ring_remova
 
 
 def minimum_entropy(folder, pattern='*.tiff', range=None, mask_ratio=0.9, window=None, ring_removal=False,
-                    center_x=None, center_y=None, reliability_screening=False, save_plot=True, verbose=False):
+                    center_x=None, center_y=None, reliability_screening=False, save_plot=True, verbose=False,
+                    return_filename=False):
 
     flist = glob.glob(os.path.join(folder, pattern))
     flist.sort()
@@ -210,9 +211,15 @@ def minimum_entropy(folder, pattern='*.tiff', range=None, mask_ratio=0.9, window
         elif abs(np.min(s) - np.mean(s)) < 0.2 * np.std(s):
             return None
         else:
-            return float(os.path.splitext(os.path.basename(a[np.argmin(s)]))[0])
+            if return_filename:
+                return os.path.splitext(os.path.basename(a[np.argmin(s)]))[0]
+            else:
+                return float(os.path.splitext(os.path.basename(a[np.argmin(s)]))[0])
     else:
-        return float(os.path.splitext(os.path.basename(a[np.argmin(s)]))[0])
+        if return_filename:
+            return os.path.splitext(os.path.basename(a[np.argmin(s)]))[0]
+        else:
+            return float(os.path.splitext(os.path.basename(a[np.argmin(s)]))[0])
 
 
 def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', shape_only=False, return_theta=True, **kwargs):
