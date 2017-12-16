@@ -65,6 +65,7 @@ import numpy as np
 from pyfftw.interfaces.numpy_fft import fft2, ifft2
 import tomopy
 from scipy import ndimage
+import scipy.ndimage.interpolation
 import dxchange
 import h5py
 try:
@@ -106,6 +107,7 @@ TEMP_FOLDER_RECON_RESLICE = 'recon_reslice'
 TEMP_FOLDER_REFINED_SINO = 'refined_sinograms'
 TEMP_FOLDER_BRUTE_FORCE_RECON = 'bf_recons'
 TEMP_FOLDER_SINGLE_TILE_CENTER = 'partial_center'
+TEMP_FOLDER_MID_TILT = 'tilt_recons'
 
 
 def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=800, upsample=10,
@@ -262,8 +264,30 @@ def initialize_pair_shift(grid):
 
 
 def refine_shift_grid_hybrid(grid, shift_grid, src_folder, rough_shift, mid_tile=None, center_search_range=None, shift_search_range_y=(-5, 5, 1),
-                             shift_search_range_x=(-10, 10, 1),
-                             discard_y_shift=False, data_format='aps_32id', refinement_range=(1, 0), mid_center_array=None):
+                             shift_search_range_x=(-10, 10, 1), rotate=0,
+                             data_format='aps_32id', refinement_range=(1, 0), mid_center_array=None):
+    """
+    Regiter tiles using the hybrid approach. For tiles whose distances to the middle tile is within the
+    specifed range, reslice correlation is used. For tiles beyond this range, the brute force method
+    is used.
+    :param grid:
+    :param shift_grid:
+    :param src_folder:
+    :param rough_shift: estimated y and x shift from motor readout.
+    :param mid_tile: the index of the tile containing the rotation axis.
+    :param center_search_range: range of center search with regards to the middle tile.
+    :param shift_search_range_y: range of offset to search.
+    :param shift_search_range_x:
+    :param rotate: by default, reslicing and brute force algorithm take windows along the vertical midline
+                   of the reconstruction images. If the sample is not lying at the center, the reconstruction
+                   can be rotated before window-taking. The value is in degrees, with positive for counterclockwise
+                   rotation and negative for clockwise rotation.
+    :param data_format:
+    :param refinement_range: the range within which the reslice approach should be used. Different values can
+                             be given for the left and right side of the middle tile.
+    :param mid_center_array:
+    :return:
+    """
 
     try:
         os.mkdir(TEMP_FOLDER_RECON_RESLICE)
@@ -360,7 +384,7 @@ def refine_shift_grid_hybrid(grid, shift_grid, src_folder, rough_shift, mid_tile
 
 
 def refine_pair_shift_brute(current_tile, irow, pair_shift, mid_tile, file_grid, center_grid, fov, rough_shift, center_search_range, neighbor_y,
-                            y_range=(-5, 5, 1), x_range=(-10, 10, 1), tilt_range=(-3, 3, 0.5), prj_shape=None,
+                            y_range=(-5, 5, 1), x_range=(-10, 10, 1), tilt_range=(-3, 3, 0.5), prj_shape=None, rotate=0,
                             data_format='aps_32id'):
 
     try:
@@ -427,6 +451,8 @@ def refine_pair_shift_brute(current_tile, irow, pair_shift, mid_tile, file_grid,
                                    str(irow), str(current_tile),
                                    '{:.1f}_{:.1f}'.format(y_tweak, x_tweak))
             # dxchange.write_tiff(rec, tiffname, dtype='float32', overwrite=True)
+            if rotate != 0:
+                rec = scipy.ndimage.interpolation.rotate(rec, rotate, axes=(1, 2), reshape=False)
             rec = rec[0, window_ymid - fov4:window_ymid + fov4, img_mid - fov4:img_mid + fov4]
             print(window_ymid)
             dxchange.write_tiff(rec, tiffname, dtype='float32', overwrite=True)
@@ -452,7 +478,7 @@ def refine_pair_shift_brute(current_tile, irow, pair_shift, mid_tile, file_grid,
 
 
 def refine_pair_shift_reslice(current_tile, irow, pair_shift, mid_tile, file_grid, center_grid, fov, rough_shift, center_search_range,
-                              src_folder, prj_shape=None, data_format='aps_32id', chunk_size=50):
+                              src_folder, prj_shape=None, rotate=0, data_format='aps_32id', chunk_size=50):
 
     y_est, x_est = rough_shift
     fov2 = int(fov / 2)
@@ -496,7 +522,7 @@ def refine_pair_shift_reslice(current_tile, irow, pair_shift, mid_tile, file_gri
     if np.isnan(this_center):
         print('Center of current tile is not given. Finding center using entropy optimization')
         _write_center(prj, theta, os.path.join(TEMP_FOLDER_SINGLE_TILE_CENTER, str(irow), str(current_tile)),
-                     cen_range=adapted_range, pad_length=pad_length, remove_padding=False)
+                     cen_range=adapted_range, pad_length=pad_length, remove_padding=False, rotate=rotate)
         center_y = img_mid - window_ymid + 1 if current_tile == mid_tile else None
         this_center = minimum_entropy(os.path.join(TEMP_FOLDER_SINGLE_TILE_CENTER, str(irow), str(current_tile)),
                                       window=[[window_ymid - fov4, img_mid - fov4],
@@ -512,7 +538,7 @@ def refine_pair_shift_reslice(current_tile, irow, pair_shift, mid_tile, file_gri
     except:
         pass
 
-    # recalculate window boundaries using found center
+    # recalculate window boundaries using the center found
     img_mid = int((pad_length * 2 + fov) / 2)
     window_ymid = img_mid + this_center - fov2
 
@@ -526,7 +552,7 @@ def refine_pair_shift_reslice(current_tile, irow, pair_shift, mid_tile, file_gri
 
     # do registration if this tile is not the mid-tile
     print('Getting reslice ({}, {}) (this tile)'.format(irow, current_tile))
-    this_section = get_reslice(dirname, slice_x=fov2)
+    this_section = get_reslice(dirname, slice_x=fov2, rotate=rotate)
     dxchange.write_tiff(this_section, os.path.join(dirname, 'reslice_{}_{}'.format(irow, current_tile)), dtype='float32', overwrite=True)
 
     if current_tile != mid_tile:
@@ -537,7 +563,7 @@ def refine_pair_shift_reslice(current_tile, irow, pair_shift, mid_tile, file_gri
             ref_tile = current_tile - 1
             ref_dirname = os.path.join(TEMP_FOLDER_RECON_RESLICE, str(irow), str(ref_tile))
         print('Getting reslice ({}, {}) (ref tile)'.format(irow, ref_tile))
-        ref_section = get_reslice(ref_dirname, slice_x=fov2)
+        ref_section = get_reslice(ref_dirname, slice_x=fov2, rotate=rotate)
 
         n_col = file_grid.shape[1]
         print('Registering this tile ({}, {}) and ref tile ({}, {})'.format(irow, current_tile, irow, ref_tile))
@@ -559,24 +585,81 @@ def refine_pair_shift_reslice(current_tile, irow, pair_shift, mid_tile, file_gri
     return pair_shift, center_grid
 
 
-def refine_tilt(current_tile, irow, mid_tile, file_grid, tilt_range=(-3, 3, 0.5), prj_shape=None, data_format='aps_32id'):
+def refine_tilt(irow, mid_tile, file_grid, src_folder, tilt_range=(-3, 3, 0.5), center=None, center_search_range=None,
+                prj_shape=None, data_format='aps_32id'):
+    """
+    Find the optimal tilt for the mid-tile of the specified row.
+    We assume that the tilt value is applied globally.
+    :param tilt_range: range of tilt search in degree
+    """
 
     if prj_shape is None:
         prj_shape = read_data_adaptive(file_grid[0, 0], data_format=data_format, shape_only=True)
 
+    pad_length = 512
+    fov = prj_shape[-1]
+    fov2 = int(fov / 2)
+    fov4 = int(fov / 4)
+
+    try:
+        _, _, _, theta = read_data_adaptive(file_grid[irow, mid_tile], proj=(0, 1), data_format=data_format)
+    except:
+        theta = tomopy.angles(prj_shape[0])
+
     tilt_ls = np.arange(*tilt_range)
     target_slice = int(prj_shape[1] / 2)
+
+    img_mid = int((pad_length * 2 + fov) / 2)
+    try:
+        window_ymid = img_mid + (center - fov2)
+    except TypeError:
+        window_ymid = img_mid + (np.mean(center_search_range[:2]) - fov2)
+    window_ymid = int(window_ymid)
+    center_y = img_mid - window_ymid + 1
+
+    if center is None:
+
+        adapted_range = map(operator.add, center_search_range, [pad_length, pad_length])
+        prj, flt, drk, theta = read_data_adaptive(os.path.join(src_folder, file_grid[irow, mid_tile]),
+                                                  sino=(target_slice, target_slice + 1),
+                                                  data_format=data_format)
+        prj = tomopy.normalize(prj, flt, drk)
+        prj = preprocess(prj)
+        prj = tomopy.remove_stripe_ti(prj, alpha=4)
+        prj = pad_sinogram(prj, pad_length)
+        _write_center(prj, theta, os.path.join(TEMP_FOLDER_SINGLE_TILE_CENTER, str(irow), str(mid_tile)),
+                      cen_range=adapted_range, pad_length=pad_length, remove_padding=False)
+        center = minimum_entropy(os.path.join(TEMP_FOLDER_SINGLE_TILE_CENTER, str(irow), str(mid_tile)),
+                                      window=[[window_ymid - fov4, img_mid - fov4],
+                                              [window_ymid + fov4, img_mid + fov4]],
+                                      ring_removal=True, center_y=center_y)
+
     for tilt in tilt_ls:
         print('Getting tilted sinogram for tilt angle {}'.format(tilt))
-        sino = get_tilted_sinogram(file_grid[irow, current_tile], target_slice, tilt, preprocess_data=True)
-        try:
-            _, _, _, theta = read_data_adaptive(file_grid[irow, current_tile], proj=(0, 1), data_format=data_format)
-        except:
-            theta = tomopy.angles(sino.shape[0])
-        rec = tomopy.recon(sino, theta, algorithm='gridrec')
-        dxchange.write_tiff(np.squeeze(rec),
-                            os.path.join(TEMP_FOLDER_BRUTE_FORCE_RECON, str(irow), 'tilt', '{:.2f}'.format(tilt)), overwrite=True)
+        sino = get_tilted_sinogram(os.path.join(src_folder, file_grid[irow, mid_tile]),
+                                   target_slice, tilt, preprocess_data=True)
+        sino = pad_sinogram(sino, pad_length)
+        # correct for center change due to rotation
+        this_center = fov2 + (center - fov2) * np.cos(np.deg2rad(tilt))
 
+
+        print(this_center)
+        dxchange.write_tiff(np.squeeze(sino),
+                            os.path.join(TEMP_FOLDER_MID_TILT, str(irow), 'sino'),
+                            overwrite=False, dtype='float32')
+
+
+        rec = tomopy.recon(sino, theta, algorithm='gridrec', center=this_center+pad_length)
+        dxchange.write_tiff(np.squeeze(rec),
+                            os.path.join(TEMP_FOLDER_MID_TILT, str(irow), '{:.2f}'.format(tilt)),
+                            overwrite=True, dtype='float32')
+
+    tilt = minimum_entropy(os.path.join(TEMP_FOLDER_MID_TILT, str(irow)),
+                           window=[[window_ymid - fov4, img_mid - fov4],
+                                   [window_ymid + fov4, img_mid + fov4]],
+                           ring_removal=True, center_y=center_y)
+    print('Best tilt is {} deg.'.format(tilt))
+    return tilt
 
 
 def absolute_shift_grid(pairs_shift, file_grid, mode='vh'):
@@ -834,10 +917,12 @@ def partial_center_alignment(file_grid, shift_grid, center_vec, src_folder, rang
     return
 
 
-def _write_center(tomo, theta, dpath='tmp/center', cen_range=None, pad_length=0, remove_padding=True):
+def _write_center(tomo, theta, dpath='tmp/center', cen_range=None, pad_length=0, remove_padding=True, rotate=0):
 
     for center in np.arange(*cen_range):
         rec = tomopy.recon(tomo[:, 0:1, :], theta, algorithm='gridrec', center=center)
         if not pad_length == 0 and remove_padding:
             rec = rec[:, pad_length:-pad_length, pad_length:-pad_length]
+        if rotate != 0:
+            rec = scipy.ndimage.interpolation.rotate(rec, rotate, axes=(1, 2), reshape=False)
         dxchange.write_tiff(np.squeeze(rec), os.path.join(dpath, '{:.2f}'.format(center-pad_length)), overwrite=True)

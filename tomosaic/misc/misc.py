@@ -65,6 +65,7 @@ import numpy as np
 import dxchange
 import tomopy
 import matplotlib.pyplot as plt
+import scipy.ndimage.interpolation
 
 import re
 import os
@@ -314,7 +315,7 @@ def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', shap
         return dat, flt, drk
 
 
-def get_reslice(recon_folder, chunk_size=50, slice_y=None, slice_x=None):
+def get_reslice(recon_folder, chunk_size=50, slice_y=None, slice_x=None, rotate=0):
 
     filelist = glob.glob(os.path.join(recon_folder, 'recon*.tiff'))
     inds = []
@@ -338,14 +339,19 @@ def get_reslice(recon_folder, chunk_size=50, slice_y=None, slice_x=None):
     chunks.append((chunk_st, sino_end))
 
     a = dxchange.read_tiff_stack(filelist[0], range(chunks[0][0], chunks[0][1]), digit)
+    if rotate != 0:
+        a = scipy.ndimage.interpolation.rotate(a, rotate, axes=(1, 2), reshape=False)
     if slice_y is not None:
         slice = a[:, slice_y, :]
     elif slice_x is not None:
         slice = a[:, ::-1, slice_x]
     else:
         raise ValueError('Either slice_y or slice_x must be specified.')
+
     for (chunk_st, chunk_end) in chunks[1:]:
         a = dxchange.read_tiff_stack(filelist[0], range(chunk_st, chunk_end), digit)
+        if rotate != 0:
+            a = scipy.ndimage.interpolation.rotate(a, rotate, axes=(1, 2), reshape=False)
         if slice_y is not None:
             slice = np.append(slice, a[:, slice_y, :], axis=0)
         elif slice_x is not None:

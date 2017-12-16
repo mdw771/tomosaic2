@@ -555,8 +555,8 @@ def get_tilted_sinogram(fname, target_slice, tilt, preprocess_data=True):
     else:
         dat[np.isnan(dat)] = 0
 
-    tilted_block = rotate(dat, tilt, axes=(0, 2), reshape=False)
-    mid_slice = int(dat.shape[0] / 2)
+    tilted_block = rotate(dat, tilt, axes=(1, 2), reshape=True)
+    mid_slice = int(dat.shape[1] / 2)
 
     return tilted_block[:, mid_slice:mid_slice+1, :]
 
