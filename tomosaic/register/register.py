@@ -591,18 +591,19 @@ def refine_pair_shift_reslice(current_tile, irow, pair_shift, mid_tile, file_gri
 def alignment_pass(img, img_180):
     dxchange.write_tiff(img, 'proj0', dtype='float32', overwrite=True)
     dxchange.write_tiff(img_180, 'proj1', dtype='float32', overwrite=True)
-    raw_input()
     upsample = 200
     # Register the translation correction
-    trans = sk_register(img, img_180, upsample_factor=upsample)
-    trans = trans[0]
+    trans = register_translation(img, img_180, upsample_factor=upsample)
+    # trans = trans[0]
     # Register the rotation correction
     lp_center = (img.shape[0] / 2, img.shape[1] / 2)
-    # lp_center = (0, 0)
-    # img_ft = np.fft.fft2(img)
-    # img_180_ft = np.fft.fft2(img_180)
+    img = realign_image(img, shift=-np.array(trans))
+    dxchange.write_tiff(img, 'proj0_shifted', overwrite=True, dtype='float32')
+
     img_lp = logpolar_fancy(img, *lp_center)
     img_180_lp = logpolar_fancy(img_180, *lp_center)
+    dxchange.write_tiff(img_lp, 'proj0_lp', overwrite=True, dtype='float32')
+    dxchange.write_tiff(img_180_lp, 'proj1_lp', overwrite=True, dtype='float32')
     result = sk_register(img_lp, img_180_lp, upsample_factor=upsample)
     scale_rot = result[0]
     angle = np.degrees(scale_rot[1] / img_lp.shape[1] * 2 * np.pi)
@@ -646,7 +647,7 @@ def transform_image(img, rotation=0, translation=(0, 0)):
     M2 = _transformation_matrix(tx=rot_center[0], ty=rot_center[1])
     M = M2.dot(M1).dot(M0)
     tr = FundamentalMatrixTransform(M)
-    out = warp(img, tr)
+    out = warp(img, tr, mode='wrap')
     return out
 
 
@@ -735,6 +736,7 @@ def refine_tilt_pc(irow, mid_tile, file_grid, src_folder, n_iter=15, data_format
     prj_0 = tomopy.normalize(prj_0, flt, drk)
     prj_0 = preprocess(prj_0, minus_log=True)
     prj_0 = np.squeeze(prj_0)
+
     prj_1, flt, drk = read_data_adaptive(os.path.join(src_folder, file_grid[irow, mid_tile]), proj=(prj_shape[0]-1, prj_shape[0]),
                                          data_format=data_format, return_theta=False)
     prj_1 = tomopy.normalize(prj_1, flt, drk)
@@ -751,6 +753,8 @@ def refine_tilt_pc(irow, mid_tile, file_grid, src_folder, n_iter=15, data_format
     f = open('tilt.txt', 'w')
     f.write(str(rot))
     f.close()
+
+    print('Optimal tilt is {:.2f} deg.'.format(rot))
 
     return rot
 

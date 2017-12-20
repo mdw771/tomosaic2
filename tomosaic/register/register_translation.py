@@ -120,7 +120,7 @@ def _compute_error(cross_correlation_max, src_amp, target_amp):
 
 
 def register_translation(src_image, target_image, rangeX=[None, None], rangeY=[None, None], down=0, upsample_factor=1,
-                         space="real", blur=3):
+                         space="real", blur=3, assert_positiveness=True):
     """
     Efficient subpixel image translation registration by cross-correlation.
 
@@ -276,12 +276,13 @@ def register_translation(src_image, target_image, rangeX=[None, None], rangeY=[N
             shifts[dim] = 0
 
     # We want horizontal shift to be always positive (i.e., only to the right).
-    if not down:
-        if shifts[1] < 0:
-            shifts[1] += float(shape[1])
-    else:
-        if shifts[0] < 0:
-            shifts[0] += float(shape[0])
+    if assert_positiveness:
+        if not down:
+            if shifts[1] < 0:
+                shifts[1] += float(shape[1])
+        else:
+            if shifts[0] < 0:
+                shifts[0] += float(shape[0])
 
     return shifts
 
