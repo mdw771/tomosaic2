@@ -718,6 +718,10 @@ def logpolar_fancy(image, i_0, j_0, p_n=None, t_n=None):
 
 
 def refine_tilt_pc(irow, mid_tile, file_grid, src_folder, n_iter=15, data_format='aps_32id'):
+    """
+    Output angle is the tilt that needs to be applied to the projections to bring it
+    back to be upright. Negative is for clockwise, positive is for anticlockwise.
+    """
 
     prj_shape = read_data_adaptive(os.path.join(src_folder, file_grid[0, 0]), data_format=data_format, shape_only=True)
     try:
@@ -744,6 +748,7 @@ def refine_tilt_pc(irow, mid_tile, file_grid, src_folder, n_iter=15, data_format
     prj_0 = equalize_histogram(prj_0, prj_0.min(), prj_0.max(), n_bin=1000)
     prj_1 = equalize_histogram(prj_1, prj_1.min(), prj_1.max(), n_bin=1000)
     rot, trans = image_corrections(prj_0, prj_1, passes=n_iter)
+    rot /= -2.
 
     f = open('tilt.txt', 'w')
     f.write(str(rot))
