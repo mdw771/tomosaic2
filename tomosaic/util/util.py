@@ -440,13 +440,14 @@ def hdf5_retrieve_phase(src_folder, src_fname, dest_folder, dest_fname, method='
     return
 
 
-def preprocess(dat, blur=None, normalize_bg=False):
+def preprocess(dat, blur=None, normalize_bg=False, minus_log=True):
 
     dat[np.abs(dat) < 2e-3] = 2e-3
     dat[dat > 1] = 1
     if normalize_bg:
         dat = tomopy.normalize_bg(dat)
-    dat = -np.log(dat)
+    if minus_log:
+        dat = -np.log(dat)
     dat[np.where(np.isnan(dat) == True)] = 0
     if blur is not None:
         dat = gaussian_filter(dat, blur)

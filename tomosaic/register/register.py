@@ -91,7 +91,8 @@ __all__ = ['cross_correlation_bf',
            'cross_correlation_pcm',
            'refine_shift_grid',
            'refine_shift_grid_hybrid',
-           'refine_tilt',
+           'refine_tilt_pc',
+           'refine_tilt_bf',
            'absolute_shift_grid']
 
 try:
@@ -588,6 +589,9 @@ def refine_pair_shift_reslice(current_tile, irow, pair_shift, mid_tile, file_gri
 
 
 def alignment_pass(img, img_180):
+    dxchange.write_tiff(img, 'proj0', dtype='float32', overwrite=True)
+    dxchange.write_tiff(img_180, 'proj1', dtype='float32', overwrite=True)
+    raw_input()
     upsample = 200
     # Register the translation correction
     trans = sk_register(img, img_180, upsample_factor=upsample)
@@ -595,13 +599,14 @@ def alignment_pass(img, img_180):
     # Register the rotation correction
     lp_center = (img.shape[0] / 2, img.shape[1] / 2)
     # lp_center = (0, 0)
-    img_ft = np.fft.fft2(img)
-    img_180_ft = np.fft.fft2(img_180)
+    # img_ft = np.fft.fft2(img)
+    # img_180_ft = np.fft.fft2(img_180)
     img_lp = logpolar_fancy(img, *lp_center)
     img_180_lp = logpolar_fancy(img_180, *lp_center)
     result = sk_register(img_lp, img_180_lp, upsample_factor=upsample)
     scale_rot = result[0]
     angle = np.degrees(scale_rot[1] / img_lp.shape[1] * 2 * np.pi)
+    print(angle, trans)
     return angle, trans
 
 
@@ -728,12 +733,19 @@ def refine_tilt_pc(irow, mid_tile, file_grid, src_folder, n_iter=15, data_format
     prj_0, flt, drk = read_data_adaptive(os.path.join(src_folder, file_grid[irow, mid_tile]), proj=(0, 1),
                                          data_format=data_format, return_theta=False)
     prj_0 = tomopy.normalize(prj_0, flt, drk)
-    prj_0 = preprocess(prj_0)
+    prj_0 = preprocess(prj_0, minus_log=True)
+    prj_0 = np.squeeze(prj_0)
     prj_1, flt, drk = read_data_adaptive(os.path.join(src_folder, file_grid[irow, mid_tile]), proj=(prj_shape[0]-1, prj_shape[0]),
                                          data_format=data_format, return_theta=False)
     prj_1 = tomopy.normalize(prj_1, flt, drk)
-    prj_1 = preprocess(prj_1)
+    prj_1 = preprocess(prj_1, minus_log=True)
+    prj_1 = np.squeeze(prj_1)
 
+    prj_0 = (prj_0 - prj_0.min()) / (prj_0.max() - prj_0.min())
+    prj_1 = (prj_1 - prj_1.min()) / (prj_1.max() - prj_1.min())
+
+    prj_0 = equalize_histogram(prj_0, prj_0.min(), prj_0.max(), n_bin=1000)
+    prj_1 = equalize_histogram(prj_1, prj_1.min(), prj_1.max(), n_bin=1000)
     rot, trans = image_corrections(prj_0, prj_1, passes=n_iter)
 
     f = open('tilt.txt', 'w')
