@@ -66,6 +66,8 @@ from pyfftw.interfaces.numpy_fft import fft2, ifft2
 import tomopy
 from scipy import ndimage
 import scipy.ndimage.interpolation
+from skimage.feature import register_translation as sk_register
+from skimage.transform import AffineTransform, warp, FundamentalMatrixTransform
 import dxchange
 import h5py
 try:
@@ -585,7 +587,163 @@ def refine_pair_shift_reslice(current_tile, irow, pair_shift, mid_tile, file_gri
     return pair_shift, center_grid
 
 
-def refine_tilt(irow, mid_tile, file_grid, src_folder, tilt_range=(-3, 3, 0.5), center=None, center_search_range=None,
+def alignment_pass(img, img_180):
+    upsample = 200
+    # Register the translation correction
+    trans = sk_register(img, img_180, upsample_factor=upsample)
+    trans = trans[0]
+    # Register the rotation correction
+    lp_center = (img.shape[0] / 2, img.shape[1] / 2)
+    # lp_center = (0, 0)
+    img_ft = np.fft.fft2(img)
+    img_180_ft = np.fft.fft2(img_180)
+    img_lp = logpolar_fancy(img, *lp_center)
+    img_180_lp = logpolar_fancy(img_180, *lp_center)
+    result = sk_register(img_lp, img_180_lp, upsample_factor=upsample)
+    scale_rot = result[0]
+    angle = np.degrees(scale_rot[1] / img_lp.shape[1] * 2 * np.pi)
+    return angle, trans
+
+
+def _transformation_matrix(r=0, tx=0, ty=0, sx=1, sy=1):
+    # Prepare the matrix
+    ihat = [sx * np.cos(r), sx * np.sin(r), 0]
+    jhat = [-sy * np.sin(r), sy * np.cos(r), 0]
+    khat = [tx, ty, 1]
+    # Make the eigenvectors into column vectored matrix
+    new_transform = np.array([ihat, jhat, khat]).swapaxes(0, 1)
+    return new_transform
+
+
+def transform_image(img, rotation=0, translation=(0, 0)):
+    """Take a set of transformations and apply them to the image.
+
+    Rotations occur around the center of the image, rather than the
+    (0, 0).
+
+    Parameters
+    ----------
+    translation : 2-tuple, optional
+      Translation parameters in (vert, horiz) order.
+    rotation : float, optional
+      Rotation in degrees.
+    scale : 2-tuple, optional
+      Scaling parameters in (vert, horiz) order.
+
+    """
+    rot_center = (img.shape[1] / 2, img.shape[0] / 2)
+    xy_trans = (translation[1], translation[0])
+    # move center to [0, 0]
+    M0 = _transformation_matrix(tx=-rot_center[0], ty=-rot_center[1])
+    # rotate about [0, 0] and translate
+    M1 = _transformation_matrix(r=np.radians(rotation), tx=xy_trans[0], ty=xy_trans[1])
+    # move center back
+    M2 = _transformation_matrix(tx=rot_center[0], ty=rot_center[1])
+    M = M2.dot(M1).dot(M0)
+    tr = FundamentalMatrixTransform(M)
+    out = warp(img, tr)
+    return out
+
+
+def image_corrections(img, img_180, passes=15):
+    img = np.flip(img, 1)
+    cume_angle = 0
+    cume_trans = np.array([0, 0], dtype=float)
+    for pass_ in range(passes):
+        # Prepare the inter-translated images
+        working_img = transform_image(img, translation=cume_trans, rotation=cume_angle)
+        # Calculate a new transformation
+        angle, trans = alignment_pass(working_img, img_180)
+        # Save the cumulative transformations
+        cume_angle += angle
+        cume_trans += np.array(trans)
+    # Convert translations to (x, y)
+    cume_trans = (-cume_trans[1], cume_trans[0])
+    return cume_angle, cume_trans
+
+
+_transforms = {}
+
+
+def _get_transform(i_0, j_0, i_n, j_n, p_n, t_n, p_s, t_s):
+    transform = _transforms.get((i_0, j_0, i_n, j_n, p_n, t_n))
+    if transform == None:
+        i_k = []
+        j_k = []
+        p_k = []
+        t_k = []
+        # get mapping relation between log-polar coordinates and cartesian coordinates
+        for p in range(0, p_n):
+            p_exp = np.exp(p * p_s)
+            for t in range(0, t_n):
+                t_rad = t * t_s
+                i = int(i_0 + p_exp * np.sin(t_rad))
+                j = int(j_0 + p_exp * np.cos(t_rad))
+                if 0 <= i < i_n and 0 <= j < j_n:
+                    i_k.append(i)
+                    j_k.append(j)
+                    p_k.append(p)
+                    t_k.append(t)
+        transform = ((np.array(p_k), np.array(t_k)), (np.array(i_k), np.array(j_k)))
+        _transforms[i_0, j_0, i_n, j_n, p_n, t_n] = transform
+    return transform
+
+
+def logpolar_fancy(image, i_0, j_0, p_n=None, t_n=None):
+    (i_n, j_n) = image.shape[:2]
+
+    i_c = max(i_0, i_n - i_0)
+    j_c = max(j_0, j_n - j_0)
+    d_c = (i_c ** 2 + j_c ** 2) ** 0.5
+
+    # how many pixels along axis of radial distance
+    if p_n == None:
+        p_n = int(np.ceil(d_c))
+
+    # how many pixels along axis of rotation angle
+    if t_n == None:
+        t_n = j_n
+
+    # step size
+    p_s = np.log(d_c) / p_n
+    t_s = 2.0 * np.pi / t_n
+
+    (pt, ij) = _get_transform(i_0, j_0, i_n, j_n, p_n, t_n, p_s, t_s)
+
+    transformed = np.zeros((p_n, t_n) + image.shape[2:], dtype=image.dtype)
+
+    transformed[pt] = image[ij]
+    return transformed
+
+
+def refine_tilt_pc(irow, mid_tile, file_grid, src_folder, n_iter=15, data_format='aps_32id'):
+
+    prj_shape = read_data_adaptive(os.path.join(src_folder, file_grid[0, 0]), data_format=data_format, shape_only=True)
+    try:
+        _, _, _, theta = read_data_adaptive(os.path.join(src_folder, file_grid[irow, mid_tile]),
+                                            proj=(0, 1), data_format=data_format)
+    except:
+        theta = tomopy.angles(prj_shape[0])
+
+    prj_0, flt, drk = read_data_adaptive(os.path.join(src_folder, file_grid[irow, mid_tile]), proj=(0, 1),
+                                         data_format=data_format, return_theta=False)
+    prj_0 = tomopy.normalize(prj_0, flt, drk)
+    prj_0 = preprocess(prj_0)
+    prj_1, flt, drk = read_data_adaptive(os.path.join(src_folder, file_grid[irow, mid_tile]), proj=(prj_shape[0]-1, prj_shape[0]),
+                                         data_format=data_format, return_theta=False)
+    prj_1 = tomopy.normalize(prj_1, flt, drk)
+    prj_1 = preprocess(prj_1)
+
+    rot, trans = image_corrections(prj_0, prj_1, passes=n_iter)
+
+    f = open('tilt.txt', 'w')
+    f.write(str(rot))
+    f.close()
+
+    return rot
+
+
+def refine_tilt_bf(irow, mid_tile, file_grid, src_folder, tilt_range=(-3, 3, 0.5), center=None, center_search_range=None,
                 prj_shape=None, data_format='aps_32id'):
     """
     Find the optimal tilt for the mid-tile of the specified row.
@@ -594,7 +752,7 @@ def refine_tilt(irow, mid_tile, file_grid, src_folder, tilt_range=(-3, 3, 0.5), 
     """
 
     if prj_shape is None:
-        prj_shape = read_data_adaptive(file_grid[0, 0], data_format=data_format, shape_only=True)
+        prj_shape = read_data_adaptive(os.path.join(src_folder, file_grid[0, 0]), data_format=data_format, shape_only=True)
 
     pad_length = 512
     fov = prj_shape[-1]
@@ -602,7 +760,7 @@ def refine_tilt(irow, mid_tile, file_grid, src_folder, tilt_range=(-3, 3, 0.5), 
     fov4 = int(fov / 4)
 
     try:
-        _, _, _, theta = read_data_adaptive(file_grid[irow, mid_tile], proj=(0, 1), data_format=data_format)
+        _, _, _, theta = read_data_adaptive(os.path.join(src_folder, file_grid[irow, mid_tile]), proj=(0, 1), data_format=data_format)
     except:
         theta = tomopy.angles(prj_shape[0])
 

@@ -134,7 +134,7 @@ def get_files(folder, prefix, type='.h5', strict_matching=True):
     return file_list
 
 
-def get_index(file_list, pattern=0):
+def get_index(file_list, pattern=1):
     '''
     Get tile indices.
     :param file_list: list of files.
