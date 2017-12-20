@@ -589,8 +589,6 @@ def refine_pair_shift_reslice(current_tile, irow, pair_shift, mid_tile, file_gri
 
 
 def alignment_pass(img, img_180):
-    dxchange.write_tiff(img, 'proj0', dtype='float32', overwrite=True)
-    dxchange.write_tiff(img_180, 'proj1', dtype='float32', overwrite=True)
     upsample = 200
     # Register the translation correction
     trans = register_translation(img, img_180, upsample_factor=upsample)
@@ -602,12 +600,9 @@ def alignment_pass(img, img_180):
 
     img_lp = logpolar_fancy(img, *lp_center)
     img_180_lp = logpolar_fancy(img_180, *lp_center)
-    dxchange.write_tiff(img_lp, 'proj0_lp', overwrite=True, dtype='float32')
-    dxchange.write_tiff(img_180_lp, 'proj1_lp', overwrite=True, dtype='float32')
     result = sk_register(img_lp, img_180_lp, upsample_factor=upsample)
     scale_rot = result[0]
     angle = np.degrees(scale_rot[1] / img_lp.shape[1] * 2 * np.pi)
-    print(angle, trans)
     return angle, trans
 
 
