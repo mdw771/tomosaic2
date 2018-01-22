@@ -113,7 +113,9 @@ def arrange_image(img1, img2, shift, order=1, trim=True):
         temp[:, :] = img2[:temp.shape[0], :temp.shape[1]]
         img2 = np.copy(temp)
         temp = 0
-    new_shape = map(int, map(max, map(operator.add, img2.shape, rough_shift), img1.shape))
+    new_shape = np.array(img2.shape) + np.array(rough_shift)
+    new_shape = np.max(np.array([new_shape, img1.shape]), axis=0).astype('int')
+    # new_shape = map(int, map(max, map(operator.add, img2.shape, rough_shift), img1.shape))
     newimg = np.empty(new_shape)
     newimg[:, :] = np.NaN
     if order == 1:

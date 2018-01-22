@@ -465,7 +465,7 @@ def refine_pair_shift_brute(current_tile, irow, pair_shift, mid_tile, file_grid,
                                 # window=[[window_ymid - fov4, img_mid - fov4],
                                 #         [window_ymid + fov4, img_mid + fov4]],
                                 ring_removal=False, return_filename=True)
-    y_shift, x_shift = map(float, re.findall('\d+', opt_shift)[:2])
+    y_shift, x_shift = np.array(re.findall('\d+', opt_shift), dtype='float')[:2]
     x_shift += x_est
     print(y_shift, x_shift)
 
@@ -509,7 +509,7 @@ def refine_pair_shift_reslice(current_tile, irow, pair_shift, mid_tile, file_gri
     prj = tomopy.remove_stripe_ti(prj, alpha=4)
     prj = pad_sinogram(prj, pad_length)
     extra_term = pad_length + (mid_tile - current_tile) * x_est
-    adapted_range = map(operator.add, center_search_range, [extra_term, extra_term])
+    adapted_range = np.array(center_search_range) + np.array([extra_term, extra_term])
 
     # find a window in the ring-section of the final reconstruction
     img_mid = int((pad_length * 2 + fov) / 2)
@@ -793,7 +793,7 @@ def refine_tilt_bf(irow, mid_tile, file_grid, src_folder, tilt_range=(-3, 3, 0.5
 
     if center is None:
 
-        adapted_range = map(operator.add, center_search_range, [pad_length, pad_length])
+        adapted_range = np.array(center_search_range) + np.array([pad_length, pad_length])
         prj, flt, drk, theta = read_data_adaptive(os.path.join(src_folder, file_grid[irow, mid_tile]),
                                                   sino=(target_slice, target_slice + 1),
                                                   data_format=data_format)
@@ -945,7 +945,7 @@ def cross_correlation_bf(img1, img2, rangeX=None, rangeY=None):
     ndarray
         shift array.
     """
-    new_x, new_y = map(max, img2.shape, img1.shape)
+    new_x, new_y = np.max(np.array([img2.shape, img1.shape]), axis=0)
     new_shape = [new_y, new_x]
     if rangeX is None:
         rangeX = [0, new_x]
@@ -990,7 +990,7 @@ def cross_correlation_pcm(img1, img2, rangeX=None, rangeY=None, blur=3, down=0):
     ndarray
         shift array.
     """
-    new_size = shift_bit_length(max(map(max, img2.shape, img1.shape)))
+    new_size = shift_bit_length(max(np.max(np.array([img2.shape, img1.shape]), axis=0)))
     new_shape = [new_size, new_size]
     ##
     if rangeX is None:
