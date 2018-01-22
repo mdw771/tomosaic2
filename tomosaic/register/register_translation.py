@@ -194,13 +194,13 @@ def register_translation(src_image, target_image, rangeX=[None, None], rangeY=[N
                          "and \"fourier\" values for the ``space`` argument.")
 
     # Crop the image size to power of 2 if rangeX and rangeY are not specified
-    new_size = shift_bit_length(max(map(max, target_image.shape, src_image.shape)))
+    new_size = shift_bit_length(np.max(np.array([target_image.shape, src_image.shape])))
     if rangeX[0] is None:
         rangeX = [0, new_size]
     if rangeY[0] is None:
         rangeY = [0, new_size]
-    rangeX = map(int, rangeX)
-    rangeY = map(int, rangeY)
+    rangeX = np.array(rangeX, dtype='int')
+    rangeY = np.array(rangeY, dtype='int')
 
     # # rotation and scale
     # f0, log_base = logpolar(src_image)
