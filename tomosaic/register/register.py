@@ -176,7 +176,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
                                             histogram_equalization=histogram_equalization)
             # if the computed shift drifts out of the mask, use motor readout instead
             if right_vec[0] <= rangeY[0] or right_vec[0] >= rangeY[1]:
-                right_vec[0] = motor_readout[0]
+                right_vec[0] = 0
             if right_vec[1] <= rangeX[0] or right_vec[1] >= rangeX[1]:
                 right_vec[1] = motor_readout[1]
             pairs_shift[line, 2:4] = right_vec
@@ -198,7 +198,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
             if right_vec[0] <= rangeY[0] or right_vec[0] >= rangeY[1]:
                 right_vec[0] = motor_readout[0]
             if right_vec[1] <= rangeX[0] or right_vec[1] >= rangeX[1]:
-                right_vec[1] = motor_readout[1]
+                right_vec[1] = 0
             pairs_shift[line, 4:6] = right_vec
 
     comm.Barrier()

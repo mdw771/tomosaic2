@@ -235,14 +235,14 @@ def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', shap
     dxver = dxchange.__version__
     m = re.search(r'(\d+)\.(\d+)\.(\d+)', dxver)
     ver = m.group(1, 2, 3)
-    ver = map(int, ver)
+    ver = np.array(ver).astype('int')
     if proj is not None:
         proj_step = 1 if len(proj) == 2 else proj[2]
     if sino is not None:
         sino_step = 1 if len(sino) == 2 else sino[2]
     if data_format == 'aps_32id':
         if shape_only:
-            f = h5py.File(fname)
+            f = h5py.File(fname, 'r')
             d = f['exchange/data']
             return d.shape
         try:
@@ -250,7 +250,7 @@ def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', shap
                 dat, flt, drk, theta = dxchange.read_aps_32id(fname, proj=proj, sino=sino)
             else:
                 dat, flt, drk = dxchange.read_aps_32id(fname, proj=proj, sino=sino)
-                f = h5py.File(fname)
+                f = h5py.File(fname, 'r')
                 theta = f['exchange/theta'].value
                 if abs(theta[-1] - theta[0]) > 170:
                     theta = theta / 180 * np.pi
@@ -259,7 +259,7 @@ def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', shap
                 else:
                     print('Angle data already in radian.')
         except:
-            f = h5py.File(fname)
+            f = h5py.File(fname, 'r')
             d = f['exchange/data']
             try:
                 theta = f['exchange/theta'].value
