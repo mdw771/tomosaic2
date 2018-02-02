@@ -61,6 +61,7 @@ import shutil
 import os
 import time
 import six
+import sys
 try:
     from mpi4py import MPI
 except:
@@ -212,6 +213,7 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
     for frame in alloc_set[rank]:
         print('alloc set {:d}'.format(rank))
         print('    Rank: {:d}; current frame: {:d}..'.format(rank, frame))
+        sys.stdout.flush()
         t00 = time.time()
         pano = np.zeros((full_height, full_width), dtype=dtype)
         # save_stdout = sys.stdout
@@ -223,7 +225,9 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
         pano[:temp.shape[0], :temp.shape[1]] = temp.astype(dtype)
         dset_data[frame, :, :] = pano
         print('    Frame {:d} done in {:.3f} s.'.format(frame, time.time() - t00))
+        sys.stdout.flush()
     print('Data built and written in {:.3f} s.'.format(time.time() - t0))
+    sys.stdout.flush()
     # try:
     #     os.remove('trash')
     # except:
