@@ -201,12 +201,11 @@ def file2grid(file_name):
 
     with open(file_name, 'r') as infile:
         grid0 = np.loadtxt(file_name)
-        grid_shape = [grid0[-1, 0] + 1, grid0[-1, 1] + 1]
-        grid_shape = map(int, grid_shape)
+        grid_shape = [int(grid0[-1, 0]) + 1, int(grid0[-1, 1]) + 1]
         ncol = len(grid0[0, :]) - 2
         grid = np.zeros([grid_shape[0], grid_shape[1], ncol])
         for line in grid0:
-            y, x = map(int, (line[0], line[1]))
+            y, x = (int(line[0]), int(line[1]))
             grid[y, x, :] = line[2:]
     return grid
 

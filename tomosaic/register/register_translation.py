@@ -17,6 +17,7 @@ except ImportError:
 
 # pad zeros to the right of 1 as binary (e.g.: 1 << x, x = 3, 1 -> 1000(bin) -> 8) equv: return 2 ** x
 def shift_bit_length(x):
+    x = int(x)
     return 1 << (x - 1).bit_length()  # equv: return 2 ** ((x - 1).bit_length())
 
 

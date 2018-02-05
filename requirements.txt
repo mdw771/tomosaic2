@@ -2,3 +2,4 @@ sphinxcontrib-bibtex
 numpy
 dxchange
 tomopy
+hdf5=1.8.18
