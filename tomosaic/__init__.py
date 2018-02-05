@@ -58,6 +58,7 @@ from tomosaic.util import *
 # from tomosaic.gui import *
 from tomosaic.center import *
 from tomosaic.build import *
+from tomosaic.misc import *
 
 logging.basicConfig()
 
