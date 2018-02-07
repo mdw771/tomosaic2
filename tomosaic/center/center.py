@@ -333,7 +333,7 @@ def find_center_merged(fname, shift_grid, row_range, search_range, search_step=1
     else:
         theta = tomopy.angles(full_shape[0])
     for row in sets[rank]:
-        print('Rank {}: starting row {}.'.format(rank, row))
+        internal_print('Rank {}: starting row {}.'.format(rank, row))
         t0 = time.time()
         sino = int(slice + shift_grid[row, 0, 0])
         sino = f['exchange/data'][:, sino:sino+1, :]
@@ -343,27 +343,27 @@ def find_center_merged(fname, shift_grid, row_range, search_range, search_step=1
             if method == 'entropy':
                 center = minimum_entropy(os.path.join('center', str(row)), reliability_screening=True)
                 if center is None:
-                    print('Entropy result did not pass reliability screening. Switching to CNN...')
+                    internal_print('Entropy result did not pass reliability screening. Switching to CNN...')
                     rad = int(sino.shape[-1] * 0.3)
                     rec_mid = int(sino.shape[-1] / 2)
                     center = search_in_folder_dnn(os.path.join('center', str(row)),
                                                   window=((rec_mid-rad, rec_mid-rad), (rec_mid+rad, rec_mid+rad)))
-                print('For {} center is {}. ({} s)'.format(row, center, time.time() - t0))
+                internal_print('For {} center is {}. ({} s)'.format(row, center, time.time() - t0))
                 log.write('{} {}\n'.format(row, center))
         elif method == 'vo':
             mid = sino.shape[2] / 2
             smin = (center_st - mid) * 2
             smax = (center_end - mid) * 2
             center = find_center_vo(sino, smin=smin, smax=smax, step=search_step)
-            print('For {} center is {}. ({} s)'.format(row, center, time.time() - t0))
+            internal_print('For {} center is {}. ({} s)'.format(row, center, time.time() - t0))
             log.write('{} {}\n'.format(row, center))
         elif method == 'dnn':
             center = find_center_dnn(sino, theta, search_range=(center_st, center_end, search_step),
                                      outpath=os.path.join('center', str(row)), window=window)
-            print('For {} center is {}. ({} s)'.format(row, center, time.time() - t0))
+            internal_print('For {} center is {}. ({} s)'.format(row, center, time.time() - t0))
             log.write('{} {}\n'.format(row, center))
     log.close()
-    print('Total time: {} s.'.format(time.time() - t00))
+    internal_print('Total time: {} s.'.format(time.time() - t00))
 
 
 def find_center_discrete(source_folder, file_grid, shift_grid, row_range, search_range, search_step=1, slice=600,
@@ -381,7 +381,7 @@ def find_center_discrete(source_folder, file_grid, shift_grid, row_range, search
     else:
         theta = tomopy.angles(full_shape[0])
     for row in sets[rank]:
-        print('Row {}'.format(row))
+        internal_print('Row {}'.format(row))
         t0 = time.time()
         slice = int(shift_grid[row, 0, 0] + slice)
         # create sinogram
@@ -401,22 +401,22 @@ def find_center_discrete(source_folder, file_grid, shift_grid, row_range, search
             if method == 'entropy':
                 center = minimum_entropy(os.path.join('center', str(row)), reliability_screening=True)
                 if center is None:
-                    print('Entropy result did not pass reliability screening. Switching to CNN...')
+                    internal_print('Entropy result did not pass reliability screening. Switching to CNN...')
                     rad = int(sino.shape[-1] * 0.3)
                     rec_mid = int(sino.shape[-1] / 2)
                     center = search_in_folder_dnn(os.path.join('center', str(row)),
                                                   window=((rec_mid-rad, rec_mid-rad), (rec_mid+rad, rec_mid+rad)))
-                print('For {} center is {}. ({} s)'.format(row, center, time.time() - t0))
+                internal_print('For {} center is {}. ({} s)'.format(row, center, time.time() - t0))
                 log.write('{} {}\n'.format(row, center))
         elif method == 'vo':
             mid = sino.shape[2] / 2
             smin = (center_st - mid) * 2
             smax = (center_end - mid) * 2
             center = find_center_vo(sino, smin=smin, smax=smax, step=search_step)
-            print('For {} center is {}. ({} s)'.format(row, center, time.time() - t0))
+            internal_print('For {} center is {}. ({} s)'.format(row, center, time.time() - t0))
             log.write('{} {}\n'.format(row, center))
     log.close()
-    print('Total time: {} s.'.format(time.time() - t00))
+    internal_print('Total time: {} s.'.format(time.time() - t00))
 
 
 def find_center_single(sino_name, search_range, search_step=1, preprocess_single=False, method='entropy',
@@ -437,7 +437,7 @@ def find_center_single(sino_name, search_range, search_step=1, preprocess_single
         smin = (center_st - mid) * 2
         smax = (center_end - mid) * 2
         center = find_center_vo(sino, smin=smin, smax=smax, step=search_step)
-        print('Center is {}.'.format(center))
+        internal_print('Center is {}.'.format(center))
         log.write('{}\n'.format(center))
         log.close()
 

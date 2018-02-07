@@ -134,10 +134,10 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
 
     for line in sets[rank]:
         if (grid[pairs[line, 0]] == None):
-            print ("Block Inexistent")
+            internal_print("Block Inexistent")
             continue
         main_pos = pairs[line, 0]
-        print('Line {} ({})'.format(line, main_pos))
+        internal_print('Line {} ({})'.format(line, main_pos))
         main_shape = read_data_adaptive(grid[main_pos], shape_only=True)
         right_pos = pairs[line, 1]
         if (right_pos != None):
@@ -150,7 +150,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
         else:
             bottom_shape = [0,0,0]
         size_max = max(main_shape[0],right_shape[0],bottom_shape[0])
-        print('    Reading data...')
+        internal_print('    Reading data...')
         prj, flt, drk = read_data_adaptive(grid[main_pos], proj=(0, size_max, step), data_format=data_format, return_theta=False)
         prj = tomopy.normalize(prj, flt, drk)
         prj[np.abs(prj) < 2e-3] = 2e-3
@@ -171,7 +171,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
             shift_ini = shift_grid[right_pos] - shift_grid[main_pos]
             rangeX = shift_ini[1] + x_mask
             rangeY = shift_ini[0] + y_mask
-            print('    Calculating shift: {}'.format(right_pos))
+            internal_print('    Calculating shift: {}'.format(right_pos))
             right_vec = create_stitch_shift(main_prj, right_prj, rangeX, rangeY, down=0, upsample=upsample,
                                             histogram_equalization=histogram_equalization)
             # if the computed shift drifts out of the mask, use motor readout instead
@@ -192,7 +192,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
             shift_ini = shift_grid[bottom_pos] - shift_grid[main_pos]
             rangeX = shift_ini[1] + x_mask
             rangeY = shift_ini[0] + y_mask
-            print('    Calculating shift: {}'.format(bottom_pos))
+            internal_print('    Calculating shift: {}'.format(bottom_pos))
             right_vec = create_stitch_shift(main_prj, bottom_prj, rangeX, rangeY, down=1, upsample=upsample,
                                             histogram_equalization=histogram_equalization)
             if right_vec[0] <= rangeY[0] or right_vec[0] >= rangeY[1]:
@@ -206,7 +206,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
     if rank != 0:
         comm.send(pairs_shift, dest=0)
     else:
-        print('Combining grids from other ranks...')
+        internal_print('Combining grids from other ranks...')
         for src in range(1, size):
             temp = comm.recv(source=src)
             pairs_shift = pairs_shift + temp
@@ -214,11 +214,11 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
     os.chdir(root)
     if rank == 0:
         try:
-            print(pairs_shift)
+            internal_print(pairs_shift)
             np.savetxt(os.path.join(dest_folder, 'shifts.txt'), pairs_shift, fmt=str('%4.2f'))
         except:
-            print('Warning: failed to save files. Please save pair shifts as shifts.txt manually:')
-            print(pairs_shift)
+            internal_print('Warning: failed to save files. Please save pair shifts as shifts.txt manually:')
+            internal_print(pairs_shift)
     return pairs_shift
 
 
@@ -315,7 +315,7 @@ def refine_shift_grid_hybrid(grid, shift_grid, src_folder, rough_shift, mid_tile
         center_grid = np.loadtxt('center_grid.txt')
         if center_grid.ndim == 1:
             center_grid = center_grid.reshape(grid.shape)
-        print(center_grid)
+        internal_print(center_grid)
     except:
         center_grid = np.zeros_like(grid, dtype='float')
         center_grid[...] = np.nan
@@ -331,12 +331,12 @@ def refine_shift_grid_hybrid(grid, shift_grid, src_folder, rough_shift, mid_tile
         for icol in tile_list:
             side = 0 if icol < mid_tile else 1
             if abs(icol - mid_tile) <= refinement_range[side]:
-                print('Tile ({}, {}) refining using reslicing'.format(irow, icol))
+                internal_print('Tile ({}, {}) refining using reslicing'.format(irow, icol))
                 pairs_shift, center_grid = refine_pair_shift_reslice(icol, irow, pairs_shift, mid_tile, grid, center_grid, fov, rough_shift,
                                                                      center_search_range, src_folder, prj_shape=prj_shape, data_format=data_format,
                                                                      chunk_size=50)
             else:
-                print('Tile ({}, {}) refining using brute-force'.format(irow, icol))
+                internal_print('Tile ({}, {}) refining using brute-force'.format(irow, icol))
                 if icol < mid_tile:
                     neightbor_y = edge_y + np.round(
                         np.sum(pairs_shift[grid.shape[1] * irow:grid.shape[1] * irow + ncol, 2], axis=0))
@@ -350,7 +350,7 @@ def refine_shift_grid_hybrid(grid, shift_grid, src_folder, rough_shift, mid_tile
                                                                    prj_shape=prj_shape, data_format=data_format)
 
             # save a sinogram
-            print(pairs_shift)
+            internal_print(pairs_shift)
             if icol == mid_tile:
                 dat, flt, drk = read_data_adaptive(grid[irow, icol], sino=(edge_y, edge_y+1), return_theta=False)
                 dat = tomopy.normalize(dat, flt, drk)
@@ -425,7 +425,7 @@ def refine_pair_shift_brute(current_tile, irow, pair_shift, mid_tile, file_grid,
                 new_sino = blend(np.squeeze(add_sino), np.squeeze(base_sino), [0, shift_x], method='pyramid')
             else:
                 shift_x = x_est + x_tweak
-                print(shift_x, add_sino.shape, base_sino.shape)
+                internal_print(shift_x, add_sino.shape, base_sino.shape)
                 new_sino = blend(np.squeeze(base_sino), np.squeeze(add_sino), [0, shift_x + base_sino.shape[-1] - prj_shape[-1]], method='pyramid')
             new_sino = pad_sinogram(new_sino, pad_length)
 
@@ -457,7 +457,7 @@ def refine_pair_shift_brute(current_tile, irow, pair_shift, mid_tile, file_grid,
             if rotate != 0:
                 rec = scipy.ndimage.interpolation.rotate(rec, rotate, axes=(1, 2), reshape=False)
             rec = rec[0, window_ymid - fov4:window_ymid + fov4, img_mid - fov4:img_mid + fov4]
-            print(window_ymid)
+            internal_print(window_ymid)
             dxchange.write_tiff(rec, tiffname, dtype='float32', overwrite=True)
 
 
@@ -467,7 +467,7 @@ def refine_pair_shift_brute(current_tile, irow, pair_shift, mid_tile, file_grid,
                                 ring_removal=False, return_filename=True)
     y_shift, x_shift = np.array(re.findall('\d+', opt_shift), dtype='float')[:2]
     x_shift += x_est
-    print(y_shift, x_shift)
+    internal_print(y_shift, x_shift)
 
     # modify pair shift grid
     if current_tile < mid_tile:
@@ -523,7 +523,7 @@ def refine_pair_shift_reslice(current_tile, irow, pair_shift, mid_tile, file_gri
 
     # find center for this tile if not given
     if np.isnan(this_center):
-        print('Center of current tile is not given. Finding center using entropy optimization')
+        internal_print('Center of current tile is not given. Finding center using entropy optimization')
         _write_center(prj, theta, os.path.join(TEMP_FOLDER_SINGLE_TILE_CENTER, str(irow), str(current_tile)),
                      cen_range=adapted_range, pad_length=pad_length, remove_padding=False, rotate=rotate)
         center_y = img_mid - window_ymid + 1 if current_tile == mid_tile else None
@@ -532,7 +532,7 @@ def refine_pair_shift_reslice(current_tile, irow, pair_shift, mid_tile, file_gri
                                               [window_ymid + fov4, img_mid + fov4]],
                                       ring_removal=True, center_y=center_y)
         center_grid[irow, current_tile] = this_center
-        print(str(this_center) + '({})'.format(this_center))
+        internal_print(str(this_center) + '({})'.format(this_center))
         np.savetxt('center_grid.txt', center_grid, fmt=str('%4.2f'))
 
     dirname = os.path.join(TEMP_FOLDER_RECON_RESLICE, str(irow), str(current_tile))
@@ -548,13 +548,13 @@ def refine_pair_shift_reslice(current_tile, irow, pair_shift, mid_tile, file_gri
     # do full reconstruction
     temp = glob.glob(os.path.join(dirname, '*.tiff'))
     if len(temp) == 0:
-        print('Full reconstruction ({}, {})'.format(irow, current_tile))
+        internal_print('Full reconstruction ({}, {})'.format(irow, current_tile))
         _recon_single(file_grid[irow, current_tile], this_center, dirname, pad_length=pad_length, ring_removal=True,
                       crop=[[window_ymid-fov2, img_mid-fov2], [window_ymid+fov2, img_mid+fov2]], remove_padding=False,
                       chunk_size=chunk_size)
 
     # do registration if this tile is not the mid-tile
-    print('Getting reslice ({}, {}) (this tile)'.format(irow, current_tile))
+    internal_print('Getting reslice ({}, {}) (this tile)'.format(irow, current_tile))
     this_section = get_reslice(dirname, slice_x=fov2, rotate=rotate)
     dxchange.write_tiff(this_section, os.path.join(dirname, 'reslice_{}_{}'.format(irow, current_tile)), dtype='float32', overwrite=True)
 
@@ -565,11 +565,11 @@ def refine_pair_shift_reslice(current_tile, irow, pair_shift, mid_tile, file_gri
         else:
             ref_tile = current_tile - 1
             ref_dirname = os.path.join(TEMP_FOLDER_RECON_RESLICE, str(irow), str(ref_tile))
-        print('Getting reslice ({}, {}) (ref tile)'.format(irow, ref_tile))
+        internal_print('Getting reslice ({}, {}) (ref tile)'.format(irow, ref_tile))
         ref_section = get_reslice(ref_dirname, slice_x=fov2, rotate=rotate)
 
         n_col = file_grid.shape[1]
-        print('Registering this tile ({}, {}) and ref tile ({}, {})'.format(irow, current_tile, irow, ref_tile))
+        internal_print('Registering this tile ({}, {}) and ref tile ({}, {})'.format(irow, current_tile, irow, ref_tile))
         if current_tile < mid_tile:
             shift_vec = create_stitch_shift(this_section,
                                             ref_section,
@@ -583,7 +583,7 @@ def refine_pair_shift_reslice(current_tile, irow, pair_shift, mid_tile, file_gri
                                             rangeY=(-10, 10))
             pair_shift[irow * n_col + current_tile - 1, :] = np.array([irow, current_tile, shift_vec[0], shift_vec[1], y_est, 0])
 
-        print(shift_vec)
+        internal_print(shift_vec)
 
     return pair_shift, center_grid
 

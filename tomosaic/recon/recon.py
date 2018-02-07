@@ -133,7 +133,7 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
         center_ls = sino_ls_all * a + b
         center_ls = np.round(center_ls)
         for iblock in range(int(sino_ls.size/chunk_size)+1):
-            print('Beginning block {:d}.'.format(iblock))
+            internal_print('Beginning block {:d}.'.format(iblock))
             t0 = time.time()
             istart = iblock * chunk_size
             iend = np.min([(iblock+1)*chunk_size, sino_ls.size])
@@ -179,7 +179,7 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
                 if save_sino:
                     dxchange.write_tiff(data[:, i, :], fname=os.path.join(dest_folder, 'sino/recon_{:05d}_{:d}.tiff').format(slice, int(center[i])))
             iblock += 1
-            print('Block {:d} finished in {:.2f} s.'.format(iblock, time.time()-t0))
+            internal_print('Block {:d} finished in {:.2f} s.'.format(iblock, time.time()-t0))
     else:
         # divide chunks
         grid_bins = np.append(np.ceil(shift_grid[:, 0, 0]), full_shape[1])
@@ -205,9 +205,9 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
         # reconstruct chunks
         iblock = 1
         for (istart, iend), center in zip(chunks, center_ls):
-            print('Beginning block {:d}.'.format(iblock))
+            internal_print('Beginning block {:d}.'.format(iblock))
             t0 = time.time()
-            print('Reading data...')
+            internal_print('Reading data...')
             sub_sino_ls = sino_ls[istart:iend]
             data = np.zeros([dset.shape[0], len(sub_sino_ls), dset.shape[2]])
             for ind, i in enumerate(sub_sino_ls):
@@ -256,7 +256,7 @@ def recon_hdf5(src_fanme, dest_folder, sino_range, sino_step, shift_grid, center
                     dxchange.write_tiff(rec[i, :, :], fname=os.path.join(dest_folder, 'recon/recon_{:05d}.tiff').format(slice), dtype=dtype)
                 if save_sino:
                     dxchange.write_tiff(data[:, i, :], fname=os.path.join(dest_folder, 'sino/recon_{:05d}_{:d}.tiff').format(slice, center), dtype=dtype)
-            print('Block {:d} finished in {:.2f} s.'.format(iblock, time.time()-t0))
+            internal_print('Block {:d} finished in {:.2f} s.'.format(iblock, time.time()-t0))
             iblock += 1
     return
 
@@ -327,8 +327,8 @@ def recon_block(grid, shift_grid, src_folder, dest_folder, slice_range, sino_ste
 
     alloc_set = allocate_mpi_subsets(sino_ls.size, size, task_list=sino_ls)
     for i_slice in alloc_set[rank]:
-        print('############################################')
-        print('Reconstructing ' + str(i_slice))
+        internal_print('############################################')
+        internal_print('Reconstructing ' + str(i_slice))
         row_sino, center_pos = create_row_sinogram(grid, shift_grid, src_folder, i_slice, center_vec, ds_level,
                                                    blend_method, blend_options, assert_width, sino_blur,
                                                    color_correction, normalize, mode, phase_retrieval, data_format)
@@ -353,7 +353,7 @@ def recon_block(grid, shift_grid, src_folder, dest_folder, slice_range, sino_ste
         rec = tomopy.remove_outlier(rec, tolerance)
         rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
 
-        print('Center:            {:d}'.format(center_pos))
+        internal_print('Center:            {:d}'.format(center_pos))
         rec = np.squeeze(rec)
         # correct recon position shifting due to center misalignment
         if center_pos_cache == 0:
@@ -388,7 +388,7 @@ def create_row_sinogram(grid, shift_grid, src_folder, i_slice, center_vec, ds_le
         bins = pix_shift_grid[:, col, 0]
         grid_lines[col] = int(np.squeeze(np.digitize(i_slice, bins)) - 1)
         if grid_lines[col] == -1:
-            print(
+            internal_print(
                 "WARNING: The specified starting slice number does not allow for full sinogram construction. Trying next slice...")
             return None, None, None
         slice_in_tile[col] = i_slice - bins[grid_lines[col]]
@@ -421,20 +421,20 @@ def prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=0, metho
             sinos[col] = load_sino(grid[grid_lines[col], col], slice_in_tile[col], normalize=normalize, data_format=data_format)
         else:
             pass
-    print('reading:           ' + str(time.time() - t))
+    internal_print('reading:           ' + str(time.time() - t))
     t = time.time()
     row_sino = register_recon(grid, grid_lines, shift_grid, sinos, method=method, blend_options=blend_options,
                               color_correction=color_correction, assert_width=assert_width)
     if not pad is None:
         row_sino, rot_center = pad_sino(row_sino, pad, rot_center)
 
-    print('stitch:           ' + str(time.time() - t))
-    print('final size:       ' + str(row_sino.shape))
+    internal_print('stitch:           ' + str(time.time() - t))
+    internal_print('final size:       ' + str(row_sino.shape))
 
     t = time.time()
     row_sino = tomopy.downsample(row_sino, level=ds_level)
-    print('downsample:           ' + str(time.time() - t))
-    print('new shape :           ' + str(row_sino.shape))
+    internal_print('downsample:           ' + str(time.time() - t))
+    internal_print('new shape :           ' + str(row_sino.shape))
 
     # t = time.time()
     # row_sino = tomopy.remove_stripe_fw(row_sino, 2)
@@ -455,7 +455,7 @@ def prepare_slice(grid, shift_grid, grid_lines, slice_in_tile, ds_level=0, metho
 def pad_sino(row_sino, pad, rot_center):
     if not pad is None and not pad < row_sino.shape[1]:
         if pad % 2 == 0:
-            print("Adding 1 to make odd padding width...")
+            internal_print("Adding 1 to make odd padding width...")
             pad += 1
         temp = np.zeros([row_sino.shape[0], 1, pad])
         temp[:, :, :] = np.min(row_sino)
@@ -465,29 +465,29 @@ def pad_sino(row_sino, pad, rot_center):
             temp[:, :, start:start + row_sino.shape[2]] = row_sino
             return (temp, int(pad_center))
         else:
-            print("WARNING: The specified padding width cannot accomodate current sinograms.")
+            internal_print("WARNING: The specified padding width cannot accomodate current sinograms.")
             return (row_sino, int(rot_center))
     elif pad < row_sino.shape[2]:
-        print("WARNING: Specified padding width is smaller than projection length. ")
+        internal_print("WARNING: Specified padding width is smaller than projection length. ")
         return (row_sino, int(rot_center))
 
 
 def recon_slice(row_sino, theta, center_pos, sinogram_order=False, algorithm=None,
                 init_recon=None, ncore=None, nchunk=None, **kwargs):
     t = time.time()
-    print(row_sino.shape)
+    internal_print(row_sino.shape)
     row_sino = row_sino.astype('float32')
     # row_sino = tomopy.normalize_bg(row_sino) # WARNING: normalize_bg can unpredicatably give bad results for some slices
     row_sino = tomopy.remove_stripe_ti(row_sino, alpha=4)
     rec = tomopy.recon(row_sino, theta, center=center_pos, sinogram_order=sinogram_order, algorithm=algorithm,
         init_recon=init_recon, ncore=ncore, nchunk=nchunk, **kwargs)
 
-    print('recon:           ' + str(time.time() - t))
+    internal_print('recon:           ' + str(time.time() - t))
     return rec
 
 
 def load_sino(filename, sino_n, normalize=True, data_format='aps_32id'):
-    print('Loading {:s}, slice {:d}'.format(filename, sino_n))
+    internal_print('Loading {:s}, slice {:d}'.format(filename, sino_n))
     sino_n = int(sino_n)
     sino, flt, drk, _ = read_data_adaptive(filename, sino=(sino_n, sino_n + 1), data_format=data_format)
     if not normalize:
@@ -536,8 +536,8 @@ def register_recon(grid, grid_lines, shift_grid, sinos, method='max', blend_opti
         row_sino = temp
     else:
         row_sino = row_sino[:, :, :assert_width].astype('float32')
-    print('stitch:           ' + str(time.time() - t))
-    print('final size:       ' + str(row_sino.shape))
+    internal_print('stitch:           ' + str(time.time() - t))
+    internal_print('final size:       ' + str(row_sino.shape))
     return row_sino
 
 
@@ -594,8 +594,8 @@ def recon_single(fname, center, dest_folder, sino_range=None, chunk_size=50, rea
             rec = rec[:, crop[0, 0]:crop[1, 0], crop[0, 1]:crop[1, 1]]
         for i in range(rec.shape[0]):
             slice = chunk_st + sino_step * i
-            print('Saving slice {}'.format(slice))
+            internal_print('Saving slice {}'.format(slice))
             dxchange.write_tiff(rec[i, :, :],
                                 fname=os.path.join(dest_folder, 'recon_{:05d}.tiff').format(slice),
                                 dtype='float32')
-        print('Block finished in {:.2f} s.'.format(time.time() - t0))
+        internal_print('Block finished in {:.2f} s.'.format(time.time() - t0))

@@ -114,7 +114,7 @@ def build_panorama(src_folder, file_grid, shift_grid, frame=0, method='max', met
                 prj = preprocess(prj, blur=blur)
                 t0 = time.time()
                 buff = blend(buff, np.squeeze(prj), shift_grid[y, x, :], method=method, color_correction=color_correction, **blend_options)
-                print('Rank: {:d}; Frame: {:d}; Pos: ({:d}, {:d}); Method: {:s}; Color Corr.:{:b}; Tile stitched in '
+                internal_print('Rank: {:d}; Frame: {:d}; Pos: ({:d}, {:d}); Method: {:s}; Color Corr.:{:b}; Tile stitched in '
                       '{:.2f} s.'.format(rank, frame, y, x, method, color_correction, time.time()-t0))
                 if last_none:
                     buff[margin:, margin:-margin][np.isnan(buff[margin:, margin:-margin])] = 0
@@ -150,8 +150,8 @@ def build_panorama(src_folder, file_grid, shift_grid, frame=0, method='max', met
                     last_none = True
             t0 = time.time()
             buff = blend(buff, row_buff, [offset, 0], method=method2, color_correction=False, **blend_options2)
-            print('Rank: {:d}; Frame: {:d}; Row: {:d}; Row stitched in {:.2f} s; Max: {}.'.format(rank, frame, y, time.time()-t0, buff[np.isfinite(buff)].max()))
-    print('Rank: {:d}; Frame: {:d}; Panorama built in {:.2f} s, Max: {}.'.format(rank, frame, time.time()-t00, buff[np.isfinite(buff)].max()))
+            internal_print('Rank: {:d}; Frame: {:d}; Row: {:d}; Row stitched in {:.2f} s; Max: {}.'.format(rank, frame, y, time.time()-t0, buff[np.isfinite(buff)].max()))
+    internal_print('Rank: {:d}; Frame: {:d}; Panorama built in {:.2f} s, Max: {}.'.format(rank, frame, time.time()-t00, buff[np.isfinite(buff)].max()))
     os.chdir(root)
     return buff
 
@@ -175,12 +175,12 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
         if not os.path.exists(dest_folder):
             os.mkdir(dest_folder)
         if os.path.exists(dest_folder + '/' + dest_fname):
-            print('Warning: File already exists. Continue anyway? (y/n) ')
+            internal_print('Warning: File already exists. Continue anyway? (y/n) ')
             cont = six.moves.input()
             if cont in ['n', 'N']:
                 exit()
             else:
-                print('Old file will be overwritten.')
+                internal_print('Old file will be overwritten.')
                 os.remove(dest_folder + '/' + dest_fname)
         f = h5py.File(os.path.join(dest_folder, dest_fname))
     comm.Barrier()
@@ -207,13 +207,12 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
     dset_flat[:, :, :] = np.ones(dset_flat.shape, dtype=dtype)
     dset_dark[:, :, :] = np.zeros(dset_dark.shape, dtype=dtype)
 
-    print('Started to build full hdf5.')
+    internal_print('Started to build full hdf5.')
     t0 = time.time()
     alloc_set = allocate_mpi_subsets(n_frames, size)
     for frame in alloc_set[rank]:
-        print('alloc set {:d}'.format(rank))
-        print('    Rank: {:d}; current frame: {:d}..'.format(rank, frame))
-        sys.stdout.flush()
+        internal_print('alloc set {:d}'.format(rank))
+        internal_print('    Rank: {:d}; current frame: {:d}..'.format(rank, frame))
         t00 = time.time()
         pano = np.zeros((full_height, full_width), dtype=dtype)
         # save_stdout = sys.stdout
@@ -224,10 +223,8 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
         # sys.stdout = save_stdout
         pano[:temp.shape[0], :temp.shape[1]] = temp.astype(dtype)
         dset_data[frame, :, :] = pano
-        print('    Frame {:d} done in {:.3f} s.'.format(frame, time.time() - t00))
-        sys.stdout.flush()
-    print('Data built and written in {:.3f} s.'.format(time.time() - t0))
-    sys.stdout.flush()
+        internal_print('    Frame {:d} done in {:.3f} s.'.format(frame, time.time() - t00))
+    internal_print('Data built and written in {:.3f} s.'.format(time.time() - t0))
     # try:
     #     os.remove('trash')
     # except:
@@ -271,7 +268,7 @@ def reorganize_dir(file_list, raw_ds=(2,4), dtype='float16', **kwargs):
 
     for fname in file_list:
         comm.Barrier()
-        print('Now processing '+str(fname))
+        internal_print('Now processing '+str(fname))
         # make downsampled subdirectories
         for ds in raw_ds:
             # create downsample folder if not existing
@@ -300,12 +297,12 @@ def reorganize_dir(file_list, raw_ds=(2,4), dtype='float16', **kwargs):
                 raw = o['exchange/data']
                 if rank == 0:
                     if os.path.exists(folder_name+'/'+fname):
-                        print('Warning: File already exists. Continue anyway? (y/n) ')
+                        internal_print('Warning: File already exists. Continue anyway? (y/n) ')
                         cont = six.moves.input()
                         if cont in ['n', 'N']:
                             continue
                         else:
-                            print('Old file will be overwritten. '+folder_name+'/' + fname)
+                            internal_print('Old file will be overwritten. '+folder_name+'/' + fname)
                             os.remove(folder_name+'/' + fname)
                     f = h5py.File(folder_name+'/'+fname)
                 comm.Barrier()
@@ -322,8 +319,8 @@ def reorganize_dir(file_list, raw_ds=(2,4), dtype='float16', **kwargs):
                     temp = raw[frame:frame+1, :, :]
                     temp = image_downsample(temp, ds)
                     dat[frame:frame+1, :, :] = temp
-                    print('\r    Rank: {:d}, DS: {:d}, at frame {:d}'.format(rank, ds, frame))
-                print(' ')
+                    internal_print('\r    Rank: {:d}, DS: {:d}, at frame {:d}'.format(rank, ds, frame))
+                internal_print(' ')
 
                 # downsample flat/dark field data
                 comm.Barrier()
@@ -332,14 +329,14 @@ def reorganize_dir(file_list, raw_ds=(2,4), dtype='float16', **kwargs):
                 dat = dat_grp.create_dataset('data_white', (aux_shape[0], np.floor(aux_shape[1]/ds),
                                                                   np.floor(aux_shape[2]/ds)), dtype=dtype)
                 comm.Barrier()
-                print('    Downsampling whites and darks')
+                internal_print('    Downsampling whites and darks')
                 n_whites = raw.shape[0]
                 alloc_sets = allocate_mpi_subsets(n_whites, size)
                 for frame in alloc_sets[rank]:
                     temp = raw[frame:frame+1, :, :]
                     temp = image_downsample(temp, ds)
                     dat[frame:frame+1, :, :] = temp
-                    print('\r    Rank: {:d}, DS: {:d}, at frame {:d}'.format(rank, ds, frame))
+                    internal_print('\r    Rank: {:d}, DS: {:d}, at frame {:d}'.format(rank, ds, frame))
 
                 raw = o['exchange/data_dark']
                 aux_shape = raw.shape
@@ -352,7 +349,7 @@ def reorganize_dir(file_list, raw_ds=(2,4), dtype='float16', **kwargs):
                     temp = raw[frame:frame+1, :, :]
                     temp = image_downsample(temp, ds)
                     dat[frame:frame+1, :, :] = temp
-                    print('\r    Rank: {:d}, DS: {:d}, at frame {:d}'.format(rank, ds, frame))
+                    internal_print('\r    Rank: {:d}, DS: {:d}, at frame {:d}'.format(rank, ds, frame))
 
                 comm.Barrier()
                 raw = o['exchange/theta']
@@ -361,4 +358,4 @@ def reorganize_dir(file_list, raw_ds=(2,4), dtype='float16', **kwargs):
                 comm.Barrier()
                 f.close()
                 comm.Barrier()
-                print('Done file: {:s} DS: {:d}'.format(fname, ds))
+                internal_print('Done file: {:s} DS: {:d}'.format(fname, ds))

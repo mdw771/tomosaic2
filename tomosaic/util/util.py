@@ -75,7 +75,8 @@ __all__ = ['get_files',
            'check_fname_ext',
            'image_downsample',
            'get_tilted_sinogram',
-           'most_neighbor_clustering']
+           'most_neighbor_clustering',
+           'internal_print']
 
 import os, glob, re
 import warnings
@@ -98,7 +99,7 @@ from tomopy import downsample
 import time
 import six.moves
 import gc
-
+import sys
 try:
     from mpi4py import MPI
 except:
@@ -590,3 +591,8 @@ def most_neighbor_clustering(data, radius):
                 counter[ind] += 1
     return data[np.where(counter == counter.max())]
 
+
+def internal_print(thing):
+
+    print(thing)
+    sys.stdout.flush()
