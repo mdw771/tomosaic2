@@ -66,6 +66,7 @@ __all__ = ['get_files',
            'save_partial_frames',
            'save_partial_raw',
            'file2grid',
+           'grid2file',
            'hdf5_retrieve_phase',
 	       'preprocess',
            'g_shapes',
@@ -175,26 +176,25 @@ def save_partial_raw(file_list, save_folder, data_format='aps_32id'):
 
 
 def grid2file(grid, file_name):
-    with file(file_name, 'w') as outfile:
-        # for data_slice in grid:
-        ncol = len(grid[0, 0, :])
-        nval = grid.shape[0] * grid.shape[1]
-        y_lst = np.zeros(nval)
-        x_lst = np.zeros(nval)
-        values = np.zeros([ncol, nval])
-        ind = 0
-        for y in range(grid.shape[0]):
-            for x in range(grid.shape[1]):
-                y_lst[ind] = y
-                x_lst[ind] = x
-                temp = grid[y, x, :]
-                values[:, ind] = temp
-                ind += 1
-        outarr = [y_lst, x_lst]
-        outarr = np.append(outarr, values, axis=0)
-        outarr = np.transpose(outarr)
-        outarr = np.squeeze(outarr)
-        np.savetxt(outfile, outarr, fmt=str('%4.2f'))
+    # for data_slice in grid:
+    ncol = len(grid[0, 0, :])
+    nval = grid.shape[0] * grid.shape[1]
+    y_lst = np.zeros(nval)
+    x_lst = np.zeros(nval)
+    values = np.zeros([ncol, nval])
+    ind = 0
+    for y in range(grid.shape[0]):
+        for x in range(grid.shape[1]):
+            y_lst[ind] = y
+            x_lst[ind] = x
+            temp = grid[y, x, :]
+            values[:, ind] = temp
+            ind += 1
+    outarr = [y_lst, x_lst]
+    outarr = np.append(outarr, values, axis=0)
+    outarr = np.transpose(outarr)
+    outarr = np.squeeze(outarr)
+    np.savetxt(file_name, outarr, fmt=str('%4.2f'))
     return
 
 
