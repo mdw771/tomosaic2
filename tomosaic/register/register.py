@@ -158,7 +158,8 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
         prj[prj > 1] = 1
         prj = -np.log(prj)
         prj[np.where(np.isnan(prj) == True)] = 0
-        main_prj = vig_image(prj)
+        # main_prj = vig_image(prj)
+        main_prj = prj
         pairs_shift[line, 0:2] = main_pos
 
         if (right_pos != None):
@@ -168,7 +169,8 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
             prj[prj > 1] = 1
             prj = -np.log(prj)
             prj[np.where(np.isnan(prj) == True)] = 0
-            right_prj = vig_image(prj)
+            # right_prj = vig_image(prj)
+            right_prj = prj
             shift_ini = shift_grid[right_pos] - shift_grid[main_pos]
             rangeX = shift_ini[1] + x_mask
             rangeY = shift_ini[0] + y_mask
@@ -189,7 +191,8 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
             prj[prj > 1] = 1
             prj = -np.log(prj)
             prj[np.where(np.isnan(prj) == True)] = 0
-            bottom_prj = vig_image(prj)
+            # bottom_prj = vig_image(prj)
+            bottom_prj = prj
             shift_ini = shift_grid[bottom_pos] - shift_grid[main_pos]
             rangeX = shift_ini[1] + x_mask
             rangeY = shift_ini[0] + y_mask
@@ -223,11 +226,22 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
     return pairs_shift
 
 
-def create_stitch_shift(block1, block2, rangeX=None, rangeY=None, down=0, upsample=100, histogram_equalization=False, take_max=False):
+def create_stitch_shift(block1, block2, rangeX=None, rangeY=None, down=0, upsample=100, histogram_equalization=False,
+                        take_max=False, remove_border=0.025):
     """
     Find the relative shift between two tiles. If the inputs are image stacks, the correlation function receives the
     maximum intensity projection along the stacking axis.
     """
+    proj_shape = block1.shape
+    if len(proj_shape) == 3:
+        proj_shape.pop(0)
+    pixel_removed = np.round(np.array(proj_shape) * remove_border).astype('int')
+    if block1.ndim == 2:
+        block1 = block1[pixel_removed[0]:-pixel_removed[0], pixel_removed[1]:-pixel_removed[1]]
+        block2 = block2[pixel_removed[0]:-pixel_removed[0], pixel_removed[1]:-pixel_removed[1]]
+    else:
+        block1 = block1[:, pixel_removed[0]:-pixel_removed[0], pixel_removed[1]:-pixel_removed[1]]
+        block2 = block2[:, pixel_removed[0]:-pixel_removed[0], pixel_removed[1]:-pixel_removed[1]]
     if rangeX is None:
         rangeX = (0, block1.shape[-1])
     if rangeY is None:
