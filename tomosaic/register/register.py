@@ -116,7 +116,7 @@ TEMP_FOLDER_MID_TILT = 'tilt_recons'
 
 def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=800, upsample=10,
                       y_mask=(-5, 5), x_mask=(-5, 5), motor_readout=None, histogram_equalization=False,
-                      data_format='aps_32id'):
+                      data_format='aps_32id', remove_border=0.02):
 
     root = os.getcwd()
     os.chdir(src_folder)
@@ -176,7 +176,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
             rangeY = shift_ini[0] + y_mask
             internal_print('    Calculating shift: {}'.format(right_pos))
             right_vec = create_stitch_shift(main_prj, right_prj, rangeX, rangeY, down=0, upsample=upsample,
-                                            histogram_equalization=histogram_equalization)
+                                            histogram_equalization=histogram_equalization, remove_border=remove_border)
             # if the computed shift drifts out of the mask, use motor readout instead
             if right_vec[0] <= rangeY[0] or right_vec[0] >= rangeY[1]:
                 right_vec[0] = 0
@@ -198,7 +198,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
             rangeY = shift_ini[0] + y_mask
             internal_print('    Calculating shift: {}'.format(bottom_pos))
             right_vec = create_stitch_shift(main_prj, bottom_prj, rangeX, rangeY, down=1, upsample=upsample,
-                                            histogram_equalization=histogram_equalization)
+                                            histogram_equalization=histogram_equalization, remove_border=remove_border)
             if right_vec[0] <= rangeY[0] or right_vec[0] >= rangeY[1]:
                 right_vec[0] = motor_readout[0]
             if right_vec[1] <= rangeX[0] or right_vec[1] >= rangeX[1]:
@@ -227,7 +227,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
 
 
 def create_stitch_shift(block1, block2, rangeX=None, rangeY=None, down=0, upsample=100, histogram_equalization=False,
-                        take_max=False, remove_border=0.025):
+                        take_max=False, remove_border=0.02):
     """
     Find the relative shift between two tiles. If the inputs are image stacks, the correlation function receives the
     maximum intensity projection along the stacking axis.
