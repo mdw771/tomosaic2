@@ -93,6 +93,7 @@ __all__ = ['cross_correlation_bf',
            'refine_shift_grid_hybrid',
            'refine_tilt_pc',
            'refine_tilt_bf',
+           'create_stitch_shift',
            'absolute_shift_grid']
 
 try:
@@ -227,6 +228,10 @@ def create_stitch_shift(block1, block2, rangeX=None, rangeY=None, down=0, upsamp
     Find the relative shift between two tiles. If the inputs are image stacks, the correlation function receives the
     maximum intensity projection along the stacking axis.
     """
+    if rangeX is None:
+        rangeX = (0, block1.shape[-1])
+    if rangeY is None:
+        rangeY = (0, block1.shape[0]) if block1.ndim == 2 else (0, block1.shape[1])
     feed1 = block1[...]
     feed2 = block2[...]
     if histogram_equalization:
