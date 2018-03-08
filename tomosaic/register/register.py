@@ -59,6 +59,7 @@ import os
 import operator
 import glob
 import re
+import warnings
 import time
 
 import numpy as np
@@ -66,8 +67,11 @@ from pyfftw.interfaces.numpy_fft import fft2, ifft2
 import tomopy
 from scipy import ndimage
 import scipy.ndimage.interpolation
-from skimage.feature import register_translation as sk_register
-from skimage.transform import AffineTransform, warp, FundamentalMatrixTransform
+try:
+    from skimage.feature import register_translation as sk_register
+    from skimage.transform import AffineTransform, warp, FundamentalMatrixTransform
+except:
+    warnings.warn('Cannot import skimage.FundamentalMatrixTransform.')
 import dxchange
 import h5py
 try:
