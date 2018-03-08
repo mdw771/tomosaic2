@@ -379,6 +379,7 @@ def create_row_sinogram(grid, shift_grid, src_folder, i_slice, center_vec, ds_le
                         mode='180', phase_retrieval=None, data_format='aps32id'):
 
     root = os.getcwd()
+    print(root)
     os.chdir(src_folder)
     pix_shift_grid = np.ceil(shift_grid)
     pix_shift_grid[pix_shift_grid < 0] = 0
