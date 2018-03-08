@@ -142,7 +142,15 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
     os.chdir(src_folder)
 
     if motor_readout is None:
-        motor_readout = [shift_grid[1, 0, 0], shift_grid[0, 1, 1]]
+        motor_readout = [0, 0]
+        try:
+            motor_readout[0] = shift_grid[1, 0, 0]
+        except:
+            pass
+        try:
+            motor_readout[1] = shift_grid[0, 1, 1]
+        except:
+            pass
 
     if (grid.shape[0] != shift_grid.shape[0] or grid.shape[1] != shift_grid.shape[1]):
         return
