@@ -379,7 +379,6 @@ def create_row_sinogram(grid, shift_grid, src_folder, i_slice, center_vec, ds_le
                         mode='180', phase_retrieval=None, data_format='aps32id'):
 
     root = os.getcwd()
-    print(root)
     os.chdir(src_folder)
     pix_shift_grid = np.ceil(shift_grid)
     pix_shift_grid[pix_shift_grid < 0] = 0
@@ -391,6 +390,7 @@ def create_row_sinogram(grid, shift_grid, src_folder, i_slice, center_vec, ds_le
         if grid_lines[col] == -1:
             internal_print(
                 "WARNING: The specified starting slice number does not allow for full sinogram construction. Trying next slice...")
+            os.chdir(root)
             return None, None
         slice_in_tile[col] = i_slice - bins[grid_lines[col]]
     center_pos = int(np.round(center_vec[grid_lines].mean()))
