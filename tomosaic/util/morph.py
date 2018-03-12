@@ -109,7 +109,7 @@ def arrange_image(img1, img2, shift, order=1, trim=True):
     else:
         img2 = realign_image(img2, adj_shift)
     if trim:
-        temp = np.zeros(img2.shape-np.ceil(np.abs(adj_shift)).astype('int'))
+        temp = np.zeros(np.array(img2.shape) - np.ceil(np.abs(adj_shift)).astype('int'))
         temp[:, :] = img2[:temp.shape[0], :temp.shape[1]]
         img2 = np.copy(temp)
         temp = 0
