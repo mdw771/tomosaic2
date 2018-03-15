@@ -445,7 +445,7 @@ def find_center_single(sino_name, search_range, search_step=1, preprocess_single
 def write_center(tomo, theta, dpath='tmp/center', cen_range=None, pad_length=0, remove_padding=True):
 
     for center in np.arange(*cen_range):
-        rec = tomopy.recon(tomo[:, 0:1, :], theta, algorithm='gridrec', center=center)
+        rec = tomopy.recon(tomo[:, 0:1, :], theta, algorithm='gridrec', center=center, filter_name='parzen')
         if not pad_length == 0 and remove_padding:
             rec = rec[:, pad_length:-pad_length, pad_length:-pad_length]
         dxchange.write_tiff(np.squeeze(rec), os.path.join(dpath, '{:.2f}'.format(center-pad_length)), overwrite=True)
