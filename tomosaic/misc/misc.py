@@ -309,6 +309,9 @@ def read_data_adaptive(fname, proj=None, sino=None, data_format='aps_32id', shap
             drk = np.zeros([1, flt.shape[1], flt.shape[2]]).astype('uint16')
             drk[...] = 64
 
+    if not (abs(theta[-1] - theta[0] - 2 * np.pi) < 0.1 or abs(theta[-1] - theta[0] - np.pi) < 0.1):
+        print('Detected theta problem in dataset. Replacing it with 0-180 linear space.')
+        theta = np.linspace(0, np.pi, dat.shape[0])
     if return_theta:
         return dat, flt, drk, theta
     else:
