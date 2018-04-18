@@ -297,13 +297,13 @@ def reorganize_dir(file_list, raw_ds=(2,4), dtype='float16', **kwargs):
                 raw = o['exchange/data']
                 if rank == 0:
                     if os.path.exists(folder_name+'/'+fname):
-                        internal_print('Warning: File already exists. Continue anyway? (y/n) ')
-                        cont = six.moves.input()
-                        if cont in ['n', 'N']:
-                            continue
-                        else:
-                            internal_print('Old file will be overwritten. '+folder_name+'/' + fname)
-                            os.remove(folder_name+'/' + fname)
+                        # internal_print('Warning: File already exists. Continue anyway? (y/n) ')
+                        # cont = six.moves.input()
+                        # if cont in ['n', 'N']:
+                        #     continue
+                        # else:
+                        internal_print('Old file will be overwritten. '+folder_name+'/' + fname)
+                        os.remove(folder_name+'/' + fname)
                     f = h5py.File(folder_name+'/'+fname)
                 comm.Barrier()
                 if rank != 0:
