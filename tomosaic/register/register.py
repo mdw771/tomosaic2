@@ -156,28 +156,45 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
         return
     pairs = find_pairs(grid)
     n_pairs = pairs.shape[0]
-
     pairs_shift = np.zeros([n_pairs, 6])
 
     sets = allocate_mpi_subsets(n_pairs, size)
-
+  
     for line in sets[rank]:
-        if (grid[pairs[line, 0]] == None):
+
+        main_pos   = pairs[line, 0]
+        right_pos  = pairs[line, 1]
+        bottom_pos = pairs[line, 2]
+        internal_print('Line {} ({})'.format(line, main_pos))
+        
+        
+        if (grid[main_pos] == None):
             internal_print("Block Inexistent")
             continue
-        main_pos = pairs[line, 0]
-        internal_print('Line {} ({})'.format(line, main_pos))
-        main_shape = read_data_adaptive(grid[main_pos], shape_only=True)
-        right_pos = pairs[line, 1]
-        if (right_pos != None):
+        else:
+            main_shape = read_data_adaptive(grid[main_pos], shape_only=True)
+
+        doRight = 0
+        if (right_pos!=None):
+            if(grid[right_pos]!=None):
+                doRight=1
+
+        doBottom = 0
+        if (bottom_pos!=None):
+            if(grid[bottom_pos]!=None):
+                doBottom=1
+
+
+        if (doRight):
             right_shape = read_data_adaptive(grid[right_pos], shape_only=True)
         else:
             right_shape = [0,0,0]
-        bottom_pos = pairs[line, 2]
-        if (bottom_pos != None):
+
+        if (doBottom):
             bottom_shape = read_data_adaptive(grid[bottom_pos], shape_only=True)
         else:
             bottom_shape = [0,0,0]
+
         size_max = max(main_shape[0],right_shape[0],bottom_shape[0])
         internal_print('    Reading data...')
         prj, flt, drk = read_data_adaptive(grid[main_pos], proj=(0, size_max, step), data_format=data_format, return_theta=False)
@@ -190,7 +207,8 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
         main_prj = prj
         pairs_shift[line, 0:2] = main_pos
 
-        if (right_pos != None):
+        if (doRight):
+            internal_print('    Loading Right Shift: {}'.format(grid[right_pos]))
             prj, flt, drk = read_data_adaptive(grid[right_pos], proj=(0, size_max, step), data_format=data_format, return_theta=False)
             prj = tomopy.normalize(prj, flt, drk)
             prj[np.abs(prj) < 2e-3] = 2e-3
@@ -202,7 +220,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
             shift_ini = shift_grid[right_pos] - shift_grid[main_pos]
             rangeX = shift_ini[1] + x_mask
             rangeY = shift_ini[0] + y_mask
-            internal_print('    Calculating shift: {}'.format(right_pos))
+            internal_print('    Calculating Right Shift: {}'.format(right_pos))
             right_vec = create_stitch_shift(main_prj, right_prj, rangeX, rangeY, down=0, upsample=upsample,
                                             histogram_equalization=histogram_equalization, remove_border=remove_border)
             # if the computed shift drifts out of the mask, use motor readout instead
@@ -212,7 +230,8 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
                 right_vec[1] = motor_readout[1]
             pairs_shift[line, 2:4] = right_vec
 
-        if (bottom_pos != None):
+        if (doBottom):
+            internal_print('    Loading Bottom Shift: {}'.format(grid[bottom_pos]))
             prj, flt, drk = read_data_adaptive(grid[bottom_pos], proj=(0, size_max, step), data_format=data_format, return_theta=False)
             prj = tomopy.normalize(prj, flt, drk)
             prj[np.abs(prj) < 2e-3] = 2e-3
@@ -224,7 +243,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
             shift_ini = shift_grid[bottom_pos] - shift_grid[main_pos]
             rangeX = shift_ini[1] + x_mask
             rangeY = shift_ini[0] + y_mask
-            internal_print('    Calculating shift: {}'.format(bottom_pos))
+            internal_print('    Calculating Bottom Shift: {}'.format(bottom_pos))
             right_vec = create_stitch_shift(main_prj, bottom_prj, rangeX, rangeY, down=1, upsample=upsample,
                                             histogram_equalization=histogram_equalization, remove_border=remove_border)
             if right_vec[0] <= rangeY[0] or right_vec[0] >= rangeY[1]:
@@ -245,12 +264,13 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
     comm.Barrier()
     os.chdir(root)
     if rank == 0:
+        internal_print('Saving shift.txt')
         try:
-            internal_print(pairs_shift)
+            #internal_print(pairs_shift)
             np.savetxt(os.path.join(dest_folder, 'shifts.txt'), pairs_shift, fmt=str('%4.2f'))
         except:
             internal_print('Warning: failed to save files. Please save pair shifts as shifts.txt manually:')
-            internal_print(pairs_shift)
+            #internal_print(pairs_shift)
     return pairs_shift
 
 
