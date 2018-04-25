@@ -101,8 +101,6 @@ def build_panorama(src_folder, file_grid, shift_grid, frame=0, method='max', met
     t00 = time.time()
     root = os.getcwd()
     os.chdir(src_folder)
-    cam_size = g_shapes(file_grid[0, 0])
-    cam_size = cam_size[1:3]
     buff = np.zeros([1, 1])
     last_none = False
     if method2 is None:
