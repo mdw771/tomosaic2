@@ -107,6 +107,7 @@ def build_panorama(src_folder, file_grid, shift_grid, frame=0, method='max', met
     last_none = False
     if method2 is None:
         for (y, x), value in np.ndenumerate(file_grid):
+            print (value)
             if (value != None and frame < g_shapes(value)[0]):
                 prj, flt, drk, _ = read_data_adaptive(value, proj=(frame, frame + 1), data_format=data_format)
                 prj = tomopy.normalize(prj, flt, drk)

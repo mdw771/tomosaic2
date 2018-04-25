@@ -170,6 +170,7 @@ def refine_shift_grid(grid, shift_grid, src_folder='.', dest_folder='.', step=80
         
         if (grid[main_pos] == None):
             internal_print("Block Inexistent")
+            pairs_shift[line, 0:2] = main_pos
             continue
         else:
             main_shape = read_data_adaptive(grid[main_pos], shape_only=True)
