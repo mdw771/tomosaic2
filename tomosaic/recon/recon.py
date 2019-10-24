@@ -324,7 +324,6 @@ def recon_block(grid, shift_grid, src_folder, dest_folder, slice_range, sino_ste
     center_pos_cache = 0
     sino_ls = np.arange(sino_ini, sino_end, sino_step, dtype='int')
 
-
     alloc_set = allocate_mpi_subsets(sino_ls.size, size, task_list=sino_ls)
     for i_slice in alloc_set[rank]:
         internal_print('############################################')
