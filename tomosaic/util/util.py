@@ -93,7 +93,6 @@ from tomosaic.util.phase import retrieve_phase
 from tomosaic.misc.misc import allocate_mpi_subsets, read_data_adaptive
 import shutil
 from scipy.ndimage import gaussian_filter
-from scipy.misc import imread, imsave
 from scipy.ndimage.interpolation import rotate
 import matplotlib.pyplot as plt
 from tomopy import downsample
@@ -232,9 +231,9 @@ def reorganize_tiffs():
                 shutil.copyfile(fname, folder_name+'/'+fname)
             # otherwise perform downsampling
             else:
-                temp = imread(fname, flatten=True)
+                temp = dxchange.read_tiff(fname).flatten()
                 temp = image_downsample(temp, ds)
-                imsave(folder_name+'/'+fname, temp, format='tiff')
+                dxchange.write_tiff(temp, folder_name+'/'+fname)
 
 
 def global_histogram(dmin, dmax, n_bins, plot=True):
@@ -244,7 +243,7 @@ def global_histogram(dmin, dmax, n_bins, plot=True):
     bin_width = (dmax - dmin) / n_bins
     for fname in tiff_list:
         print('Now analyzing'+fname)
-        temp = imread(fname, flatten=True)
+        temp = dxchange.read_tiff(fname).flatten()
         temp = np.ndarray.flatten(temp)
         myhist = myhist + np.histogram(temp, bins=mybins)[0]
     if plot:
@@ -338,7 +337,7 @@ def tiff2hdf5(src_folder, dest_folder, dest_fname, pattern='recon_*.tiff', displ
     filelist = glob.glob(os.path.join(src_folder, pattern))
     filelist = sorted(filelist)
     n_files = len(filelist)
-    temp = imread(filelist[0])
+    temp = dxchange.read_tiff(filelist[0])
     full_shape = np.array([n_files, temp.shape[0], temp.shape[1]])
     if rank == 0:
         if not os.path.exists(dest_folder):
@@ -352,7 +351,7 @@ def tiff2hdf5(src_folder, dest_folder, dest_fname, pattern='recon_*.tiff', displ
     alloc_set = allocate_mpi_subsets(n_files, size)
     dset = f['exchange/data']
     for i in alloc_set[rank]:
-        img = imread(filelist[i])
+        img = dxchange.read_tiff(filelist[i])
         dset[i, :, :] = img
         print('    Rank: {:d}, file: {:d}'.format(rank, i))
     comm.Barrier()
