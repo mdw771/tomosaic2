@@ -172,7 +172,8 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
     dest_fname = check_fname_ext(dest_fname, 'h5')
 
     if rank == 0:
-        n_frames, y_cam, x_cam = read_data_adaptive(file_grid[0, 0], shape_only=True, data_format=data_format)
+        n_frames, y_cam, x_cam = read_data_adaptive(os.path.join(src_folder, file_grid[0, 0]), shape_only=True, data_format=data_format)
+        os.makedirs(os.path.join(dest_folder, 'tmp'))
     else:
         n_frames = None
         y_cam = None
@@ -194,15 +195,17 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
         internal_print('alloc set {:d}'.format(rank))
         internal_print('    Rank: {:d}; current frame: {:d}..'.format(rank, frame))
         t00 = time.time()
-        pano = np.zeros((full_height, full_width), dtype=dtype)
-        # save_stdout = sys.stdout
-        # sys.stdout = open('log', 'w')
-        temp = build_panorama(src_folder, file_grid, shift_grid, frame=frame, method=blend_method, method2=blend_method2,
-                              blend_options=blend_options, blend_options2=blend_options2, blur=blur, color_correction=color_correction)
-        temp[np.isnan(temp)] = 0
-        # sys.stdout = save_stdout
-        pano[:temp.shape[0], :temp.shape[1]] = temp.astype(dtype)
-        dxchange.write_tiff(pano, os.path.join(dest_folder, 'tmp', str(frame)), dtype='float32', overwrite=True)
+        # Skip frames that are already stitched.
+        if not os.path.exists(os.path.join(dest_folder, 'tmp', str(frame) + '.tiff')):
+            pano = np.zeros((full_height, full_width), dtype=dtype)
+            # save_stdout = sys.stdout
+            # sys.stdout = open('log', 'w')
+            temp = build_panorama(src_folder, file_grid, shift_grid, frame=frame, method=blend_method, method2=blend_method2,
+                                  blend_options=blend_options, blend_options2=blend_options2, blur=blur, color_correction=color_correction)
+            temp[np.isnan(temp)] = 0
+            # sys.stdout = save_stdout
+            pano[:temp.shape[0], :temp.shape[1]] = temp.astype(dtype)
+            dxchange.write_tiff(pano, os.path.join(dest_folder, 'tmp', str(frame)), dtype='float32', overwrite=True)
         internal_print('    Frame {:d} done in {:.3f} s.'.format(frame, time.time() - t00))
     internal_print('Data built in {:.3f} s.'.format(time.time() - t0))
 
