@@ -245,7 +245,10 @@ def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, ble
             dset_data[frame, :, :] = pano
         f.close()
         internal_print('Data built and written in {:.3f} s.'.format(time.time() - t0))
-        os.remove(os.path.join(dest_folder, 'tmp'))
+        internal_print('Removing temporary folder...')
+        shutil.rmtree(os.path.join(dest_folder, 'tmp'))
+        internal_print('Done.')
+    comm.Barrier()
 
 # def total_fusion(src_folder, dest_folder, dest_fname, file_grid, shift_grid, blend_method='pyramid', blend_method2=None,
 #                  blend_options={}, blend_options2={}, blur=None, color_correction=False, data_format='aps_32id',
