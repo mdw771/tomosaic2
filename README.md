@@ -31,11 +31,9 @@ Copy the Python scripts to the same directory where you save all the HDF5 data f
 
 4. Run `python mosaic_find_center.py`. It will write reconstructions generated with a series of rotation center settings (+/- 5 from the phase correlation guess, calculated using the 0 and 180 projections generated in step 3) into `./center`. You can then check those output files to manually refine the center. 
 
-5. Open `center_pos.txt` which is created automatically in the last step. If a phase correlation guess was done, the file should contain something like
-```
+5. Open `center_pos.txt` which is created automatically in the last step. If a phase correlation guess was done, the file should contain something like```
 0 xxxx
-1 xxxx
-```
+1 xxxx```
 where the first integer at each line is the grid row index, and the second number is the center value. Change the values to your manually refined results (if applicable). 
 
 6. Open `mosaic_recon.py`, set `slice_st` and `slice_end`, make sure `mode` is `discrete`, and run `python mosaic_recon.py`.
