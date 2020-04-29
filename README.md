@@ -12,6 +12,9 @@ and then use PIP to build and install:
 pip install -e ./tomosaic2
 ```
 
+## Example dataset
+We have made a working example dataset (the charcoal data shown in the paper) public on TomoBank, so that anyone can grab the data for a trial run! Data can be downloaded from here(https://tomobank.readthedocs.io/en/latest/source/data/docs.data.tomosaic.html).
+
 ## How to use
 The most convenient way to use Tomosaic is through Automo(https://github.com/decarlof/automo), a higher-level wrapper for Tomosaic which also includes a collection of script files to be used in the Tomosaic workflow. If you would rather not use Automo, move on to the following:
 
