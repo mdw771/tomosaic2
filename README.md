@@ -44,3 +44,7 @@ where the first integer at each line is the grid row index, and the second numbe
 6. Open `mosaic_recon.py`, set `slice_st` and `slice_end`, make sure `mode` is `discrete`, and run `python mosaic_recon.py`.
 
 (Note: Mode `discrete` stitches sinograms for each slice instead of doing x-y stitching for each projection angle. The latter is called the `merged` mode and requires you to create a merged HDF5 file before reconstruction. This can be done using `mosaic_merge.py`. For details, please read the Automo documentation.)
+
+## Publications
+Vescovi, R. et al. Tomosaic: efficient acquisition and reconstruction of teravoxel tomography data using limited-size synchrotron X-ray beams. *Journal of Synchrotron Radiation* **25**, (2018).
+  
