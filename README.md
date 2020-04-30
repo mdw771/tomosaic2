@@ -1,6 +1,6 @@
 # Tomosaic
 
-Tomosaic is a library for Panoramic or Mosaic Tomography.\
+Tomosaic is a library for Panoramic or Mosaic Tomography.
 
 ## Installation
 Get this repository to your hard drive using 
